@@ -1,0 +1,57 @@
+service:
+  #grpcAddr: 127.0.0.1:8088  #单机开多个实例请不要指定端口
+  grpcqps: 10000
+  httpAddr: 0.0.0.0:6666
+  httpqps: 10000  #支持运行时动态调整
+  logfile: "/logs/iot_mqtt_service.log"
+  loglevel: "debug"
+
+database:
+  - database: iot_device
+    driver: mysql
+    connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_device?charset=utf8mb4&parseTime=True&loc=Local
+  - database: iot_app
+    driver: mysql
+    connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_app?charset=utf8mb4&parseTime=True&loc=Local
+
+redis:
+  Cluster: false
+  Addrs: ["redis-server:6379"]
+  Username:
+  Password: "iLmz8sCXjkTYuh"
+  Database: 0
+  MinIdleConns: 5
+  IdleTimeout: 600
+  PoolSize: 10
+  MaxConnAge: 3600
+
+
+MQTT:
+  addrs: ["tcp://haproxy:1885"]  #如果是集群部署，请配置一个地址
+  clientid: "svr_iot_mqtt_service.test"
+  user: "iotmqttdataservice"
+  password: "98259a97aa89bfda2bcab66523e1a84d"
+  offline: false   #指定掉线时要不要发遗嘱消息
+  CacheControl:
+    Register: 600 #单位：秒
+    Publish: 600 #单位：秒
+    Subscribe: 600 #单位：秒
+  rate: 1000
+  bursts: 1000
+  
+MQTTAuth:
+  SvrSalt: "mysalt"
+  TestingClientPrefix: "axytesting"
+  TestingUserName: "stresstesting"
+  TestingPassword: "stresstesting@2022"
+
+NATS:
+  addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]
+
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""

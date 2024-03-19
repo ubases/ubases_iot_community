@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package service;
+import "common.proto";
+option go_package = ".;protosService";
+
+service ContractUsService {
+  //推送联系我们通知
+  rpc PushContractUsNotice(ContractUsNoticeRequest) returns (Response);
+}
+
+//联系我们通知请求
+message ContractUsNoticeRequest {
+  string name = 101;
+  string phone = 102;
+  string companyName = 103;
+  string email = 104;
+  string content = 105;
+}

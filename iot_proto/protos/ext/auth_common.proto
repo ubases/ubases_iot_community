@@ -1,0 +1,242 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+
+message MiniProgramLoginRequest{
+  string channel = 101;
+  string code = 102;
+  //客户端Id
+  string clientIp = 103;
+  //客户端信息
+  string explorer = 104;
+  //操作系统
+  string os = 105;
+}
+
+message PhoneCodeLoginRequest{
+  string phone = 101;
+  string code = 102;
+  //平台类型 （cloud 管理平台 developer 开发者平台）
+  string platformType = 103;
+  //租户ID（开放平台使用）
+  string tenantId = 104;
+  // 渠道
+  string channel = 105;
+  //客户端Id
+  string clientIp = 106;
+  //客户端信息
+  string explorer = 107;
+  //区域Id
+  int64 regionServerId = 108;
+  //操作系统
+  string os = 109;
+}
+
+message EmailCodeLoginRequest{
+  string email = 101;
+  string code = 102;
+  //平台类型 （cloud 管理平台 developer 开发者平台）
+  string platformType = 103;
+  //租户ID（开放平台使用）
+  string tenantId = 104;
+  // 渠道
+  string channel = 105;
+  //客户端Id
+  string clientIp = 106;
+  //客户端信息
+  string explorer = 107;
+  //区域Id
+  int64 regionServerId = 108;
+  //操作系统
+  string os = 109;
+}
+
+message PasswordLoginRequest{
+  // 渠道
+  string channel = 101;
+  //用户名,
+  string loginName = 102;
+  // 密码
+  string password = 103;
+  // 验证码
+  string verifyCode = 104;
+  //平台类型 （cloud 管理平台 developer 开发者平台）
+  string platformType = 105;
+  //租户ID
+  string tenantId = 106;
+  //appKey
+  string appKey = 107;
+  //区域Id
+  int64 regionServerId = 108;
+  //客户端Id
+  string clientIp = 109;
+  //客户端信息
+  string explorer = 110;
+  //操作系统
+  string os = 111;
+}
+
+message LogoutRequest {
+  string token = 101;
+}
+
+message CloudUserInfo {
+  int64 userId = 101;
+  string nickName = 102;
+  string avatar = 103;
+  int64 deptId = 104;//云平台用户才有
+  repeated string roleIds = 105;//云平台用户才有，多个用逗号分隔
+  repeated string postIds = 106;//云平台用户才有，多个用逗号分隔
+  string tenantId = 107;//开发者平台才有
+  int32 accountType = 108;
+}
+
+message CloudLoginResponse {
+  string token = 101;
+  //refresh token
+  string refreshToken = 102;
+  //token的过期时间
+  int64 expiresAt = 103;
+  CloudUserInfo userInfo = 104;
+}
+
+message AppLoginResponse {
+  //access token
+  string token = 101;
+  //新的refresh token
+  string refreshToken = 102;
+  AppUser userInfo = 103;
+  //token的过期时间
+  int64 expiresAt = 104;
+}
+
+message LogoutResponse {
+  string result = 101;
+}
+
+message VerifyTokenRequest{
+  string token = 101;
+}
+
+message APPVerifyTokenResponse{
+  //原token是否有效
+  bool valid = 101;
+  //若valid有效,返回过期时间和userInfo,以便调用方缓存使用
+  //若valid无效,则不返回后续内容
+  int64 expiresAt = 102;
+  AppUser userInfo = 103;
+}
+
+message CloudVerifyTokenResponse{
+  //原token是否有效
+  bool valid = 101;
+  //若valid有效,返回过期时间和userInfo,以便调用方缓存使用
+  //若valid无效,则不返回后续内容
+  int64 expiresAt = 102;
+  CloudUserInfo userInfo = 103;
+}
+
+
+//通过旧的refresh token换取新的token和新的refresh token
+message RefreshTokenRequest{
+  string refreshToken = 101;
+  string tenantId = 102;
+}
+
+message CloudRefreshTokenResponse{
+  //原token是否有效
+  bool valid = 101;
+  //新的token
+  CloudLoginResponse  data = 102;
+}
+
+message AppRefreshTokenResponse{
+  //原token是否有效
+  bool valid = 101;
+  //新的token
+  AppLoginResponse  data = 102;
+}
+
+message AppUser {
+  int64 id = 101;
+  string nickName = 102;
+  string phone = 103;
+  string photo = 104;
+  int32 status = 105;
+  string city = 106;
+  int32 gender = 107;
+  string email = 108;
+  string defaultHomeId = 109;
+  string registerRegion = 110;
+  string account = 111;
+  string token = 112;
+  bool accountCasser = 113; // 中断账号注销操作，账号待注销状态，如果为true则App将弹出注销恢复提醒
+  int64 submitCancelTime  = 114;// 原注销提交时间，前端提示使用
+  repeated AppUserThirdPartyLogin thirdPartyLogin = 115; //第三方登录
+  string userName = 116;
+  string password = 117;
+  //区域Id
+  int64 regionServerId = 118;
+  string tenantId = 119;
+  string appKey = 120;
+}
+
+message AppUserThirdPartyLogin {
+  int32 mode = 101; //登录方式 =1 微信 =5 AppleId
+  string loginKey = 102;
+  string nickname = 103;
+}
+
+message AppThirdRequest{
+  // 授权code  微信和支付宝渠道,传code
+  string code = 101;
+  // 第三方userid  AppleId渠道,传channelId
+  string channelId = 102;
+  // 第三方类型 1-微信,5-AppleId,6-小程序
+  string mode = 103;
+  // 第三方昵称
+  string nickname = 104;
+  // ip
+  string ip = 105;
+  string appId = 106;
+  string appSecret = 107;
+  string homeName = 108;
+
+  string tenantId = 109;
+  //appKey
+  string appKey = 110;
+  //区域Id
+  int64 regionServerId = 111;
+}
+
+message AppThirdResponse {
+  string openId = 101;
+  string token = 102;
+  string nickname = 103;
+  AppUser userInfo = 104;
+  int32 type = 105;
+}
+
+message GetTokenRequest{
+  int64 userId = 101;
+  string nickname = 102;
+  string avatar = 103;
+  string account = 104;
+  int64 regionServerId = 105;
+  string appKey = 106;
+  string tenantId = 107;
+}
+
+message GetTokenByAccountRequest{
+    //用户名,
+    string loginName = 101;
+    // 密码
+    string password = 102;
+    //租户ID
+    string tenantId = 103;
+    //appKey
+    string appKey = 104;
+    //区域Id
+    int64 regionServerId = 105;
+}

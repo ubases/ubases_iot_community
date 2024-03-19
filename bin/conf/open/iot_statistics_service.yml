@@ -1,0 +1,50 @@
+service:
+  #grpcAddr: 127.0.0.1:8088  #单机开多个实例请不要指定端口
+  grpcqps: 10000
+  logfile: "/logs/iot_statistics_service.log"
+  loglevel: "debug"
+
+database:
+  - database: iot_device
+    driver: mysql
+    connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_device?charset=utf8mb4&parseTime=True&loc=Local
+  - database: iot_open_system
+    driver: mysql
+    connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_open_system?charset=utf8mb4&parseTime=True&loc=Local
+  - database: iot_app_build
+    driver: mysql
+    connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_app_build?charset=utf8mb4&parseTime=True&loc=Local
+  - database: iot_statistics
+    driver: mysql
+    connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_statistics?charset=utf8mb4&parseTime=True&loc=Local
+  - database: iot_app
+    driver: mysql
+    connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_app?charset=utf8mb4&parseTime=True&loc=Local
+
+redis:
+  Cluster: false
+  Addrs: ["redis:6379"]
+  Username:
+  Password: "iLmz8sCXjkTYuh"
+  Database: 0
+  MinIdleConns: 5
+  IdleTimeout: 600
+  PoolSize: 10
+  MaxConnAge: 3600
+
+xxlJob:
+  enable: true
+  serverAddr: http://xxl-job-admin:8088/xxl-job-admin
+  accessToken: abchd@^&#^&uUU
+  executorIp: iot_statistics_service
+  executorPort: 9999
+  registryKey: jobs-statistics
+
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""
+

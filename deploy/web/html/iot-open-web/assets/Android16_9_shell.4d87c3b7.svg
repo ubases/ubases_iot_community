@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="160px" height="317px" viewBox="0 0 160 317" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>4</title>
+    <g id="05APP开发（V1.0.2)" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="界面配置-android启动图1" transform="translate(-1170.000000, -442.000000)">
+            <g id="内容" transform="translate(275.000000, 80.000000)">
+                <g id="预览效果" transform="translate(795.000000, 259.000000)">
+                    <g id="4" transform="translate(100.000000, 103.861290)">
+                        <rect id="矩形" fill="#1C1C1C" x="0" y="0" width="160" height="316" rx="12"></rect>
+                        <rect id="矩形" stroke="#DAE6F8" opacity="0.299077943" x="63.5" y="290.5" width="33" height="15" rx="7.5"></rect>
+                        <circle id="椭圆形" stroke="#DAE6F8" opacity="0.299077943" cx="63.5" cy="17.5" r="2"></circle>
+                        <rect id="矩形" fill="#FFFFFF" x="9" y="29" width="142" height="252"></rect>
+                        <rect id="矩形" stroke="#DAE6F8" opacity="0.299077943" x="69.5" y="15.5" width="29" height="3" rx="1.5"></rect>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

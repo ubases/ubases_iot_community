@@ -1,0 +1,26 @@
+syntax = "proto3";
+package tConfigTranslate;
+option go_package = ".;protosService";
+
+// The tConfigTranslate service definition.
+service TConfigTranslate {
+  rpc CreateTConfigTranslate(TConfigTranslateRequest) returns (TConfigTranslateResponse) {  }
+  rpc UpdateTConfigTranslate(TConfigTranslateRequest) returns (TConfigTranslateResponse) {  }
+
+}
+
+message TConfigTranslateResponse {
+  int64 id=1;
+  int32 code=2;
+  string msg=3;
+
+}
+
+message TConfigTranslateRequest {
+  int64 id=1;
+  string translateCode=2;
+  string en=3;
+  string zh=4;
+  string jp=5;
+
+}

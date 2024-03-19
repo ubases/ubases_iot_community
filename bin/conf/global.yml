@@ -1,0 +1,51 @@
+lightColour:
+  mainColor: "#343A40"        #  重要文字
+  plainColor: "#70757D"       #  普通文字
+  secondaryColor: "#8392A7"   #  次要信息
+  cardBgColor: "#FFFFFF"      #  卡片底色
+  dialogBgColor: "#FFFFFF"    #  弹窗底色
+  dialogBtnBgColor: "#F4F8FE" #  弹窗操作按钮底色
+  dividerColor: "#F4F8FE"     #  分割线
+  arrowRightColor: "#8392A7"  #  列表右侧箭头
+  arrowLeftColor: "#70757D"   #  导航栏左侧返回箭头
+  lineColor: "#70757D" #
+  ringColor: "#70757D" #
+  solidColor: "#DAE6F8" #
+  noSelectedBgColor: "#DAE6F8" #
+  circleColor: "#DAE6F8"   # 新建家庭未选择房间圆圈颜色
+  shareColor: "#FFFFFF"    # 共享 图片
+  guanjiColor: "#8392A7"   # 首页关机颜色
+  guanjiBgColor: "#EEEEF0" # 首页关机背景颜色
+  dashedColor: "#8392A7"   #
+  offLineCardBgColor: "#EEEEF0" #
+  onLineCardBgColor: "#FAFAFC" #
+  cardShadow: "0px 1px 4px 0px rgba(200,200,200,0.2000)"    # 卡片阴影
+  bottomShadow: "0px -2px 6px 0px rgba(200,200,200,0.2000)" # 底部阴影
+  noSelectedBntBgColor: "rgba(255,255,255,0.05)"            #  群组设备，虚拟体验，未选中时背景颜色
+  dialogSpecialColor: "#F4F8FE"
+  specialColor: "#FFFFFF"
+dark:
+  mainColor : "rgba(255,255,255,0.8)"       #  重要文字
+  plainColor : "rgba(255,255,255,0.5)"      #  普通文字
+  secondaryColor : "rgba(255,255,255,0.3)"  #  次要信息
+  cardBgColor : "rgba(255,255,255,0.05)"     #  卡片底色
+  dialogBgColor : "#34393C"                 #  弹窗底色
+  dialogBtnBgColor : "#3F4346"              #  弹窗操作按钮底色
+  dividerColor : "rgba(255,255,255,0.05)"   #  分割线
+  arrowRightColor : "rgba(255,255,255,0.3)" #  列表右侧箭头
+  arrowLeftColor : "rgba(255,255,255,0.8)"  #  导航栏左侧返回箭头
+  lineColor : "rgba(255,255,255,0.05)"
+  ringColor : "rgba(255,255,255,0.05)"
+  solidColor : "rgba(255,255,255,0.3)"
+  noSelectedBgColor : "rgba(255,255,255,0.1)"
+  circleColor : "rgba(255,255,255,0.3)"
+  shareColor : "rgba(255,255,255,0.5)"
+  guanjiColor : "rgba(255,255,255,0.5)"
+  guanjiBgColor : "rgba(255,255,255,0.1)"
+  dashedColor : "rgba(255,255,255,0.3)"
+  offLineCardBgColor : "rgba(255,255,255,0.03)"
+  onLineCardBgColor : "rgba(255,255,255,0.05)"
+  cardShadow : "0px 2px 6px 0px rgba(0,0,0,0.1000)"    # 卡片阴影
+  bottomShadow : "0px -2px 6px 0px rgba(0,0,0,0.1000)" # 底部阴影
+  noSelectedBntBgColor : "#f5f6f7"                     # 深色 #f5f6f7 浅色： #FFFFFF 5%    群组设备，虚拟体验，未选中时背景颜色
+  dialogSpecialColor: "#FFFFFF"

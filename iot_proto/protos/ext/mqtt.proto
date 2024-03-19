@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package service;
+
+import "common.ext.proto";
+option go_package = ".;protosService";
+
+
+service MqttService {
+    //发布消息到MQTT
+    rpc Publish(PublishMessage) returns (ResponseEx){}
+
+    //保存用户，具体是新增还是修改，由业务逻辑判断
+    rpc SaveMqttUser(MqttUser) returns (ResponseEx){}
+
+    //查询用户
+    rpc GetMqttUser(FilterMqttUser) returns (ResponseEx){}
+
+    //删除用户
+    rpc DeleteMqttUser(FilterMqttUser) returns (ResponseEx){}
+
+    //批量发布
+    rpc BatchPublish(BatchPublishMessage) returns (ResponseEx){}
+
+    //生成三元组
+    rpc BatchGenTriad(BatchGenTriadRequest) returns (BatchGenTriadResponse){}
+
+    //校验三元组
+    rpc VerifyTriad(VerifyTriadRequest) returns (VerifyTriadResponse){}
+    //生成虚拟设备三元组
+    rpc GenVirtualTriad(BatchGenTriadRequest) returns (BatchGenTriadResponse){}
+}
+
+//发送精确的消息
+message PublishMessage {
+    string topic_full_name = 1;
+    string message_content = 2;
+    Qos qos = 3;
+    bool retained = 4;
+}
+
+//批量发送的消息
+message BatchPublishMessage {
+    repeated string topic_full_name_list = 1;
+    string message_content = 2;
+    Qos qos = 3;
+    bool retained = 4;
+}
+
+
+enum Qos {
+    AtMostOnce = 0;
+    AtLeastOnce = 1;
+    ExactlyOnce =2;
+}
+
+message FilterMqttUser {
+    //根据client_id查询,预留，暂时不用
+    string client_id = 1;
+    //根据user_name查询
+    string user_name = 2;
+}
+
+message MqttUser {
+    string name = 1;
+    string password =2;
+    string salt = 3;
+    string client_id = 6;
+    string password_hash = 8;
+}
+
+message Triad {
+    string id = 101;
+    string user = 102;
+    string password =103;
+    string salt = 104;
+}
+
+//批量生成三元组请求参数
+message BatchGenTriadRequest {
+    int64 nums = 101;
+}
+//批量生成三元组响应参数
+message BatchGenTriadResponse {
+    int64 code = 101;
+    string msg = 102;
+    repeated Triad data = 103;
+}
+
+message VerifyTriadResult {
+    string id = 101;
+    bool result = 102;
+}
+
+//校验三元组请求参数
+message VerifyTriadRequest {
+    repeated Triad data = 101;
+}
+
+//校验三元组响应参数
+message VerifyTriadResponse {
+    int64 code = 101;
+    string msg = 102;
+    map<string, bool> data = 103;
+}

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package service;
+//import "auth_common.proto";
+option go_package = ".;protosService";
+
+//需要立即发送的短信，其它可异步发送的短信请走消息队列，不要调用接口
+service SmsService {
+  //发送验证码
+  rpc SendCode(SendSMSCodeRequest) returns (SendSMSResponse);
+  //发送短信验证码(扩展)
+  rpc SendSMSVerifyCode(SendSMSVerifyCodeRequest) returns (SendSMSResponse);
+  //异地登录提醒
+  rpc SendLoggedIn(SendSMSLoggedInRequest) returns (SendSMSResponse);
+  //注册提醒
+  rpc SendRegister(SendSMSRegisterRequest) returns (SendSMSResponse);
+}
+
+message SendSMSCodeRequest {
+  string phone_number = 101;
+  string userName = 102;
+  string code = 103;
+  string lang = 104;
+}
+
+message SendSMSVerifyCodeRequest {
+  string phoneNumber = 101;
+  string userName = 102;
+  string code = 103;
+  string lang = 104;
+  int32 tplType = 105;
+  int32 phoneType = 106;
+}
+
+message SendSMSLoggedInRequest {
+  string phone_number = 101;
+  string userName = 102;
+  string ip = 103;
+  string lang = 104;
+}
+
+message SendSMSRegisterRequest {
+  string phone_number = 101;
+  string userName = 102;
+  string lang = 103;
+}
+
+message SendSMSResponse {
+  bool status = 101;
+}

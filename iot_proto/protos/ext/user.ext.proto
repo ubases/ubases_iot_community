@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+
+service AppApiUserExtService {
+  rpc UpdateUserPassword(UpdateUserPasswordReq) returns (UpdateUserPasswordResponse) {}
+}
+
+message UpdateUserPasswordReq {
+  int64 userid = 1;
+  string newpassword = 2;
+}
+
+message UpdateUserPasswordResponse {
+  int64 userId = 1;
+  string roleId = 2;
+}

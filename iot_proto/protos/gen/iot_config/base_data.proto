@@ -1,0 +1,155 @@
+syntax = "proto3";
+package baseData;
+option go_package = ".;protosService";
+
+// The baseData service definition.
+service BaseData {
+  rpc UpdateTConfigDictData(TConfigDictDataRequest) returns (TConfigDictDataResponse) {  }
+  rpc ListTConfigDictData(TConfigDictDataFilterPage) returns (TConfigDictDataResponseList) {  }
+  rpc DeleteTConfigDictData(TConfigDictDataRequest) returns (TConfigDictDataResponse) {  }
+  rpc GetTConfigDictData(TConfigDictDataFilter) returns (TConfigDictDataRequest) {  }
+  rpc CreateTConfigDictData(TConfigDictDataRequest) returns (TConfigDictDataResponse) {  }
+  rpc GetTConfigDictType(TConfigDictTypeFilter) returns (TConfigDictTypeRequest) {  }
+  rpc CreateTConfigDictType(TConfigDictTypeRequest) returns (TConfigDictTypeResponse) {  }
+  rpc UpdateTConfigDictType(TConfigDictTypeRequest) returns (TConfigDictTypeResponse) {  }
+  rpc ListTConfigDictType(TConfigDictTypeFilterPage) returns (TConfigDictTypeResponseList) {  }
+  rpc DeleteTConfigDictType(TConfigDictTypeRequest) returns (TConfigDictTypeResponse) {  }
+
+}
+
+message TConfigDictDataResponseList {
+ int64 total=1;
+ int32 code=2;
+ string msg=3;
+ repeated TConfigDictDataRequest list=4;
+
+}
+
+message TConfigDictTypeResponseList {
+ int64 total=1;
+ int32 code=2;
+ string msg=3;
+ repeated TConfigDictTypeRequest list=4;
+
+}
+
+message TConfigDictDataFilter {
+  int64 id=1;
+  string name=2;  //名称
+  string dict_type=3;  //字典类型
+
+}
+
+message TConfigDictDataFilterPage {
+  int64 page=1;
+  int64 limit=2;
+  int64 sort=3;
+  int64 sortField=4;
+  string searchKey=5;
+  TConfigDictDataFilter queryObj=6;
+  string queryStr=7;
+
+}
+
+message TConfigDictDataResponse {
+  int64 id=1;
+  int32 code=2;
+  string msg=3;
+
+}
+
+message TConfigDictDataFilterALL {
+  sint64 dict_code=1;
+  int32 dict_sort=2;
+  string dict_label=3;
+  string dict_value=4;
+  string dict_type=5;
+  string css_class=6;
+  string list_class=7;
+  int32 is_default=8;
+  int32 status=9;
+  string create_by=10;
+  string update_by=11;
+  string remark=12;
+  string created_at=13;
+  string updated_at=14;
+  string deleted_at=15;
+
+}
+
+message TConfigDictDataRequest {
+  sint64 dict_code=1;
+  int32 dict_sort=2;
+  string dict_label=3;
+  string dict_value=4;
+  string dict_type=5;
+  string css_class=6;
+  string list_class=7;
+  int32 is_default=8;
+  int32 status=9;
+  string create_by=10;
+  string update_by=11;
+  string remark=12;
+  string created_at=13;
+  string updated_at=14;
+  string deleted_at=15;
+  string pinyin=16;
+  string firstletter=17;
+  string listimg=18;
+
+}
+
+message TConfigDictTypeFilterALL {
+  sint64 dict_id=1;
+  string dict_name=2;
+  string dict_type=3;
+  int32 status=4;
+  string create_by=5;
+  string update_by=6;
+  string remark=7;
+  string created_at=8;
+  string updated_at=9;
+  string deleted_at=10;
+
+}
+
+message TConfigDictTypeRequest {
+  sint64 dict_id=1;
+  string dict_name=2;
+  string dict_type=3;
+  int32 status=4;
+  string create_by=5;
+  string update_by=6;
+  string remark=7;
+  string created_at=8;
+  string updated_at=9;
+  string deleted_at=10;
+
+}
+
+message TConfigDictTypeFilter {
+  int64 id=1;
+  string dict_name=2;
+  string dict_type=3;
+
+}
+
+message TConfigDictTypeFilterPage {
+  int64 page=1;
+  int64 limit=2;
+  int64 sort=3;
+  int64 sortField=4;
+  string searchKey=5;
+  TConfigDictTypeFilter queryObj=6;
+  string queryStr=7;
+
+}
+
+message TConfigDictTypeResponse {
+  int64 id=1;
+  int32 code=2;
+  string msg=3;
+
+}
+
+

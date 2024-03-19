@@ -1,0 +1,58 @@
+################### 微服务业务配置 ####################
+service:
+#  grpcAddr: 127.0.0.1:8088  #单机开多个实例请不要指定端口
+  grpcqps: 10000
+#  httpAddr: 0.0.0.0:6666
+  httpqps: 1000  #支持运行时动态调整
+  logfile: "/logs/iot_app_oem_service.log"
+  loglevel: "debug"
+
+database:
+  database: iot_app_build
+  driver: mysql
+  connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_app_build?charset=utf8mb4&parseTime=True&loc=Local
+
+appBuild:
+  AssociatedDomains: "%s.XXXXXXXX.XXXXXXXXXXXXX.com"
+
+redis:
+  Cluster: false
+  Addrs: ["redis:6379"]
+  Username:
+  Password: "iLmz8sCXjkTYuh"
+  Database: 0
+  MinIdleConns: 5
+  IdleTimeout: 600
+  PoolSize: 10
+  MaxConnAge: 3600
+
+NATS:
+  addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]
+
+oss:
+  useOss: "qiniu"
+  qiniu:
+    Endpoint: "XXXXXX.YYYYYY.com"
+    AccessKeyID: "y11X6zb5rSjGZEJz3itOx7k_mi6-XXXXXXXXXXX"
+    AccessKeySecret: "KGZOrY-xkABwU5GVXJfohgbgEXXXXXXXXXXXXXX"
+    BucketName: "aithings-docs"
+  ali:
+    Endpoint: "oss-cn-shenzhen.aliyuncs.com"
+    AccessKeyID: ""
+    AccessKeySecret: ""
+    BucketName: ""
+  s3:
+    Endpoint: "https://ubases.s3.amazonaws.com"
+    AccessKeyID: ""
+    AccessKeySecret: ""
+    BucketName: ""
+    Region: "us-east-1"
+
+################### 以下是微服务治理配置 ####################
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""

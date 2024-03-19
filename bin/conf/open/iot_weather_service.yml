@@ -1,0 +1,54 @@
+################### 微服务业务配置 ####################
+service:
+  grpcqps: 10000
+  logfile: "/logs/iot_weather_service.log"
+  loglevel: "debug"
+
+#GeoLite IP地址数据库
+geo:
+  dbpath: "./conf/GeoLite2-City.mmdb"
+  licensekey: ""
+  interval: 48
+
+#IP地址服务
+ipService:
+  queryUrl: "https://ips.market.alicloudapi.com/iplocaltion?ip="
+  appCode: "APPCODE XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+#openweathermap
+weather:
+  provider: openweathermap
+  apikey:
+  aqicnToken:
+  qps: 60
+  interval: 1800  #间隔秒数
+
+#易客云
+yiketianqi:
+  enabled: true
+  appid:
+  appsecret:
+
+
+redis:
+  Cluster: false
+  Addrs: ["redis:6379"]
+  Username:
+  Password: "iLmz8sCXjkTYuh"
+  Database: 0
+  MinIdleConns: 5
+  IdleTimeout: 600
+  PoolSize: 10
+  MaxConnAge: 3600
+  
+NATS:
+  addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]
+
+################### 以下是微服务治理配置 ####################
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""

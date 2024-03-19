@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package service;
+//import "auth_common.proto";
+option go_package = ".;protosService";
+
+//文件存储服务
+service OssService {
+    //确认上传Id
+    rpc ConfirmUploadId(ConfirmRequest) returns(ConfirmResponse){}
+    //todo 文件管理相关接口，如list、delete等
+}
+
+message ConfirmRequest {
+    string uploadId = 101;
+}
+message ConfirmResponse {
+    bool status = 101;
+}

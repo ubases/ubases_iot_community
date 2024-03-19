@@ -1,0 +1,268 @@
+version: '3.7'
+
+services:
+  iot_app_api_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_app_api_service.Dockerfile
+    container_name: iot_app_api_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    ports:
+      - "8081:8081"
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.50
+  iot_app_oem_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_app_oem_service.Dockerfile
+    container_name: iot_app_oem_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.51
+  iot_app_user_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_app_user_service.Dockerfile
+    container_name: iot_app_user_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.52
+  iot_basic_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_basic_service.Dockerfile
+    container_name: iot_basic_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.53
+  iot_cloud_api_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_cloud_api_service.Dockerfile
+    container_name: iot_cloud_api_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    ports:
+      - "8083:8083"
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.54
+  iot_device_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_device_service.Dockerfile
+    container_name: iot_device_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.55
+  iot_intelligence_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_intelligence_service.Dockerfile
+    container_name: iot_intelligence_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.56
+  iot_log_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_log_service.Dockerfile
+    container_name: iot_log_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.57
+  iot_message_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_message_service.Dockerfile
+    container_name: iot_message_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.58
+  iot_mqtt_data_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_mqtt_data_service.Dockerfile
+    container_name: iot_mqtt_data_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.59
+    depends_on:
+      - iot_mqtt_service
+  iot_mqtt_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_mqtt_service.Dockerfile
+    container_name: iot_mqtt_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    ports:
+      - "6666:6666"
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.60
+  iot_open_system_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_open_system_service.Dockerfile
+    container_name: iot_open_system_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.61
+  iot_product_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_product_service.Dockerfile
+    container_name: iot_product_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.62
+  iot_smart_speaker_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_smart_speaker_service.Dockerfile
+    container_name: iot_smart_speaker_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    ports:
+      - "8082:8082"
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.63
+    depends_on:
+      - iot_app_oem_service
+  iot_statistics_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_statistics_service.Dockerfile
+    container_name: iot_statistics_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.64
+  iot_system_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_system_service.Dockerfile
+    container_name: iot_system_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.65
+  iot_weather_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_weather_service.Dockerfile
+    container_name: iot_weather_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.66
+  iot_demo_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_demo_service.Dockerfile
+    container_name: iot_demo_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.67
+  iot_demo_api_service:
+    build:
+      context: ../..
+      dockerfile: ./deploy/service/iot_demo_api_service.Dockerfile
+    container_name: iot_demo_api_service
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    ports:
+      - "8089:8089"
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.68
+networks:
+  iot_network:
+    external: true
+    name: docker_iot_network

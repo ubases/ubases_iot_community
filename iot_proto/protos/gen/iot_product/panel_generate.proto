@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+import "google/protobuf/timestamp.proto";
+
+import "opm_panel_model.gen.proto";
+import "opm_panel_studio_model.gen.proto";
+
+service PanelGenerateService {
+  rpc GenerateAndBuild(OpmPanel) returns (PanelGenerateResponse) {}
+  rpc GeneratePanelCode(OpmPanel) returns (PanelGenerateResponse) {}
+}
+
+message PanelGenerateResponse {
+  int32 code = 101;
+  string message = 102;
+  int64 total = 103;
+  repeated OpmPanel data = 104;
+  string panelZipPath = 105;
+  string panelOssPath = 106;
+}

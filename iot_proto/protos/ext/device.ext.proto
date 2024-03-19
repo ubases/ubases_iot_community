@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package service;
+//option go_package = ".;protosService";
+option go_package = ".;protosService";
+
+service DeviceInfoExtService {
+  rpc GetDeviceInfo(DeviceInfoFilterReq) returns (DeviceInfoRsp) {}  //获取设备信息
+  rpc GetDeviceInfoList(DeviceInfoListFilterReq) returns (DeviceInfoRsp) {}  //获取设备信息
+  rpc SetDeviceActive(DeviceActiveReq) returns (DeviceActiveRsp) {} //设置设备激活
+}
+
+message DeviceInfoFilterReq {
+  string did = 1;
+}
+
+message DeviceInfoListFilterReq {
+  string did = 1;
+  string homeid = 2;
+  string userid = 3;
+}
+
+message DeviceInfoRsp {
+  string code = 1;
+  string msg = 2;
+  repeated DeviceInfoModel list = 3;
+}
+
+message DeviceInfoModel {
+  string did = 1; //设备id
+  string name = 2; //设备名称
+  uint64 productid = 3;
+  uint64 batchid = 4;
+  uint64 roomid = 5;//房间id
+  uint64 homeid = 6;
+  string pic = 7;
+  string secret = 8;
+  string model = 9;
+  string status = 10;
+  string attrs = 11;
+}
+
+message DeviceActiveReq {
+  string did = 1;
+  string model = 2;
+  string secret = 3;
+  string userid = 4;
+  string homeid = 5;
+}
+
+message DeviceActiveRsp {
+  string code = 1;
+  string msg = 2;
+  uint64 data = 3;
+}

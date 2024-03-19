@@ -1,0 +1,80 @@
+################### 微服务业务配置 ####################
+service:
+  #grpcAddr: 127.0.0.1:8088  #单机开多个实例请不要指定端口
+  grpcqps: 10000
+  httpqps: 1000  #支持运行时动态调整
+  logfile: "/logs/iot_message_service.log"
+  loglevel: "debug"
+
+database:
+  database: iot_message
+  driver: mysql
+  connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_message?charset=utf8mb4&parseTime=True&loc=Local
+
+#gorush　APP消息推送
+gorush:
+  url: http://gorush:18021
+
+#极光　APP消息推送
+jpush:
+  appKey: "92f98e6b0e403b2424ff6d97"
+  secret: "82899161d462dc68d8c24c92"
+  apnsProduction: true
+
+#短信服务
+SMS:
+  provider: Aliyun
+  accessId: XXXXXXXXXXXXXXXXXXXXXX
+  accessKey: XXXXXXXXXXXXXXXXXXXXXXXXXXX
+  sign:
+    zh: XXX公司
+    en: "XXXXX"
+  other: []  #阿里国际短信10dlc
+
+#钉钉服务，不用可以不配置
+notice:
+  dingtalk:
+    keyword: "官网联系通知"
+    webhook: ""
+    secert: ""
+
+#邮件发送配置
+smtp:
+  host: smtp.exmail.qq.com
+  port: 465
+  #############用户名、密码已被删除，请本地用自己的邮箱测试###############
+  userName: XXXXXX@tech-now.com
+  password: XXXXXXX
+  connectTimeout: 10
+  sendTimeout: 10
+  helo: "XXX"
+  keepAlive: true
+  exchange: false #exchange邮箱服务器要设置
+  authType: 0 #0:AuthPlain; 1:AuthLogin; 3:AuthCRAMMD5; 4:AuthNone
+  ssl: 3 #0:NONE;  3:SSLTLS;  4:STARTTLS; 注意:1和2弃用
+  from: XXXXXXXXXXXXXXX
+
+redis:
+  Cluster: false
+  Addrs: ["redis:6379"]
+  Username:
+  Password: "iLmz8sCXjkTYuh"
+  Database: 0
+  MinIdleConns: 5
+  IdleTimeout: 600
+  PoolSize: 10
+  MaxConnAge: 3600
+
+NATS:
+  addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]
+
+################### 以下是微服务治理配置 ####################
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""
+
+

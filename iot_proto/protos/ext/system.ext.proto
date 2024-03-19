@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+
+service AppUserExtService {
+  rpc GetRoleUser(RoleUserReq) returns (RoleUserResponse) {}
+}
+
+message RoleUserReq {
+  int64 userid = 1;
+}
+
+message RoleUserResponse {
+  int64 userId = 1;
+  string roleId = 2;
+}

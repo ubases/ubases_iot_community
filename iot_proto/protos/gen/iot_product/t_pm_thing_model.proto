@@ -1,0 +1,91 @@
+syntax = "proto3";
+package tPmThingModel;
+option go_package = ".;protosService";
+
+
+
+// The tPmThingModel service definition.
+service TPmThingModel {
+  rpc UpdateTPmThingModel(TPmThingModelRequest) returns (TPmThingModelResponse) {  }  //update 
+ rpc DeleteTPmThingModel(TPmThingModelRequest) returns (TPmThingModelResponse) {  }  //delete 
+ rpc GetByIdTPmThingModel(TPmThingModelFilterById) returns (TPmThingModelResponseObject) {  }  //query struct by id 
+ rpc GetTPmThingModel(TPmThingModelFilter) returns (TPmThingModelResponseObject) {  }  //query struct by struct 
+ rpc ListTPmThingModel(TPmThingModelFilterPage) returns (TPmThingModelResponseList) {  }  //query list by paging 
+ rpc CreateTPmThingModel(TPmThingModelRequest) returns (TPmThingModelResponse) {  }  //create
+
+}
+
+message TPmThingModelFilter {
+ int64 id=1;  //主键（雪花算法19位） 
+ string product_key=2;  //产品唯一标识 
+ int64 product_type_id=3;  //产品类型ID 
+ int32 standard=4;  //是否标准品类 0-否 1-是 
+ string version=5;  //物模型版本号 
+ string description=6;  //物模型描述 
+ int64 created_by=7;  //创建人 
+ string created_time=8;  //创建时间 
+ int64 updated_by=9;  //修改人 
+ string updated_time=10;  //修改时间 
+ int32 deleted=11;  //删除的标识 0-正常 1-删除
+
+}
+
+message TPmThingModelRequest {
+ int64 id=1;  //主键（雪花算法19位） 
+ string product_key=2;  //产品唯一标识 
+ int64 product_type_id=3;  //产品类型ID 
+ int32 standard=4;  //是否标准品类 0-否 1-是 
+ string version=5;  //物模型版本号 
+ string description=6;  //物模型描述 
+ int64 created_by=7;  //创建人 
+ string created_time=8;  //创建时间 
+ int64 updated_by=9;  //修改人 
+ string updated_time=10;  //修改时间 
+ int32 deleted=11;  //删除的标识 0-正常 1-删除
+ repeated int64 ids = 12; //ID列表
+
+}
+
+message TPmThingModelFilterById {
+ int64 id=1; 
+
+}
+
+message TPmThingModelFilterPage {
+ int64 page=1; 
+ int64 limit=2; 
+ int64 sort=3; 
+ int64 sortField=4; 
+ string searchKey=5; 
+ TPmThingModelFilter queryObj=6; 
+ string queryStr=7; 
+
+}
+
+message TPmThingModelResponseObject {
+ int32 code=1; 
+ string msg=2; 
+ TPmThingModelRequest data=3; 
+
+}
+
+message TPmThingModelResponseList {
+ int64 total=1; 
+ int32 code=2; 
+ string msg=3; 
+ repeated TPmThingModelRequest list=4; 
+
+}
+
+message TPmThingModelResponse {
+ int32 code=1; 
+ string msg=2; 
+ TPmThingModelRequest data=3; 
+
+}
+
+message TPmThingModelFilterByProductId {
+ int64 productId=1;
+ int64 productTypeId=2;
+}
+

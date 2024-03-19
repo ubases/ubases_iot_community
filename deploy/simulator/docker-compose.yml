@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+  iot_device_simulator:
+    build:
+      context: .
+      dockerfile: iot_device_simulator.Dockerfile
+    container_name: iot_device_simulator
+    privileged: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./logs:/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.151
+networks:
+  iot_network:
+    external: true
+    name: docker_iot_network

@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package service;
+import "google/protobuf/timestamp.proto";
+option go_package = ".;protosService";
+
+service StatisticsService {
+    //数据统计开发者列表
+    rpc GetDeveloperList(DeveloperStatListRequest) returns (DeveloperStatListResponse);
+    //开发者统计表查询详情
+    rpc GetDeveloperDetail(DeveloperDetailFilter) returns (DeveloperDetailResponse);
+    rpc GetDeveloperStatistics(NULL) returns (DeveloperStatisticsResponse);
+    rpc GetAppDataDetail(AppDataDetailFilter) returns (AppDataDetailResponse);
+    rpc GetDeviceTotalStatistics(NULL) returns (DeviceStatisticsResponse);
+}
+
+message DeveloperListFilter {
+    string userName = 101;
+    google.protobuf.Timestamp startTime = 102;
+    google.protobuf.Timestamp endTime = 103;
+}
+
+message DeveloperStatListRequest {
+    DeveloperListFilter query = 101;
+    int64 page = 102;
+    int64 pageSize = 103;
+    string orderKey = 104;
+    string orderDesc = 105;
+    string searchKey = 106;
+}
+
+message DeveloperStat {
+    string userId = 101;
+    string userName = 102;
+    google.protobuf.Timestamp registerTime = 103;
+    int32 online = 104;
+    string loginAddr = 105;
+    int64 quantity = 106;
+    int64 activeDeviceTotal = 107;
+    int64 appTotal = 108;
+}
+
+message DeveloperStatListResponse {
+    int32 code = 101;
+    string message = 102;
+    int64 total = 103;
+    repeated DeveloperStat data = 104;
+}
+
+message DeveloperDetailFilter {
+    string userId = 101;
+    string userName = 102;
+}
+
+message DeveloperDetailResponse {
+    string userId = 101;
+    string userName = 102;
+    string account = 103;
+    string companyName = 104;
+    string roleName = 105;
+    int64 activeDeviceTotal = 106;
+    int64 appTotal = 107;
+    repeated AppStatistics appList = 108;
+}
+
+message AppStatistics {
+    string appId = 101;
+    string appKey = 102;
+    string appName = 103;
+    string devStatus = 104;
+    string version = 105;
+    int64 verTotal = 106;
+}
+
+message DeveloperStatisticsResponse {
+    int64 total = 101;
+    int64 onlineTotal = 102;
+}
+
+message NULL {
+
+}
+
+message AppDataDetailFilter {
+    string appId = 101;
+}
+
+message AppDataDetailResponse {
+    string account = 101;
+    int64 acitveUserTotal = 102;
+    string appName = 103;
+    string appType = 104;
+    int64 registerUserTotal = 105;
+    repeated AppVersion  versionList = 111;
+}
+
+message AppVersion {
+    string appVersion = 101;
+    int64 buildNumber  = 102;
+    int64 devStatus = 103;
+    int64 lastOptTime = 104;
+    string lastOptUser = 105;
+}
+
+message DeviceStatisticsResponse {
+    int64 activeTotal = 101;
+    int64 onlineTotal = 102;
+}

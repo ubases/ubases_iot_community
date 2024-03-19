@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+
+service UnifiedIdentityAuthService {
+	rpc GenerateJwtToken(TokenGenRequest) returns (TokenResponse) {}
+	rpc ParseJwtToken(TokenRequest) returns (TokenResponse) {}
+}
+
+message UnifiedIdentityAuth {
+	map<string,string>  header = 1;
+	bytes  body = 2 ;
+}
+
+message TokenGenRequest {
+	map<string,string> params = 1;
+}
+
+message TokenRequest {
+	string token = 1;
+}
+
+message TokenResponse {
+	int32 code = 1;
+	string msg = 2;
+	TokenUserInfo data = 3;
+}
+
+message TokenUserInfo {
+	int64 userid = 1;
+	string username = 2;
+	string token = 3;
+}

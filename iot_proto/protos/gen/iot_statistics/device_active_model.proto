@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+
+message DeviceActiveListFilter {
+    string tenantId = 101;
+    string productKey = 102;
+}
+
+message  OpenActiveEntitys  {
+    Data  deviceMonActive = 101;
+    Data  deviceDayActive = 102;
+    int32 deviceTodayActive = 103;
+    int32 device7DayActive = 104;
+    int32 deviceActiveAll = 105;
+}
+
+message Data  {
+    int64 total = 101;
+    repeated TimeData data = 102;
+}
+
+message TimeData  {
+    string time = 101;
+    int64 total = 102;
+}
+
+message DeviceActiveResponse {
+    int32 code = 101;
+    string message = 102;
+    OpenActiveEntitys data = 104;
+}

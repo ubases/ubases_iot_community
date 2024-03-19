@@ -1,0 +1,29 @@
+version: '3.7'
+
+services:
+  nginx:
+    image: nginx:1.21
+    container_name: nginx
+    privileged: true
+    ports:
+      - 2885:2885  # 语音服务接口
+      - 2886:2886  # APP接口暴露的端口
+      - 2887:2887  # 开放前端项目暴露的端口
+      - 2888:2888  # 云管前端项目暴露的端口
+    expose:
+      - 2885
+      - 2886
+      - 2887
+      - 2888
+    volumes:
+      - ./html:/opt/nginx/html
+      #- ./cert:/opt/nginx/cert
+      - ./conf/nginx.conf:/etc/nginx/nginx.conf
+      - ./log:/etc/nginx/logs
+    networks:
+      iot_network:
+        ipv4_address: 172.16.0.100
+networks:
+  iot_network:
+    external: true
+    name: docker_iot_network

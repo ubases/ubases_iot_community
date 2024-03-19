@@ -1,0 +1,62 @@
+################### 微服务业务配置 ####################
+service:
+  httpAddr: 0.0.0.0:8081
+  httpqps: 100000  #支持运行时动态调整
+  IPLimitRequest: 5000
+  logfile: "/logs/iot_app_api_service.log"
+  loglevel: "debug"
+  thirdPartyRequirePwd: false
+
+DeviceMQTT:
+  Ip: haproxy
+  Port: 1883
+  Nationcode: "CN"
+  noAclProducts: []
+
+appmqtt:
+  addrs: ["ws://haproxy:8883/mqtt"]
+
+redis:
+  Cluster: false
+  Addrs: ["redis:6379"]
+  Username:
+  Password: "iLmz8sCXjkTYuh"
+  Database: 0
+  MinIdleConns: 5
+  IdleTimeout: 600
+  PoolSize: 50
+  MaxConnAge: 3600
+
+oss:
+  useOss: "qiniu"
+  imgStyle:
+    productImg: ""
+  qiniu:
+    Endpoint: "XXXXXX.YYYYYY.com"
+    AccessKeyID: "y11X6zb5rSjGZEJz3itOx7k_mi6-XXXXXXXXXXX"
+    AccessKeySecret: "KGZOrY-xkABwU5GVXJfohgbgEXXXXXXXXXXXXXX"
+    BucketName: "aithings-docs"
+  ali:
+    Endpoint: ""
+    AccessKeyID: ""
+    AccessKeySecret: ""
+    BucketName: ""
+  s3:
+    Endpoint: ""
+    AccessKeyID: ""
+    AccessKeySecret: ""
+    BucketName: ""
+    Region: "us-east-1"
+
+################### 以下是微服务治理配置 ####################
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""
+
+NATS:
+  addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]
+

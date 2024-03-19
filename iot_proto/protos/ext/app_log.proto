@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+import "google/protobuf/timestamp.proto";
+
+service AppLogService {
+    rpc CreateAppLogUser (AppLogUser) returns (AppLogCommonResponse) {}
+    rpc UpdateAppLogUser (AppLogUser) returns (AppLogCommonResponse) {}
+    rpc DeleteAppLogUser (AppLogUser) returns (AppLogCommonResponse) {}
+    rpc GetAppLogUser (AppLogUser) returns (AppLogUser) {}
+    rpc GetAppLogUserList (AppLogUserListReq) returns (AppLogUserListResp) {}
+    rpc GetAppLogRecordsList (AppLogRecordsListReq) returns (AppLogRecordsListResp) {}
+}
+
+message AppLogUserQuery {
+    string account = 101;
+    string appName = 102;
+    string region = 103;
+    int64 regionServerId = 104;
+}
+
+message AppLogUserListReq {
+    int64 page = 101;
+    int64 limit = 102;
+    AppLogUserQuery query = 103;
+}
+
+message AppLogUser {
+    int64 id = 101;
+    string account = 102;
+    string appKey = 103;
+    string tenantId = 104;
+    string appName = 105;
+    string region = 106;
+    google.protobuf.Timestamp loginTime = 107;
+    google.protobuf.Timestamp createdAt = 108;
+    int64 regionServerId = 109;
+}
+
+message AppLogUserData {
+    repeated AppLogUser list = 101;
+    int64 total = 102;
+}
+
+message AppLogUserListResp {
+    int32 code = 101;
+    string msg = 102;
+    AppLogUserData data = 103;
+}
+
+message AppLogRecordsQuery {
+    string startTime = 101;
+    string endTime = 102;
+    string eventName = 103;
+    string logType = 104;
+}
+
+message AppLogRecordsListReq {
+    string account = 101;
+    string appKey = 102;
+    string tenantId = 103;
+    int64 page = 104;
+    int64 limit = 105;
+    AppLogRecordsQuery query = 106;
+    int64 regionServerId = 107;
+}
+
+message AppLogRecords {
+    int64 id = 101;
+    string account = 102;
+    string appKey = 103;
+    string tenantId = 104;
+    string eventName = 105;
+    string logType = 106;
+    map<string,string> details = 107;
+    google.protobuf.Timestamp createdAt = 108;
+    int64 regionServerId = 109;
+}
+
+message AppLogRecordsData {
+    repeated AppLogRecords list = 101;
+    int64 total = 102;
+}
+
+message AppLogRecordsListResp {
+    int32 code = 101;
+    string msg = 102;
+    AppLogRecordsData data = 103;   
+}
+
+message AppLogCommonResponse {
+    int32 code = 101;
+    string msg = 102;
+}

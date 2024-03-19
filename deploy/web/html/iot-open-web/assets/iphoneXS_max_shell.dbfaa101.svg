@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="178px" height="373px" viewBox="0 0 178 373" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>编组 9</title>
+    <defs>
+        <rect id="path-1" x="6" y="6.86129032" width="166" height="359" rx="8"></rect>
+    </defs>
+    <g id="05APP开发（V1.0.2)" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="界面配置-iOS启动页面（已上传效果）" transform="translate(-1156.000000, -442.000000)">
+            <g id="内容" transform="translate(275.000000, 80.000000)">
+                <g id="预览效果" transform="translate(795.000000, 259.861290)">
+                    <g id="编组-9" transform="translate(86.000000, 102.138710)">
+                        <rect id="矩形" fill="#1C1C1C" x="0" y="0" width="178" height="373" rx="14"></rect>
+                        <mask id="mask-2" fill="white">
+                            <use xlink:href="#path-1"></use>
+                        </mask>
+                        <use id="矩形" fill="#FFFFFF" xlink:href="#path-1"></use>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

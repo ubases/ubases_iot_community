@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="160px" height="321px" viewBox="0 0 160 321" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>5</title>
+    <g id="05APP开发（V1.0.2)" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="界面配置-iOS启动页面（默认app应用图标）" transform="translate(-1170.000000, -442.000000)">
+            <g id="内容" transform="translate(275.000000, 80.000000)">
+                <g id="预览效果" transform="translate(795.000000, 259.861290)">
+                    <g id="5" transform="translate(100.000000, 103.000000)">
+                        <rect id="矩形" fill="#1C1C1C" x="0" y="0" width="160" height="320" rx="16"></rect>
+                        <circle id="椭圆形" stroke="#DAE6F8" opacity="0.296170967" cx="80.5" cy="302.5" r="10"></circle>
+                        <rect id="矩形" fill="#FFFFFF" x="8" y="29" width="145" height="257"></rect>
+                        <rect id="矩形" stroke="#DAE6F8" opacity="0.296170967" x="69.5" y="15.5" width="29" height="3" rx="1.5"></rect>
+                        <circle id="椭圆形" stroke="#DAE6F8" opacity="0.296170967" cx="63.5" cy="17.5" r="2"></circle>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

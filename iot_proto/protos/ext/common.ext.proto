@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package service;
+
+import "google/protobuf/any.proto";
+
+option go_package = ".;protosService";
+
+message ResponseAndData {
+  int32 code = 1;
+  string msg = 2;
+  string data = 3;
+}
+
+//统一列表查询方式，支持分页和排序
+message RequestEx {
+  google.protobuf.Any query = 101;
+  int32 page = 102;
+  int32 pageSize = 103;
+  string orderKey = 104;
+  string orderDesc = 105;
+}
+
+//统一响应方式，data是单个对象
+message ResponseEx {
+  int32 code = 201;
+  string message = 202;
+  google.protobuf.Any data = 203;
+  Meta meta = 204;
+}
+
+//统一响应方式，data是多个对象
+message ResponseExs {
+  int32 code = 201;
+  string message = 202;
+  repeated google.protobuf.Any data = 203;
+  Meta meta = 204;
+}
+
+message Meta {
+  int64 total = 101;
+}

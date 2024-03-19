@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+
+service VoiceService {
+    rpc CreateClientInfo (ClientInfoReq) returns (ClientInfoResp) {}
+}
+
+message ClientInfoReq {
+    repeated ClientInfo clientInfo = 101;
+}
+
+message ClientInfo {
+    string clientId = 101;
+    string clientSecret = 102;
+    string domain = 103;
+}
+
+message ClientInfoResp {
+    int32 code = 101;
+    string msg = 102;
+}

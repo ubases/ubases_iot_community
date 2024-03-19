@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+
+import "common.proto";
+
+service DeveloperService {
+    //添加开发者
+    rpc Add(DeveloperEntitys) returns (Response) {}
+    //修改开发者
+    rpc Edit(DeveloperEntitys) returns (Response) {}
+    //查看详情
+    rpc Detail(DeveloperFilterReq) returns (DeveloperEntitys) {}
+    //删除开发者
+    rpc Delete(DeveloperFilterReq) returns (Response) {}
+    //开发者启用禁用
+    rpc SetStatus(DeveloperStatusReq) returns (Response) {}
+    //查询开发者列表
+    rpc List(DeveloperListRequest) returns (DeveloperListResponse) {}
+    //查询开发者列表（不包括角色和授权数量）
+    rpc BasicList(DeveloperListRequest) returns (DeveloperListResponse) {}
+    //查询开发者公司列表
+    //rpc ListCompany() returns () {}
+    //重置密码
+    rpc ResetPassword(DeveloperResetPasswordReq) returns (Response) {}
+}
+
+message DeveloperFilterReq {
+    int64 id = 1;
+}
+
+message DeveloperListSearchInfo {
+    string account = 101;
+    int64 companyId = 102;
+    int32 status = 103;
+    int32 accountType  = 104;
+    int32 accountOrigin = 105;
+}
+
+message DeveloperListRequest {
+    DeveloperListSearchInfo query = 101;
+    int64 page = 102;
+    int64 pageSize = 103;
+    string orderKey = 104;
+    string orderDesc = 105;
+    string searchKey = 106;
+}
+
+message DeveloperListResponse {
+    int32 code = 101;
+    string message = 102;
+    int64 total = 103;
+    repeated DeveloperEntitys data = 104;
+}
+
+message DeveloperEntitys {
+    int64 id = 101;
+    string account = 102;
+    string password = 103;
+    int64 companyId = 104;
+    string companyName = 105;
+    int32 status = 106;
+    string phone = 107;
+    string email = 108;
+    string address = 109;
+    int32 quantity = 110;
+    repeated Contract contract = 111;
+    string roleName =112;
+    string tenantId = 113;
+    int32 accountType  = 114;
+    int32 accountOrigin = 115;
+}
+
+message Contract {
+    int64 id = 101;
+    int32 quantity = 102;
+    //时间戳，单位秒
+    int64 contractDate = 103;
+}
+
+message CompanyInfo {
+    int64 companyId = 101;
+    string CompanyName = 102;
+}
+message DeveloperStatusReq {
+    int64 id = 101;
+    int32 status = 102;
+}
+
+message DeveloperResetPasswordReq {
+    int64 id = 1;
+    string defaultPassword = 2;
+}

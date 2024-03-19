@@ -1,0 +1,105 @@
+syntax = "proto3";
+package tPmProductType;
+option go_package = ".;protosService";
+
+// The tPmProductType service definition.
+service TPmProductType {
+  rpc GetByIdTPmProductType(TPmProductTypeFilterById) returns (TPmProductTypeResponseObject) {  }  //query struct by id 
+ rpc GetTPmProductType(TPmProductTypeFilter) returns (TPmProductTypeResponseObject) {  }  //query struct by struct 
+ rpc ListTPmProductType(TPmProductTypeFilterPage) returns (TPmProductTypeResponseList) {  }  //query list by paging
+ rpc CreateTPmProductType(TPmProductTypeRequest) returns (TPmProductTypeResponse) {  }  //create 
+ rpc UpdateTPmProductType(TPmProductTypeRequest) returns (TPmProductTypeResponse) {  }  //update 
+ rpc DeleteTPmProductType(TPmProductTypeRequest) returns (TPmProductTypeResponse) {  }  //delete
+ rpc GetAppProductType(TPmProductTypeFilterPage) returns (TPmProductTypeResponseList) {  }  //query list by paging
+
+}
+
+message TPmProductTypeRequest {
+ int64 id=1;  //主键（雪花算法19位） 
+ string name=2;  //分类名称 
+ string name_en=3;  //分类名称（英文） 
+ string identifier=4;  //属性的标识符。可包含大小写英文字母、数字、下划线（_），长度不超过50个字符。 
+ int32 sort=5;  //排序 
+ int64 parent_id=6;  //父ID 
+ string desc=7;  //描述 
+ int64 created_by=8;  //创建人 
+ string created_time=9;  //创建时间
+ int64 updated_by=10;  //修改人 
+ string updated_time=11;  //修改时间
+ int32 deleted=12;  //删除的标识 0-正常 1-删除
+ string parent_name=13;  //父级分类名称
+ int32 imgSize = 14; //图片大小
+ string imgPath = 15;//图片路径
+ string imgFullPath = 16;//图片完整路径
+ string imgName = 17;//图片名称
+ string imgType = 18;//图片类型
+ string imgkey  = 19;//图片MD5
+ repeated ModelsItem modelsItems = 20; //图片
+ int64 count=21;  //关联产品类型数量
+}
+
+message TPmProductTypeFilterById {
+ int64 id=1; 
+
+}
+
+message TPmProductTypeFilterPage {
+ int64 page=1; 
+ int64 limit=2; 
+ int64 sort=3; 
+ int64 sortField=4; 
+ string searchKey=5; 
+ TPmProductTypeFilter queryObj=6; 
+ string queryStr=7; 
+
+}
+
+message TPmProductTypeResponseObject {
+ int32 code=1; 
+ string msg=2; 
+ TPmProductTypeRequest data=3; 
+
+}
+
+message TPmProductTypeResponseList {
+ int64 total=1; 
+ int32 code=2; 
+ string msg=3; 
+ repeated TPmProductTypeRequest list=4; 
+
+}
+
+message TPmProductTypeResponse {
+ int32 code=1; 
+ string msg=2; 
+ TPmProductTypeRequest data=3;
+}
+
+message TPmProductTypeFilter {
+ int64 id=1;  //主键（雪花算法19位） 
+ string name=2;  //分类名称 
+ string name_en=3;  //分类名称（英文） 
+ string identifier=4;  //属性的标识符。可包含大小写英文字母、数字、下划线（_），长度不超过50个字符。 
+ int32 sort=5;  //排序 
+ int64 parent_id=6;  //父ID 
+ string desc=7;  //描述 
+ int64 created_by=8;  //创建人 
+ string created_time=9;  //创建时间
+ int64 updated_by=10;  //修改人 
+ string updated_time=11;  //修改时间
+ int32 deleted=12;  //删除的标识 0-正常 1-删除
+}
+
+message ModelsItem {
+ int64  id = 1;
+ int64  productTypeId = 2;
+ int32   dpid = 3;
+ string  identifier  =4;
+ string  name = 5;
+ string  rwFlag = 6;
+ string  dataType = 7;
+ string  properties = 8;
+ string  mark = 9;
+ int32   required  = 10;
+}
+

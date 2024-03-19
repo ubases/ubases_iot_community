@@ -1,0 +1,230 @@
+syntax = "proto3";
+
+package service;
+option go_package = ".;protosService";
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// The tPmProduct service definition.
+service TPmProduct {
+    rpc CreateTPmProduct(TPmProductRequest) returns (TPmProductResponse) {  }  //create
+    rpc UpdateTPmProduct(TPmProductRequest) returns (TPmProductResponse) {  }  //update
+    rpc DeleteTPmProduct(TPmProductRequest) returns (TPmProductResponse) {  }  //delete
+    rpc GetByIdTPmProduct(TPmProductFilterById) returns (TPmProductResponseObject) {  }  //query struct by id
+    rpc GetTPmProduct(TPmProductFilter) returns (TPmProductResponseObject) {  }  //query struct by struct
+    rpc ListTPmProduct(TPmProductFilterPage) returns (TPmProductResponseList) {  }  //query list by paging
+    rpc UploadControlPanel(PmControlPanelObj) returns (TPmProductResponse) { } //UploadControlPanel
+    rpc UpdateStatus(TPmProductStatusRequest) returns (TPmProductResponse) {  }  //update
+    rpc Exists(TPmProductFilter) returns (TPmProductResponse) {  }  //update
+    rpc ResetProductThingModels(TPmProductRequest) returns (Response) {} //
+}
+
+message TPmProductFilter {
+ int64 id=1;  //主键（雪花算法19位） 
+ int64 product_type_id=2;  //产品类型ID 
+ string product_key=3;  //产品唯一标识 
+ string name=4;  //产品名称 
+ string name_en=5;  //产品名称（英文） 
+ string identifier=6;  //属性的标识符。可包含大小写英文字母、数字、下划线（_），长度不超过50个字符。 
+ string model=7;  //产品型号 
+ string image_url=8;  //产品图片 
+ string wifi_flag=9;  //WIFI标识 
+ int32 network_type=10;  //通信协议（WIFI, BLE, WIFI&#43;BLE）
+ int32 attribute_type=11;  //设备性质（0:普通设备，1：网关设备） 
+ int32 status=12;  //状态（0：未发布，1：已发布，2：停用） 
+ int32 is_virtual_test=13;  //是否支持虚拟测试（0：否，1：是） 
+ string desc=14;  //描述 
+ int64 created_by=15;  //创建人 
+ string created_at=16;  //创建时间
+ int64 updated_by=17;  //修改人 
+ string updated_at=18;  //修改时间
+ string deleted_at=19;  //删除的标识 0-正常 1-删除
+
+}
+
+message ThingModelInfo {
+    int64 thing_model_ids  = 1;
+    int32 trigger_cond = 2;
+    int32 exec_cond = 3;
+    string identifier=4;
+    int32 valid = 5; //物模型是否选择
+}
+
+message TPmProductRequest {
+ int64 id=1;  //主键（雪花算法19位） 
+ int64 product_type_id=2;  //产品类型ID 
+ string product_key=3;  //产品唯一标识 
+ string name=4;  //产品名称 
+ string name_en=5;  //产品名称（英文） 
+ string identifier=6;  //属性的标识符。可包含大小写英文字母、数字、下划线（_），长度不超过50个字符。 
+ string model=7;  //产品型号 
+ string image_url=8;  //产品图片 
+ string wifi_flag=9;  //WIFI标识 
+  int32 network_type=10;  //通信协议（WIFI, BLE, WIFI&#43;BLE）
+ int32 attribute_type=11;  //设备性质（0:普通设备，1：网关设备）
+ int32 status=12;  //状态（0：未发布，1：已发布，2：停用） 
+ int32 is_virtual_test=13;  //是否支持虚拟测试（0：否，1：是） 
+ string desc=14;  //描述 
+ int64 created_by=15;  //创建人 
+ string created_at=16;  //创建时间
+ int64 updated_by=17;  //修改人 
+ string updated_at=18;  //修改时间
+ string deleted_at=19;  //删除的标识 0-正常 1-删除
+ string product_type_name=20;  //产品分类名称
+ string modelId=21;  //物模型ID（t_pm_thing_model.id）
+ repeated ThingModelInfo thing_model_property_ids = 22; //物模型-属性列表
+ repeated ThingModelInfo thing_model_service_ids = 23; //物模型-方法列表
+ repeated ThingModelInfo thing_model_event_ids = 24; //物模型-事件列表
+ repeated int64 control_panel_ids = 25; //控制面板
+ repeated int64 module_ids = 26; //模组
+ repeated int64 firmware_ids = 27; //固件
+ int32 power_consume_type=28; //功耗类型[0:标准功耗, 1:低功耗]
+ repeated PmNetworkGuideObj network_guides = 29; //多类型配网引导
+ string identifiers = 30; //物模型唯一标识符，英文逗号分割
+  int32 step = 31;//保存步骤
+  repeated string productTypeIdPath=32;  //产品分类编号路径
+}
+
+message PmNetworkGuideObj {
+    // @inject_tag: json:"id" gorm:"default:主键（雪花算法19位）;comment:主键（雪花算法19位）;size:19;"
+    int64 id = 100;
+    // @inject_tag: json:"productId" gorm:"default:产品ID（t_pm_product.id）;comment:产品ID（t_pm_product.id）;size:19;"
+    int64 productId = 101;
+    // @inject_tag: json:"productTypeId" gorm:"default:品类ID（t_pm_product_type.id）;comment:品类ID（t_pm_product_type.id）;size:19;"
+    int64 productTypeId = 102;
+    // @inject_tag: json:"type" gorm:"default:配网类型[0:AP配网,1:EZ配网,2:蓝牙配网];comment:配网类型[0:AP配网,1:EZ配网,2:蓝牙配网];"
+    int32 type = 103;
+    // @inject_tag: json:"createdBy" gorm:"default:创建人;comment:创建人;size:20;"
+    int64 createdBy = 104;
+    // @inject_tag: json:"createdAt" gorm:"default:创建时间;comment:创建时间;"
+    google.protobuf.Timestamp createdAt = 105;
+    // @inject_tag: json:"updatedBy" gorm:"default:修改人;comment:修改人;size:20;"
+    int64 updatedBy = 106;
+    // @inject_tag: json:"updatedAt" gorm:"default:修改时间;comment:修改时间;"
+    google.protobuf.Timestamp updatedAt = 107;
+    // @inject_tag: json:"deletedAt" gorm:"default:删除时间;comment:删除时间;"
+    google.protobuf.Timestamp deletedAt = 108;
+    repeated PmNetworkGuideStepObj steps = 109; //配网引导步骤
+}
+
+message PmNetworkGuideStepObj {
+    // @inject_tag: json:"id" gorm:"default:主键（雪花算法19位）;comment:主键（雪花算法19位）;size:19;"
+    int64 id = 100;
+    // @inject_tag: json:"networkGuideId" gorm:"default:配网引导ID（t_pm_device_network_guide.id）;comment:配网引导ID（t_pm_device_network_guide.id）;size:19;"
+    int64 networkGuideId = 101;
+    // @inject_tag: json:"instruction" gorm:"default:中文文案;comment:中文文案;size:200;"
+    string instruction = 102;
+    // @inject_tag: json:"instructionEn" gorm:"default:英文文案;comment:英文文案;size:200;"
+    string instructionEn = 103;
+    // @inject_tag: json:"imageUrl" gorm:"default:图片地址;comment:图片地址;size:200;"
+    string imageUrl = 104;
+    // @inject_tag: json:"videoUrl" gorm:"default:视频地址;comment:视频地址;size:200;"
+    string videoUrl = 105;
+    // @inject_tag: json:"sort" gorm:"default:排序;comment:排序;size:10;"
+    int32 sort = 106;
+    // @inject_tag: json:"createdBy" gorm:"default:创建人;comment:创建人;size:20;"
+    int64 createdBy = 107;
+    // @inject_tag: json:"createdAt" gorm:"default:创建时间;comment:创建时间;"
+    google.protobuf.Timestamp createdAt = 108;
+    // @inject_tag: json:"updatedBy" gorm:"default:修改人;comment:修改人;size:s20;"
+    int64 updatedBy = 109;
+    // @inject_tag: json:"updatedAt" gorm:"default:修改时间;comment:修改时间;"
+    google.protobuf.Timestamp updatedAt = 110;
+    // @inject_tag: json:"deletedAt" gorm:"default:删除时间;comment:删除时间;"
+    google.protobuf.Timestamp deletedAt = 111;
+
+}
+
+message TPmProductFilterById {
+ int64 id=1; 
+
+}
+
+message TPmProductFilterPage {
+ int64 page=1; 
+ int64 limit=2; 
+ int64 sort=3; 
+ int64 sortField=4; 
+ string searchKey=5; 
+ TPmProductFilter queryObj=6; 
+ string queryStr=7; 
+
+}
+
+message TPmProductResponseObject {
+ int32 code=1; 
+ string msg=2; 
+ TPmProductRequest data=3; 
+
+}
+
+message TPmProductResponseList {
+ int64 total=1; 
+ int32 code=2; 
+ string msg=3; 
+ repeated TPmProductRequest list=4; 
+
+}
+
+message TPmProductResponse {
+ int32 code=1; 
+ string msg=2; 
+ TPmProductRequest data=3; 
+
+}
+
+message PmControlPanelObj {
+
+
+  // @inject_tag: json:"id" gorm:"default:主键（雪花算法19位）;comment:主键（雪花算法19位）;size:19;"
+  int64 id = 100;
+
+
+  // @inject_tag: json:"name" gorm:"default:控制面板名称;comment:控制面板名称;size:128;"
+  string name = 101;
+
+
+  // @inject_tag: json:"desc" gorm:"default:描述;comment:描述;size:200;"
+  string desc = 102;
+
+
+  // @inject_tag: json:"tarUrl" gorm:"default:控制面板包地址;comment:控制面板包地址;size:200;"
+  string tarUrl = 103;
+
+
+  // @inject_tag: json:"imageUrl" gorm:"default:预览图地址;comment:预览图地址;size:200;"
+  string imageUrl = 104;
+
+
+  // @inject_tag: json:"createdBy" gorm:"default:创建人;comment:创建人;size:20;"
+  int64 createdBy = 105;
+
+
+  // @inject_tag: json:"createdAt" gorm:"default:创建时间;comment:创建时间;"
+  google.protobuf.Timestamp createdAt = 106;
+
+
+  // @inject_tag: json:"updatedBy" gorm:"default:修改人;comment:修改人;size:20;"
+  int64 updatedBy = 107;
+
+
+  // @inject_tag: json:"updatedAt" gorm:"default:修改时间;comment:修改时间;"
+  google.protobuf.Timestamp updatedAt = 108;
+
+
+  // @inject_tag: json:"deletedAt" gorm:"default:删除时间;comment:删除时间;"
+  google.protobuf.Timestamp deletedAt = 109;
+
+}
+
+message TPmProductStatusRequest {
+    int64 id = 1;  //主键（雪花算法19位）
+    int32 status=2;  //状态（0：未发布，1：已发布，2：停用）
+}
+
+message ResetProductThingModelRequest {
+  int64 productId = 101;
+  string productKey = 102;
+  int64 productTypeId = 103;
+}
+

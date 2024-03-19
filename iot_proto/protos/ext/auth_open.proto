@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package service;
+import "auth_common.proto";
+option go_package = ".;protosService";
+
+service openAuth {
+  // 手机验证码登录
+  rpc PhoneCodeLogin(PhoneCodeLoginRequest) returns(CloudLoginResponse){}
+  // 邮箱验证码登录
+  rpc EmailCodeLogin(EmailCodeLoginRequest) returns(CloudLoginResponse){}
+  // 密码登录 (手机密码.用户名密码.邮箱密码)
+  rpc PasswordLogin(PasswordLoginRequest) returns(CloudLoginResponse){}
+  //退出
+  rpc Logout(LogoutRequest) returns(LogoutResponse){}
+  // 验证token是否有效
+  rpc VerifyToken(VerifyTokenRequest) returns(CloudVerifyTokenResponse){}
+  // 刷新token
+  rpc RefreshToken(RefreshTokenRequest) returns(CloudRefreshTokenResponse){}
+  // 更换租户
+  rpc ChangeTenant(RefreshTokenRequest) returns(CloudRefreshTokenResponse){}
+
+}
+
+
+

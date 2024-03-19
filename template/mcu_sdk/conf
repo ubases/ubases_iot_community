@@ -1,0 +1,4 @@
+mcu_sdk_template_branch="develop"
+
+mcu_sdk_template_git="https://e.coding.net/axk/BAT_AIoT_PaaS/iot-mcu-sdk-template.git"
+

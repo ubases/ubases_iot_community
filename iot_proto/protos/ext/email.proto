@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package service;
+//import "auth_common.proto";
+option go_package = ".;protosService";
+
+//需要立即提醒的同步发送邮件，其它定时或异步邮件请走消息队列，不要调用接口
+service EmailService {
+  //邮箱验证码
+  rpc SendEmailUserCode(SendEmailUserCodeRequest) returns (SendEmailResponse);
+  //异地登录提醒
+  rpc SendEmailUserLoggedIn(SendEmailUserLoggedInRequest) returns (SendEmailResponse);
+  //邮箱注册提醒
+  rpc SendEmailUserRegister(SendEmailUserRegisterRequest) returns (SendEmailResponse);
+}
+
+message SendEmailUserCodeRequest {
+  string email = 101;
+  string userName = 102;
+  string code = 103;
+  string lang = 104;
+  int32 tplType = 105;
+}
+
+message SendEmailUserLoggedInRequest {
+  string email = 101;
+  string userName = 102;
+  string ip = 103;
+  string lang = 104;
+}
+
+message SendEmailUserRegisterRequest {
+  string email = 101;
+  string userName = 102;
+  string lang = 103;
+}
+
+message SendEmailResponse {
+  bool status = 101;
+}

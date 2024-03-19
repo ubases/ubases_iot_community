@@ -1,0 +1,5 @@
+package apis
+
+func SendEmail() {
+
+}

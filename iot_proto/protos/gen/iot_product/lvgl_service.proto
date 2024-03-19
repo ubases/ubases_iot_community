@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package service;
+
+option go_package = ".;protosService";
+
+import "opm_panel_model.gen.proto";
+
+service LvglService {
+  rpc GenerateCode (OpmPanel) returns (NULLX) {}
+}
+
+message NULLX {
+
+}

@@ -1,0 +1,209 @@
+syntax = "proto3";
+
+package service;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+option go_package = ".;protosService";
+
+service IPService {
+  rpc GetData (GeoIpDataRequest) returns (GeoIpDataResponse) {}
+  rpc GetDataEx(GeoIpDataRequest) returns (GeoIpResp) {}
+  rpc GetGeoIPInfo(IPRequest) returns (GeoIPInfo) {}
+}
+
+service  WeatherService{
+  //获取实况的天气数据
+  rpc CurrentByCity(CityRequest) returns (CurrentData){}
+  //获取天气预报数据
+  rpc ForecasByCity(CityRequest) returns(ForecastData){}
+  //获取实况的天气数据
+  rpc CurrentByIP(IPRequest) returns (CurrentData){}
+  //获取天气预报数据
+  rpc ForecastByIP(IPRequest) returns(ForecastData){}
+  //获取实况的天气数据
+  rpc CurrentByCoordinates(CoordinatesRequest) returns (CurrentData){}
+  //获取天气预报数据
+  rpc ForecastByCoordinates(CoordinatesRequest) returns(ForecastData){}
+
+  //////以下设置定时订阅,根据配置文件设置的间隔定时更新实时天气//////
+  //订阅某城市实时天气，支持重复订阅,订阅之后会定时拉取,并缓存到redis
+  rpc Subscribe(SubscribeRequest) returns (Response){}
+  //取消订阅城市实时天气，支持重复取消订阅,订阅之后会定时拉取,并缓存到redis
+  rpc UnSubscribe(UnSubscribeRequest) returns(Response){}
+}
+
+//城市名称请求
+message CityRequest {
+  //城市编码
+  string cityCode = 101;
+  //城市名称
+  string cityName = 102;
+  //省份名称，如果城市无法获取到，则使用省份进行获取
+  string province = 103;
+}
+
+//IP请求
+message IPRequest {
+  string ip = 101;
+}
+
+//经纬度请求
+message CoordinatesRequest {
+  double longitude = 101;
+  double latitude = 102;
+}
+
+//天气预报的数据
+message ForecastData{
+  //城市编号
+  string  cityCode = 101;
+  //城市名称
+  string  cityName = 102;
+  //更新时间
+  google.protobuf.Timestamp updatedAt = 103;
+  //支持多天的天气数据
+  repeated WeatherData data = 104;
+}
+
+//当前天气预报的数据
+message CurrentData{
+  //城市编号
+  string  cityCode = 101;
+  //城市名称
+  string  cityName = 102;
+  //更新时间
+  google.protobuf.Timestamp updatedAt = 103;
+  //当天的天气情况
+  WeatherData data = 104;
+}
+
+//天气情况的数据
+message WeatherData{
+  //城市编号
+  string  cityCode = 101;
+  //城市名称
+  string  cityName = 102;
+  //天气日期
+  string  date = 103;
+  //天气时间，如：12:23
+  string  time = 104;
+  //日出时间
+  google.protobuf.Timestamp  sunrise = 105;
+  //日落时间
+  google.protobuf.Timestamp  sunset =106;
+  //天气
+  string  weather =107;
+  //温度
+  double  temperature = 108;
+  //最高温度
+  double  temperatureHigh = 109;
+  //最低温度
+  double  temperatureLow = 110;
+  //湿度
+  int32 humidity = 111;
+  //pm2.5值
+  double  pm25 = 112;
+  //pm10值
+  double  pm10 = 113;
+  //风速 公里/小时
+  double  windSpeed = 114;
+  //风力 3-4
+  double  windGrade = 115;
+  //空气质量指数
+  double  aqi = 116;
+  //空气质量
+  string  quality = 117;
+  //风向，如东南风
+  string  windDir = 118;
+  //紫外线指数
+  int32   uvIndex  =119;
+  //大气压强
+  double  pressure = 120;
+  //能见度，默认单位：公里
+  int32  visibility = 121;
+  //天气数据来源
+  string  source = 122;
+  //更新时间
+  google.protobuf.Timestamp updatedAt = 123;
+  //天气图标标识
+  string icon = 124;
+  //天气描述
+  string weatherDesc = 235;
+}
+
+//订阅某个城市的天气，定时拉取天气
+message SubscribeRequest {
+  //城市编码
+  string cityCode = 101;
+  //城市名称
+  string cityName = 102;
+  //省份名称，如果城市无法获取到，则使用省份进行获取
+  string province = 103;
+}
+
+//由后台任务定时取消订阅不再需要的城市
+//比如没有智能场景需要了某个城市天气数据，则不再定时拉取天气
+message UnSubscribeRequest {
+  //城市编码列表
+  repeated string cityCode = 101;
+  //城市名称列表
+  repeated string cityName = 102;
+}
+
+
+
+message GeoIpDataRequest {
+  string ip = 101;
+  string lang = 102;
+}
+
+message GeoIpDataResponse {
+  GeoIpCity city = 101;
+  GeoIpCountry country = 102;
+  GeoIpLocation location = 103;
+}
+
+message GeoIpCity {
+  uint32 geoNameID = 101;
+  map<string, string> names = 102;
+}
+
+message GeoIpCountry {
+  uint32 geoNameID = 101;
+  bool isInEuropeanUnion = 102;
+  string isoCode = 103;
+  map<string, string> names = 104;
+}
+
+message GeoIpLocation {
+  uint32 accuracyRadius = 101;
+  double latitude = 102;
+  double longitude = 103;
+  uint32 metroCode = 104;
+  string timeZone = 105;
+}
+
+message GeoIpResp {
+  string code = 101;
+  string name = 102;
+  string country = 103;
+  string province = 104;
+  string city = 105;
+  string district = 106;
+  int64 adcode = 107;
+  double latitude = 108;
+  double longitude = 109;
+}
+
+message GeoIPInfo  {
+  string enCode = 101;
+  string enName = 102;
+  string country = 103;
+  string province  =104;
+  string city  =105;
+  string district =106;
+  int32 adcode   =107;
+  double  lat   =108;
+  double lng  =109;
+}

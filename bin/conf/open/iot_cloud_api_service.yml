@@ -1,0 +1,67 @@
+################### 微服务业务配置 ####################
+service:
+  httpAddr: 0.0.0.0:8083
+  httpqps: 10000  #支持运行时动态调整
+  IPLimitRequest: 5000
+  readTimeout: 3600
+  writeTimeout: 3600
+  logfile: "/logs/iot_cloud_api_service.log"
+  loglevel: "debug"
+  mcuSdkDir: "/opt/bat/temp/mcu_sdk"
+  mcuSdkScript: "/opt/bat/temp/mcu_sdk/pull_mcu_sdk_template.sh"
+  panelDir: "/opt/bat/temp/panel_code"
+  panelScript: "/opt/bat/temp/panel_code/pull_panel_code_template.sh"
+  panelBuildNotifyUrl: "http://iot_cloud_api_service:31001/v1/platform/web/open/panel/buildProcessNotify"
+  thirdDomain: "https://%s.cloudtest.iot-aithings.com"
+  defaultPassword: Aa666888
+  platformCode: "100001"
+
+redis:
+  Cluster: false
+  Addrs: ["redis:6379"]
+  Username:
+  Password: "iLmz8sCXjkTYuh"
+  Database: 0
+  MinIdleConns: 5
+  IdleTimeout: 600
+  PoolSize: 10
+  MaxConnAge: 3600
+
+NATS:
+  addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]
+
+oss:
+  useOss: "qiniu"
+  qiniu:
+    Endpoint: "XXXXXX.YYYYYY.com"
+    AccessKeyID: "y11X6zb5rSjGZEJz3itOx7k_mi6-XXXXXXXXXXX"
+    AccessKeySecret: "KGZOrY-xkABwU5GVXJfohgbgEXXXXXXXXXXXXXX"
+    BucketName: "aithings-docs"
+  ali:
+    Endpoint: "oss-cn-shenzhen.aliyuncs.com"
+    AccessKeyID: ""
+    AccessKeySecret: ""
+    BucketName: "ubases"
+  s3:
+    Endpoint: "https://ubases.s3.amazonaws.com"
+    AccessKeyID: ""
+    AccessKeySecret: ""
+    BucketName: ""
+    Region: "us-east-1"
+
+webmqtt:
+  addr: "ws://127.0.0.1:8883/mqtt"
+
+defaultapp:
+  appName: "爱星物联社区版"
+  tenantId: iotcode
+  appKey: iot-open-source-app
+
+################### 以下是微服务治理配置 ####################
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""

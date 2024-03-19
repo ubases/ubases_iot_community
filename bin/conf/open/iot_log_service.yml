@@ -1,0 +1,23 @@
+service:
+  #grpcAddr: 127.0.0.1:8088  #单机开多个实例请不要指定端口
+  grpcqps: 10000
+  logfile: "/logs/iot_log_service.log"
+  loglevel: "debug"
+
+database:
+  database: iot_log
+  driver: clickhouse
+  connstr: clickhouse://default:iLmz8sCXjkTYuh@clickhouseServer:9000/iot_log?read_timeout=10s&write_timeout=20s
+  days: 7
+
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+NATS:
+  addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""
+

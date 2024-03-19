@@ -1,0 +1,46 @@
+################### 微服务业务配置 ####################
+service:
+  grpcqps: 10000
+  httpAddr: 0.0.0.0:8082
+  httpqps: 10000  #支持运行时动态调整
+  IPLimitRequest: 50
+  logfile: "/logs/iot_smart_speaker_service.log"
+  loglevel: "debug"
+
+jwt:
+  SigningKey: "5vgLwu38@g"
+  AccessTokenTTL: 604800
+  RefreshTokenTTL: 604800  #RefreshTokenTTL 要配置为大于 AccessTokenTTL的时间
+
+#天猫精灵
+aligenie:
+  AppKey: ""
+  Secret: ""
+
+database:
+  database: iot_app
+  driver: mysql
+  connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_app?charset=utf8mb4&parseTime=True&loc=Local
+
+NATS:
+  addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]
+
+redis:
+  Cluster: false
+  Addrs: ["redis:6379"]
+  Username:
+  Password: "iLmz8sCXjkTYuh"
+  Database: 0
+  MinIdleConns: 5
+  IdleTimeout: 600
+  PoolSize: 10
+  MaxConnAge: 3600
+
+################### 以下是微服务治理配置 ####################
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""

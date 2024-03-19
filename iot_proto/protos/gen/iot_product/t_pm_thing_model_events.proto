@@ -1,0 +1,104 @@
+syntax = "proto3";
+package tPmThingModelEvents;
+option go_package = ".;protosService";
+
+
+
+// The tPmThingModelEvents service definition.
+service TPmThingModelEvents {
+  rpc GetByIdTPmThingModelEvents(TPmThingModelEventsFilterById) returns (TPmThingModelEventsResponseObject) {  }  //query struct by id 
+ rpc GetTPmThingModelEvents(TPmThingModelEventsFilter) returns (TPmThingModelEventsResponseObject) {  }  //query struct by struct 
+ rpc ListTPmThingModelEvents(TPmThingModelEventsFilterPage) returns (TPmThingModelEventsResponseList) {  }  //query list by paging 
+ rpc CreateTPmThingModelEvents(TPmThingModelEventsRequest) returns (TPmThingModelEventsResponse) {  }  //create 
+ rpc UpdateTPmThingModelEvents(TPmThingModelEventsRequest) returns (TPmThingModelEventsResponse) {  }  //update 
+ rpc DeleteTPmThingModelEvents(TPmThingModelEventsRequest) returns (TPmThingModelEventsResponse) {  }  //delete 
+
+
+}
+
+message TPmThingModelEventsFilterById {
+ int64 id=1; 
+
+}
+
+message TPmThingModelEventsFilterPage {
+ int64 page=1; 
+ int64 limit=2; 
+ int64 sort=3; 
+ int64 sortField=4; 
+ string searchKey=5; 
+ TPmThingModelEventsFilter queryObj=6; 
+ string queryStr=7; 
+
+}
+
+message TPmThingModelEventsResponseObject {
+ int32 code=1; 
+ string msg=2; 
+ TPmThingModelEventsRequest data=3; 
+
+}
+
+message TPmThingModelEventsResponseList {
+ int64 total=1; 
+ int32 code=2; 
+ string msg=3; 
+ repeated TPmThingModelEventsRequest list=4; 
+
+}
+
+message TPmThingModelEventsResponse {
+ int32 code=1; 
+ string msg=2; 
+ TPmThingModelEventsRequest data=3; 
+
+}
+
+message TPmThingModelEventsFilter {
+ int64 id=1;  //主键（雪花算法19位） 
+ int64 model_id=2;  //物模型ID(t_pm_thing_model.id) 
+ string product_key=3;  //产品唯一标识 
+ string create_ts=4;  //功能创建的时间戳，默认长度是13位。可手动传入也可由系统生成。功能定义会根据该时间由小到大进行排序。 
+ string identifier=5;  //属性的标识符。可包含大小写英文字母、数字、下划线（_），长度不超过50个字符。 
+ string event_name=6;  //事件名称。可包含中文、大小写英文字母、数字、短划线（-）、下划线（_）和半角句号（.），且必须以中文、英文或数字开头，长度不超过30个字符，一个中文计为一个字符。 
+ string event_type=7;  //事件类型。INFO_EVENT_TYPE：信息。ALERT_EVENT_TYPE：告警。ERROR_EVENT_TYPE：故障。 
+ string outputdata=8;  //服务的输出参数 
+ int32 required=9;  //是否是标准品类的必选服务。1：是, 0：否 
+ int32 custom=10;  //服务的调用方式。1：异步调用, 0：同步调用 
+ string extension=11;  //扩展字段 
+ int64 created_by=12;  //创建人 
+ string created_time=13;  //创建时间 
+ int64 updated_by=14;  //修改人 
+ string updated_time=15;  //修改时间 
+ int32 deleted=16;  //删除的标识 0-正常 1-删除
+ repeated int64 ids = 17; //ID列表
+
+}
+
+message TPmThingModelEventsRequest {
+ int64 id=1;  //主键（雪花算法19位） 
+ int64 model_id=2;  //物模型ID(t_pm_thing_model.id) 
+ string product_key=3;  //产品唯一标识 
+ string create_ts=4;  //功能创建的时间戳，默认长度是13位。可手动传入也可由系统生成。功能定义会根据该时间由小到大进行排序。 
+ string identifier=5;  //属性的标识符。可包含大小写英文字母、数字、下划线（_），长度不超过50个字符。 
+ string event_name=6;  //事件名称。可包含中文、大小写英文字母、数字、短划线（-）、下划线（_）和半角句号（.），且必须以中文、英文或数字开头，长度不超过30个字符，一个中文计为一个字符。 
+ string event_type=7;  //事件类型。INFO_EVENT_TYPE：信息。ALERT_EVENT_TYPE：告警。ERROR_EVENT_TYPE：故障。 
+ string outputdata=8;  //服务的输出参数 
+ int32 required=9;  //是否是标准品类的必选服务。1：是, 0：否 
+ int32 custom=10;  //服务的调用方式。1：异步调用, 0：同步调用 
+ string extension=11;  //扩展字段 
+ int64 created_by=12;  //创建人 
+ string created_time=13;  //创建时间 
+ int64 updated_by=14;  //修改人 
+ string updated_time=15;  //修改时间 
+ int32 deleted=16;  //删除的标识 0-正常 1-删除
+ repeated int64 ids = 17; //ID列表
+ string desc  = 18;
+ int32 trigger_cond = 19;
+ int32 exec_cond = 20;
+ int64 std_id = 21;
+ int32 valid = 22;
+ int32 dpid = 23;
+}
+
+

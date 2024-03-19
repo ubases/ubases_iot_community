@@ -1,0 +1,24 @@
+service:
+  concurrent: 1200
+  productConcurrent: 100
+  logfile: "/logs/iot_device_simulator.log"
+  loglevel: "debug"
+  report: 60
+  updateConfig: 300
+  saveRunInfo: 3600
+
+database:
+  - database: iot_device
+    driver: mysql
+    connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_device?charset=utf8mb4&parseTime=True&loc=Local
+  - database: iot_product
+    driver: mysql
+    connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_product?charset=utf8mb4&parseTime=True&loc=Local
+
+MQTT:
+  addrs: ["tcp://haproxy:1885"]
+  keepalive: 30
+  rate: 1000
+
+NATS:
+  addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>授权</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+      html,body{
+          margin: 0;
+          padding: 0;
+          height: 100%;
+      }
+      .container{
+          width: 100%;
+          height: 100%;
+      }
+      .content{
+          margin: 0 auto;
+          width: 100%;
+          height: 100%;
+          max-width: 768px;
+          background: #F4F8FE;
+      }
+      .logo-wrap{
+          padding: 84px 0 20px;
+          margin: 0 auto;
+          width: 72px;
+          height: 72px;
+      }
+      .logo{
+          display: block;
+          width: 100%;
+          height: 100%;
+          border-radius: 4px;
+      }
+      header{
+          font-size: 15px;
+          font-weight: 600;
+          color: rgba(0,0,0,0.8);
+          line-height: 21px;
+          text-align: center;
+      }
+      .form{
+          display: block;
+          padding: 50px 20px 10px 20px;
+      }
+      .text{
+        padding-bottom: 5px;
+        font-size: 15px;
+        color: #343A40;
+        line-height: 21px;
+      }
+      ul{
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      li {
+        position: relative;
+        padding: 10px 0 0 14px;
+        height: 20px;
+        font-size: 14px;
+        color: #70757D;
+        line-height: 20px;
+      }
+      li::before{
+        content: "";
+        width: 6px;
+        height: 6px;
+        display: block;
+        position: absolute;
+        left: 0;
+        bottom: 7px;
+        background: #3B7CFF;
+        border-radius: 100%;
+      }
+      button{
+          margin-top: 45px;
+          width: 100%;
+          height: 46px;
+          background: #3B7CFF;
+          border: 0;
+          border-radius: 8px;
+          color: #fff;
+          font-size: 15px;
+      }
+      
+
+  </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="content">
+        <div class="logo-wrap">
+          <img class="logo" src="" />
+        </div>
+        <header>某某APP账号授权</header>
+        <form class="form" action="/oauth/authorize" method="POST">
+          <div class="text">授权后该应用将获取以下2项权限</div>
+          <ul>
+            <li>获取您的个人信息</li>
+            <li>获取您的设备列表</li>
+          </ul>
+          <button type="submit">确认授权</button>
+        </form>
+      </div>
+
+    </div>
+  </body>
+</html>

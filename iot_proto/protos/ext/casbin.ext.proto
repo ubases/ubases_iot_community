@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package service;
+//option go_package = ".;protosService";
+option go_package = ".;protosService";
+
+service CasbinExtService {
+  rpc AddUserRole(CasbinReq) returns (CasbinResponse) {}
+  rpc DeleteUserRole(CasbinReq) returns (CasbinResponse) {}
+  rpc AddRoleMenu(CasbinReq) returns (CasbinResponse) {}
+  rpc DeleteRoleMenu(CasbinReq) returns (CasbinResponse) {}
+  rpc GetUserRole(UserRoleExtReq) returns (UserRoleExtResp) {} //通过用户获取角色，通过角色获取用户
+  rpc GetRoleUser(RoleUserExtReq) returns (UserRoleExtResp) {} //通过用户获取角色，通过角色获取用户
+  rpc GetPermissionsByRoleIds(PermissionsByRoleIdReq) returns (PermissionsByRoleIdResp) {} //通过角色获取菜单Ids集合
+  rpc GetRoleMenuList(CasbinRoleMenuReq) returns(CasbinRoleMenuRes){} //通过角色id 获取角色的菜单id
+  rpc DeleteAllRoleMenuById(CasbinReq) returns (CasbinResponse) {}
+}
+
+message PermissionsByRoleIdReq {
+  repeated int64 RoleIds = 1;
+}
+
+message PermissionsByRoleIdResp {
+  repeated int64 MenuIds = 1;
+}
+message UserRoleExtReq {
+  string UserId = 1;
+}
+message RoleUserExtReq {
+  string RoleId = 1;
+}
+
+message UserRoleExtResp {
+  repeated string ids = 1; //用户Id集合或者角色Id集合
+}
+
+message CasbinReq {
+  string UserId = 1;
+  string RoleId = 2;
+  string MenuId = 3;
+}
+
+message CasbinResponse {
+  int32 Code = 1;
+  string Message = 2;
+  CasbinReq Data = 3;
+}
+
+message CasbinRoleMenuReq{
+  string RoleId =1;
+}
+message CasbinRoleMenuRes{
+  repeated int64 MenuIds =1;
+}
+
