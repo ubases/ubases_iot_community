@@ -145,21 +145,16 @@
    系统使用了任务调度中心xxl-job调度执行后台数据统计。xxl-job的访问地址为：  
    http://{IP}:8088/xxl-job-admin/  
    用户名：admin  
-   默认密码：123456  
+   默认密码：123456    
 
-4、链路跟踪zipkin
+### 4、链路跟踪zipkin
 
    微服务开发用，跟踪后端服务间的调用链路及各服务执行状况。  
-   访问地址：http://{IP}:9411/zipkin/  
+   访问地址：http://{IP}:9411/zipkin/     
 
-### 4、APP使用
+###  5、APP使用
 
    社区版目前只支持安卓版，从app目录获取安卓版apk安装包进行安装。  
 ​   安装后，打开APP，会要求输入参数配置。  
 ​   服务器地址：http://{IP}:2886  
-​   租户ID：iotcode  
-<img src="https://osspublic.iot-aithings.com/docs/image-20240322101549253.png" alt="image-20240322101549253" style="zoom: 33%;" />
-
-
-
-   ```
+​   租户ID：iotcode     
