@@ -1,0 +1,29 @@
+#注意代码包，你要生成的代码，最终要放到哪个服务下，改为那个服务的包路径
+system:
+  gendir: "./gen"
+  dbmodelpackage: "cloud_platform/iot_model/db_product/model"
+  dbormpackage: "cloud_platform/iot_model/db_product/orm"
+  protopackage: "cloud_platform/iot_proto/protos/protosService"
+  servicepackage: "cloud_platform/iot_app_user_service/service"
+  convertpackage: "cloud_platform/iot_app_user_service/convert"
+
+mysql:
+  path: '127.0.0.1:3306'
+  config: 'charset=utf8mb4&parseTime=True&loc=Local'
+  db-name: 'iot_product'  #数据库
+  username: 'root'
+  password: '123456'
+  max-idle-conns: 10
+  max-open-conns: 10
+  log-mode: true
+
+zap:
+  level: 'info'
+  format: 'console'
+  prefix: '[sgen]'
+  director: './log/'
+  link-name: 'latest_log'
+  show-line: true
+  encode-level: 'LowercaseColorLevelEncoder'
+  stacktrace-key: 'stacktrace'
+  log-in-console: true

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service;
+
+option go_package = ".;protosService";
+
+message Response {
+  int32 code = 201;
+  string message = 202;
+  int64 data = 203;
+}
