@@ -2,12 +2,12 @@ package main
 
 import (
 	"cloud_platform/iot_common/iotconst"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iottrace"
 	"cloud_platform/iot_device_service/cached"
 	"cloud_platform/iot_device_service/config"
 	"cloud_platform/iot_device_service/rpc"
 	"cloud_platform/iot_device_service/service"
-	"cloud_platform/iot_device_service/service/job"
 	model "cloud_platform/iot_model"
 	"log"
 
@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	version string = "2.0.0"
+	version string = "2.1.0"
 	name           = "iot_device_service"
 )
 
 func main() {
 	log.Println(version)
-	if err := config.Init(); err != nil {
+	if err := config.Init2(); err != nil {
 		log.Println("加载配置文件发生错误:", err)
 		return
 	}
@@ -80,30 +80,38 @@ func main() {
 		}
 	}
 
-	//发布job消息
-	go job.RunToMQTT()
+	//发布job消息（直接调用rpc方法）
+	//go job.RunToMQTT()
 
 	//如果当前是第一个进程，则运行job，否则不运行
 	if !service.StartAuto() {
 		service.RunJob()
+		defer service.GetCron().Stop()
 	}
 
-	err = service.GetJsPublisherMgr().AddPublisher(iotconst.NATS_STREAM_DEVICE, iotconst.NATS_SUBJECT_AUTH, config.Global.Nats.Addrs)
+	//err = service.GetJsPublisherMgr().AddPublisher(iotconst.NATS_STREAM_DEVICE, iotconst.NATS_SUBJECT_AUTH, config.Global.Nats.Addrs)
+	//if err != nil {
+	//	iotlogger.LogHelper.Errorf("初始化发布器失败:%s", err.Error())
+	//	return
+	//}
+	//err = service.GetJsPublisherMgr().AddPublisher(iotconst.NATS_STREAM_APP, iotconst.NATS_SUBJECT_RECORDS, config.Global.Nats.Addrs)
+	//if err != nil {
+	//	iotlogger.LogHelper.Errorf("日志初始化发布器失败:%s", err.Error())
+	//	return
+	//}
+	//err = service.GetJsPublisherMgr().AddPublisherEx(iotconst.NATS_APPNAME_PRODUCT, iotconst.NATS_PRODUCT_PUBLISH, iotconst.NATS_SUBJECT_PRODUCT_PUBLISH, config.Global.Nats.Addrs)
+	//if err != nil {
+	//	iotlogger.LogHelper.Errorf("日志初始化发布器失败:%s", err.Error())
+	//	return
+	//}
+	//go service.GetJsPublisherMgr().Run()
+	err = iotnatsjs.GetJsClientPub().InitJsClient(config.Global.Nats.Addrs)
 	if err != nil {
-		iotlogger.LogHelper.Errorf("初始化发布器失败:%s", err.Error())
-		return
+		iotlogger.LogHelper.Errorf("InitJsClient error:%s", err.Error())
 	}
-	err = service.GetJsPublisherMgr().AddPublisher(iotconst.NATS_STREAM_APP, iotconst.NATS_SUBJECT_RECORDS, config.Global.Nats.Addrs)
-	if err != nil {
-		iotlogger.LogHelper.Errorf("日志初始化发布器失败:%s", err.Error())
-		return
-	}
-	err = service.GetJsPublisherMgr().AddPublisherEx(iotconst.NATS_APPNAME_PRODUCT, iotconst.NATS_PRODUCT_PUBLISH, iotconst.NATS_SUBJECT_PRODUCT_PUBLISH, config.Global.Nats.Addrs)
-	if err != nil {
-		iotlogger.LogHelper.Errorf("日志初始化发布器失败:%s", err.Error())
-		return
-	}
-	go service.GetJsPublisherMgr().Run()
+
+	go iotnatsjs.GetJsClientPub().Run()
+
 	//数据表更新
 	//db_device.Migrate(model.GetDB())
 	//mqtt订阅初始化

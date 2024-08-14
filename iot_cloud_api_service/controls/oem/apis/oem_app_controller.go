@@ -87,6 +87,54 @@ func (OemAppController) ChangeName(c *gin.Context) {
 	iotgin.ResSuccess(c, id)
 }
 
+// 修改APP TeamId
+func (OemAppController) ChangeOemAppTeamId(c *gin.Context) {
+	var req entitys.OemAppChangeNameReq
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	id, err := serviceApp.SetContext(controls.WithOpenUserContext(c)).ChangeOemAppTeamId(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, id)
+}
+
+// 修改状态
+func (OemAppController) SetStatus(c *gin.Context) {
+	var req entitys.OemAppChangeNameReq
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	id, err := serviceApp.SetContext(controls.WithOpenUserContext(c)).ChangeOemAppStatus(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, id)
+}
+
+// 修改app名称
+func (OemAppController) ChangeTeamId(c *gin.Context) {
+	var req entitys.OemAppChangeNameReq
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	id, err := serviceApp.SetContext(controls.WithOpenUserContext(c)).ChangeOemAppName(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, id)
+}
+
 // 修改操作步骤
 func (OemAppController) UpdateCurrentStep(c *gin.Context) {
 	var req entitys.OemAppChangeCurrentStepReq
@@ -175,6 +223,57 @@ func (OemAppController) GetMap(c *gin.Context) {
 		return
 	}
 	res, err := serviceApp.SetContext(controls.WithOpenUserContext(c)).GetMap(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, res)
+}
+
+// 检查oemapp参数是否都已经填写好.
+func (OemAppController) OemAppCheck(c *gin.Context) {
+	var req entitys.OemAppCommonReq
+	err := c.ShouldBindQuery(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	res, err := serviceApp.SetContext(controls.WithOpenUserContext(c)).OemAppCheck(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, res)
+}
+
+// 开始构建.
+func (OemAppController) OemAppBuild(c *gin.Context) {
+	var req entitys.OemAppBuildReq
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+
+	}
+	//res, err := serviceApp.OemAppBuild(req)
+	res, err := serviceApp.SetContext(controls.WithOpenUserContext(c)).OemAppBuild(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, res)
+}
+
+// 取消构建.
+func (OemAppController) OemAppCancelBuild(c *gin.Context) {
+	var req entitys.OemAppBuildReq
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+
+	}
+	res, err := serviceApp.SetContext(controls.WithOpenUserContext(c)).OemAppCancelBuild(req)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return

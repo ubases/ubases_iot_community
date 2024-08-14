@@ -6,6 +6,7 @@ package handler
 
 import (
 	"cloud_platform/iot_common/iotconst"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotstruct"
 	"context"
 	"fmt"
@@ -23,12 +24,16 @@ func (h *ConfigDictDataHandler) Create(ctx context.Context, req *proto.ConfigDic
 	SetResponse(resp, err)
 	if ret != nil && err == nil {
 		resp.Data = ret.DictCode
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
-			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
-			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%v", req.DictType, req.DictValue), "name", req.DictLabel, ""),
-		})
-		//TODO 临时处理
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%v", req.DictType, req.DictValue), "name", req.DictLabel, ""),
+		//})
+		////TODO 临时处理
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%v", req.DictType, req.DictCode), "name", req.DictLabel, ""),
+		//})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%v", req.DictType, req.DictCode), "name", req.DictLabel, ""),
 		})
@@ -66,12 +71,20 @@ func (h *ConfigDictDataHandler) Update(ctx context.Context, req *proto.ConfigDic
 	_, err := s.UpdateConfigDictData(req)
 	SetResponse(resp, err)
 	if err == nil {
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%v-%v", req.DictType, req.DictValue), "name", req.DictLabel, ""),
+		//})
+		////TODO 临时处理
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%v-%v", req.DictType, req.DictCode), "name", req.DictLabel, ""),
+		//})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%v-%v", req.DictType, req.DictValue), "name", req.DictLabel, ""),
 		})
-		//TODO 临时处理
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%v-%v", req.DictType, req.DictCode), "name", req.DictLabel, ""),
 		})
@@ -85,12 +98,20 @@ func (h *ConfigDictDataHandler) UpdateAll(ctx context.Context, req *proto.Config
 	_, err := s.UpdateAllConfigDictData(req)
 	SetResponse(resp, err)
 	if err == nil {
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%v", req.DictType, req.DictValue), "name", req.DictLabel, ""),
+		//})
+		////TODO 临时处理
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%v", req.DictType, req.DictCode), "name", req.DictLabel, ""),
+		//})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
-			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%v", req.DictType, req.DictValue), "name", req.DictLabel, ""),
+			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%v-%v", req.DictType, req.DictValue), "name", req.DictLabel, ""),
 		})
-		//TODO 临时处理
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%v", req.DictType, req.DictCode), "name", req.DictLabel, ""),
 		})
@@ -105,14 +126,22 @@ func (h *ConfigDictDataHandler) UpdateFields(ctx context.Context, req *proto.Con
 	SetResponse(resp, err)
 	if err == nil {
 		if req.Data.DictLabel != "" {
-			service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+			//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+			//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+			//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%d", req.Data.DictType, req.Data.DictValue), "name", req.Data.DictLabel, ""),
+			//})
+			////TODO 临时处理
+			//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+			//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+			//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%d", req.Data.DictType, req.Data.DictCode), "name", req.Data.DictLabel, ""),
+			//})
+			iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 				Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
-				Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%d", req.Data.DictType, req.Data.DictValue), "name", req.Data.DictLabel, ""),
+				Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%v-%v", req.Data.DictType, req.Data.DictValue), "name", req.Data.DictLabel, ""),
 			})
-			//TODO 临时处理
-			service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+			iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 				Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
-				Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%d", req.Data.DictType, req.Data.DictCode), "name", req.Data.DictLabel, ""),
+				Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_CONFIG_DICT_DATA, fmt.Sprintf("%s-%v", req.Data.DictType, req.Data.DictCode), "name", req.Data.DictLabel, ""),
 			})
 		}
 	}

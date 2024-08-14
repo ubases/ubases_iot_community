@@ -325,6 +325,13 @@ func (s *ConfigDictTypeSvc) GetListConfigDictType(req *proto.ConfigDictTypeListR
 			do = do.Where(t.DictId.Eq(query.DictId))
 		}
 		if query.DictName != "" { //字符串
+			//包括字典值的模糊查询
+			//tData := orm.Use(iotmodel.GetDB()).TConfigDictData
+			//tDataWhere := tData.WithContext(context.Background()).Where(tData.DictLabel.Like("%" + query.DictName + "%")).
+			//	Or(tData.DictValue.Like("%" + query.DictName + "%"))
+			//likeWhere := t.WithContext(context.Background()).Where(t.DictName.Like("%" + query.DictName + "%")).
+			//	Or(t.WithContext(context.Background()).Exists(tDataWhere))
+			//do = do.Where(likeWhere)
 			do = do.Where(t.DictName.Like("%" + query.DictName + "%"))
 		}
 		if query.DictType != "" { //字符串

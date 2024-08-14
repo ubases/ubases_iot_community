@@ -40,7 +40,7 @@ func (s *SysAuthRuleSvc) ExistsByName(name string, id int64) (bool, error) {
 		return true, err
 	}
 	if count > 0 {
-		return true, errors.New("already exists menuName")
+		return true, errors.New("菜单名称已存在")
 	} else {
 		return false, nil
 	}

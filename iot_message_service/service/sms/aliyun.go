@@ -5,6 +5,7 @@ import (
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotutil"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 
@@ -45,6 +46,7 @@ func (c *AliyunClient) SendMessage(templateCode string, param map[string]string,
 		delete(param, "template")
 		delete(param, "phoneType")
 		delete(param, "lang")
+		delete(param, "recordId")
 		requestParam, err := json.Marshal(param)
 		if err != nil {
 			return err
@@ -68,9 +70,20 @@ func (c *AliyunClient) SendMessage(templateCode string, param map[string]string,
 		request.TemplateParam = string(requestParam)
 		request.SignName = c.sign[lang]
 
-		if _, err := c.core.SendSms(request); err != nil {
+		res, err := c.core.SendSms(request)
+		if err != nil {
 			return err
 		}
+		iotlogger.LogHelper.Info("SendMessage: ", iotutil.ToString(res))
+		if res.Code != "OK" {
+			return errors.New(res.Message + ", 错误码为" + res.Code)
+		}
+		//成功
+		//{\"RequestId\":\"C9D6B9EF-F24B-58D7-81D5-B175AECA3A2F\",\"BizId\":\"660019421897908596^0\",
+		//\"Code\":\"OK\",\"Message\":\"OK\"}
+		//失败
+		//{\"RequestId\":\"A8D01564-9E63-57D7-801E-5F93100F76A3\",
+		//\"BizId\":\"\",\"Code\":\"isv.SMS_TEMPLATE_ILLEGAL\",\"Message\":\"该账号下找不到对应模板\"}
 	} else {
 		tmpl, err := template.New("test").Parse(param["template"])
 		if err != nil {
@@ -105,11 +118,11 @@ func (c *AliyunClient) SendMessage(templateCode string, param map[string]string,
 		request.QueryParams["TaskId"] = iotutil.GetRandomNumber(11)
 		request.QueryParams["Type"] = "OTP" // 短信类型，验证码OTP，通知NOTIFY，营销MKT，这个必须要写。
 
-		_, err = c.core.ProcessCommonRequest(request)
+		res, err := c.core.ProcessCommonRequest(request)
 		if err != nil {
 			return err
 		}
-		iotlogger.LogHelper.Helper.Debugf("sign: %v, message: %v", c.sign[lang], request.QueryParams["Message"])
+		iotlogger.LogHelper.Helper.Debugf("sign: %v, message: %v, res: %v", c.sign[lang], request.QueryParams["Message"], iotutil.ToString(res))
 	}
 
 	return nil

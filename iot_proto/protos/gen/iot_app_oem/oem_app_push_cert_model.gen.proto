@@ -50,6 +50,8 @@ message OemAppPushCert {
     // @inject_tag: json:"oppo" gorm:"default:oppo推送配置，存json;comment:oppo推送配置，存json;"
     string oppo = 109;
 
+    // @inject_tag: json:"honor" gorm:"default:honor推送配置，存json;comment:honor推送配置，存json;"
+    string honor = 110;
 }
 
 message OemAppPushCertFilter {
@@ -94,6 +96,8 @@ message OemAppPushCertFilter {
     // @inject_tag: json:"oppo" gorm:"default:oppo推送配置，存json;comment:oppo推送配置，存json;"
     string oppo = 109;
 
+    // @inject_tag: json:"honor" gorm:"default:honor推送配置，存json;comment:honor推送配置，存json;"
+    string honor = 110;
 }
 
 message OemAppPushCertListRequest {

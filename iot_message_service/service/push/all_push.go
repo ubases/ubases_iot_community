@@ -40,8 +40,10 @@ func (g AllClient) PushMessage(inputTarget pushModel.MessageTarget, message push
 		go gorushCli.PushMessage(inputTarget, message)
 	}
 	//极光推送
-	jpushCli := &JPushClient{Cfg: cfg, LangCt: langCt}
-	go jpushCli.PushMessage(inputTarget, message)
+	if cfg.Secret != "" && cfg.AppKey != "" {
+		jpushCli := &JPushClient{Cfg: cfg, LangCt: langCt}
+		go jpushCli.PushMessage(inputTarget, message)
+	}
 	return nil
 }
 
@@ -85,4 +87,25 @@ func (g AllClient) ClearAlias(userId, appKey string) error {
 		}
 	}
 	return nil
+}
+
+func getPushPlatformName(pushPlatform int) string {
+	switch pushPlatform {
+	case gorushclient.PlatformAndroid:
+		return "android fcm"
+	case gorushclient.PlatformHuawei:
+		return "huawei"
+	case gorushclient.PlatformXiaomi:
+		return "xiaomi"
+	case gorushclient.PlatformOppo:
+		return "oppo"
+	case gorushclient.PlatformVivo:
+		return "vivo"
+	case gorushclient.PlatformHoner:
+		return "honor"
+	case gorushclient.PlatformIos:
+		return "ios"
+	default:
+		return iotutil.ToString(pushPlatform)
+	}
 }

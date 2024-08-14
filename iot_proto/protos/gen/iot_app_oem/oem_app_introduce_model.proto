@@ -74,6 +74,9 @@ message OemAppIntroduce {
     // @inject_tag: json:"abstract" gorm:"default:摘要;comment:摘要;size:500;"
     string abstract = 115;
 
+    //更新提醒模式 =1 不提醒 =2 弹框提醒
+    int32 remindMode = 116;
+
 }
 
 message OemAppIntroduceFilter {
@@ -136,8 +139,10 @@ message OemAppIntroduceFilter {
 
 
     // @inject_tag: json:"deletedAt" gorm:"default:删除时间;comment:删除时间;"
-    google.protobuf.Timestamp deletedAt = 114; 
+    google.protobuf.Timestamp deletedAt = 114;
 
+    //更新提醒模式 =1 不提醒 =2 弹框提醒
+    int32 remindMode = 115;
 }
 
 message OemAppIntroduceListRequest {
@@ -156,11 +161,19 @@ message OemAppIntroduceResponse {
     repeated OemAppIntroduce data = 104;
 }
 
+message OemAppIntroduceLastResponse {
+    int32 code = 101;
+    string message = 102;
+    int32 userAgreementRemind = 103;
+    string userAgreementVer= 104;
+    int32 privacyPolicyRemind = 105;
+    string privacyPolicyVer = 106;
+}
+
 message OemAppIntroduceUpdateFieldsRequest {
     repeated string fields = 101;
     OemAppIntroduce data = 102;
 }
-
 
 // 表模型主键，只能是整数或字符串，若生成错误，请检查数据库表主键是否正确。支持组合主键
 message OemAppIntroducePrimarykey {
@@ -181,6 +194,7 @@ message OemAppIntroduceModelResponse{
     int32 Status = 105;
     int64 AppId = 106;
     int32 ContentType = 107;
+    int32 remindMode = 108;//更新提醒模式 =1 不提醒 =2 弹框提醒
 }
 //列表响应参数
 message OemAppIntroduceListResponse {
@@ -188,4 +202,10 @@ message OemAppIntroduceListResponse {
     string message = 102;
     int64 total = 103;
     repeated OemAppIntroduceModelResponse data = 104;
+}
+
+message OemAppIntroduceCopyRequest{
+    int64 appId = 106;
+    string oldVersion = 102;
+    string newVersion = 103;
 }

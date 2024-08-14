@@ -1,8 +1,8 @@
 package rpc
 
 import (
-	"cloud_platform/iot_product_service/handler"
 	"cloud_platform/iot_common/ioterrs"
+	"cloud_platform/iot_product_service/handler"
 	"time"
 
 	"go-micro.dev/v4/server"
@@ -35,6 +35,7 @@ func NewGrpcService(name, version string, qps int) *GrpcService {
 		micro.WrapHandler(prometheus.NewHandlerWrapper(prometheus.ServiceName(name), prometheus.ServiceVersion(version))), //服务监控
 		micro.WrapHandler(ioterrs.BatPanicHandler()),
 	)
+	_ = service.Server().Init(grpc.MaxMsgSize(20 * 1024 * 1024))
 	s := &GrpcService{service}
 	service.Init(micro.BeforeStart(s.BeforeStart), micro.AfterStart(s.AfterStart))
 	return s

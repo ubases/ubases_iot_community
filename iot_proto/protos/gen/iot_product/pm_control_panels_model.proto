@@ -94,6 +94,8 @@ message PmControlPanels {
     bool isUpgrade = 121;//是否需要更新
 
     int32 appPanelType = 122;//APP面板类型
+
+    string code = 123;//面板编码
 }
 
 //控制面板详情，控制面板列表
@@ -123,6 +125,7 @@ message PmControlPanelsDetails {
     google.protobuf.Timestamp deletedAt = 122;
     string langFileName = 123; //语言文件名称
     string panelKey = 124; //面板Key
+    string code = 125;//面板编码
 }
 
 message PmControlPanelsFilter {
@@ -205,6 +208,8 @@ message PmControlPanelsFilter {
 
     // @inject_tag: json:"panelKey" gorm:"default:面板Md5;comment:面板Md5;size:50;"
     string panelKey = 119;
+
+    string code = 120;//面板编码
 }
 
 message PmControlPanelsListRequest {

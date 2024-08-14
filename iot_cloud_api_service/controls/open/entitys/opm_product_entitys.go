@@ -17,6 +17,7 @@ import (
 type OpmProductEntitys struct {
 	Id                   int64  `json:"id,string"`
 	ProductTypeId        int64  `json:"productTypeId,string"`
+	ProductId        	 int64  `json:"productId,string,omitempty"`
 	ProductKey           string `json:"productKey"`
 	Name                 string `json:"name"`
 	NameEn               string `json:"nameEn"`
@@ -57,6 +58,10 @@ type OpmProductEntitys struct {
 	PanelId      int64  `json:"panelId,string"` //预留给面板设置修改
 
 	Langs []*langEntitys.LangTranslateEntitys `json:"langs"`
+	//是否demo产品
+	IsDemoProduct int32  `json:"isDemoProduct"`
+
+	AppList []string `json:"appList"`
 }
 
 // 新增参数非空检查
@@ -117,7 +122,6 @@ type OpmProductFilter struct {
 	Desc             string `json:"desc,omitempty"`
 	ProductTypeName  string `json:"productTypeName,omitempty"`
 	TenantId         string `json:"tenantId,omitempty"`
-	ProductId        int64  `json:"productId,string,omitempty"`
 	ControlPanelId   int64  `json:"controlPanelId,string,omitempty"`
 	ModuleId         int64  `json:"moduleId,string,omitempty"`
 
@@ -126,6 +130,8 @@ type OpmProductFilter struct {
 	FirmwareVersion   string `json:"firmwareVersion,omitempty"`
 
 	DeviceNatureKey int32 `json:"deviceNature,omitempty"`
+	IsDemoProduct int32 `json:"isDemoProduct,omitempty"`
+	Developer        int64  `json:"developer,string"`
 }
 
 // 实体转pb对象
@@ -141,6 +147,7 @@ func OpmProductFilter_e2pb(src *OpmProductFilter) *proto.OpmProduct {
 	pbObj.Id = src.Id
 	pbObj.NetworkType = src.NetworkType
 	pbObj.DeviceNatureKey = src.DeviceNatureKey
+	pbObj.IsDemoProduct = src.IsDemoProduct
 	//if src.Status != 0 {
 	//	pbObj.Status = src.Status
 	//} else {
@@ -182,6 +189,7 @@ func OpmProduct_e2pb(src *OpmProductEntitys) *proto.OpmProduct {
 		DeviceNatureKey:  src.DeviceNatureKey,
 		PanelProImg:      src.PanelProImg,
 		StyleLinkage:     src.StyleLinkage,
+		IsDemoProduct: src.IsDemoProduct,
 	}
 	if src.IsShowImg {
 		pbObj.IsShowImg = iotutil.IfInt32(src.IsShowImg, 1, 2)
@@ -230,6 +238,7 @@ func OpmProduct_pb2e(src *proto.OpmProduct) *OpmProductEntitys {
 		NetworkType:          src.NetworkType,
 		PanelProImg:          src.PanelProImg,
 		StyleLinkage:         src.StyleLinkage,
+		IsDemoProduct: src.IsDemoProduct,
 	}
 	if src.IsShowImg == 1 {
 		entitysObj.IsShowImg = true
@@ -280,6 +289,7 @@ type OpmProductAllEntitys struct {
 	Module               *Module                  `json:"module"`
 	ProductTypeName      string                   `json:"productTypeName"`
 	BaseProductId        int64                    `json:"baseProductId,string"`
+	ProductId        int64                    `json:"productId,string"`
 	BaseProduct          *BaseProduct             `json:"baseProduct"`
 	NetworkTypeName      string                   `json:"networkTypeName"`
 	PowerConsumeTypeName string                   `json:"powerConsumeTypeName"`
@@ -287,6 +297,7 @@ type OpmProductAllEntitys struct {
 	WifiFlag             string                   `json:"wifiFlag"`
 	CustomFirmwares      []*OpmFirmwareSelectInfo `json:"firmwares"`
 	IsUpgradeTsl         int32                    `json:"isUpgradeTsl"`
+	IsDemoProduct int32  `json:"isDemoProduct"`
 }
 
 func ToFirmwareTypeName(status string) string {
@@ -302,12 +313,14 @@ func ToFirmwareTypeName(status string) string {
 
 type Module struct {
 	Id               string `json:"id"`
+	RelationId       int64 `json:"relationId,string"`//产品固件关联表的主键Id
 	ModuleName       string `json:"moduleName"`
 	ModuleNameEn     string `json:"moduleNameEn"`
 	FirmwareType     string `json:"firmwareType"`
 	FirmwareFlag     string `json:"firmwareFlag"`
 	FirmwareUrl      string `json:"firmwareUrl"`
 	FirmwareName     string `json:"firmwareName"`
+	FirmwareNameEn     string `json:"firmwareNameEn"`
 	FirmwareTypeName string `json:"firmwareTypeName"`
 	FirmwareId       string `json:"firmwareId"`
 	FirmwareKey      string `json:"firmwareKey"`
@@ -363,16 +376,18 @@ type BaseProduct struct {
 }
 
 type OpmFirmwareSelectInfo struct {
-	Id           int64  `json:"id,string,omitempty"`
-	FirmwareId   int64  `json:"firmwareId,string,omitempty"`
-	FirmwareName string `json:"firmwareName,omitempty"`
-	FirmwareFlag string `json:"firmwareFlag,omitempty"`
-	FirmwareType int32  `json:"firmwareType,omitempty"`
-	FirmwareKey  string `json:"firmwareKey,omitempty"`
-	Version      string `json:"version,omitempty"`
-	VersionId    int64  `json:"versionId,string,omitempty"`
-	ProductId    int64  `json:"productId,string,omitempty"`
+	Id           int64  `json:"id,string"`
+	FirmwareId   int64  `json:"firmwareId,string"`
+	FirmwareName string `json:"firmwareName"`
+	FirmwareNameEn string `json:"firmwareNameEn"`
+	FirmwareFlag string `json:"firmwareFlag"`
+	FirmwareType int32  `json:"firmwareType"`
+	FirmwareKey  string `json:"firmwareKey"`
+	Version      string `json:"version"`
+	VersionId    int64  `json:"versionId,string"`
+	ProductId    int64  `json:"productId,string"`
 	VersionCount int32  `json:"versionCount"`
+	IsCustom 	 int32  `json:"isCustom"`
 }
 
 func (s *OpmProductAllEntitys) Pd2Entity(src *proto.OpmProductAllDetails) {
@@ -395,6 +410,7 @@ func (s *OpmProductAllEntitys) Pd2Entity(src *proto.OpmProductAllDetails) {
 		s.WifiFlag = src.Product.WifiFlag
 		s.NetworkType = src.Product.NetworkType
 		s.IsUpgradeTsl = src.Product.IsUpgradeTsl
+		s.IsDemoProduct = src.Product.IsDemoProduct
 	}
 	s.SetModel(src)
 	s.SetThingModels(src)
@@ -436,12 +452,17 @@ func (s *OpmProductAllEntitys) SetCustomFirmware(src *proto.OpmProductAllDetails
 		return
 	}
 	for _, t := range src.CustomFirmwares {
-		if t.VersionId == 0 {
+		//if t.VersionId == 0 {
+		//	continue
+		//}
+		//只返回自定义固件
+		if t.IsCustom != 1 {
 			continue
 		}
 		s.CustomFirmwares = append(s.CustomFirmwares, &OpmFirmwareSelectInfo{
 			Id:           t.Id,
 			FirmwareName: t.FirmwareName,
+			FirmwareNameEn: t.FirmwareNameEn,
 			FirmwareFlag: t.FirmwareFlag,
 			FirmwareType: t.FirmwareType,
 			FirmwareKey:  t.FirmwareKey,
@@ -450,6 +471,7 @@ func (s *OpmProductAllEntitys) SetCustomFirmware(src *proto.OpmProductAllDetails
 			VersionId:    t.VersionId,
 			ProductId:    t.ProductId,
 			VersionCount: t.VersionCount,
+			IsCustom: t.IsCustom,
 		})
 	}
 }
@@ -462,12 +484,14 @@ func (s *OpmProductAllEntitys) SetModel(src *proto.OpmProductAllDetails) {
 	firmwareType, _ := new(services.DictTempData).GetDictByCode(iotconst.Dict_type_firmware_type)
 	s.Module = &Module{
 		Id:               iotutil.ToString(src.Module.Id),
+		RelationId: src.Module.RelationId,
 		ModuleName:       src.Module.ModuleName,
 		ModuleNameEn:     src.Module.ModuleNameEn,
 		FirmwareType:     src.Module.FirmwareType,
 		FirmwareFlag:     src.Module.FirmwareFlag,
 		FirmwareUrl:      src.Module.FirmwareUrl,
 		FirmwareName:     src.Module.FirmwareName,
+		FirmwareNameEn:   src.Module.FirmwareNameEn,
 		FirmwareTypeName: firmwareType.ValueStr(src.Module.FirmwareType),
 		FirmwareId:       iotutil.ToString(src.Module.FirmwareId),
 		ImgUrl:           src.Module.ImgUrl,

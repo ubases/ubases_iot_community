@@ -21,6 +21,8 @@ message SendSMSCodeRequest {
   string userName = 102;
   string code = 103;
   string lang = 104;
+  string tenantId = 105;
+  string appKey = 106;
 }
 
 message SendSMSVerifyCodeRequest {
@@ -30,6 +32,8 @@ message SendSMSVerifyCodeRequest {
   string lang = 104;
   int32 tplType = 105;
   int32 phoneType = 106;
+  string tenantId = 107;
+  string appKey = 108;
 }
 
 message SendSMSLoggedInRequest {
@@ -37,12 +41,16 @@ message SendSMSLoggedInRequest {
   string userName = 102;
   string ip = 103;
   string lang = 104;
+  string tenantId = 105;
+  string appKey = 106;
 }
 
 message SendSMSRegisterRequest {
   string phone_number = 101;
   string userName = 102;
   string lang = 103;
+  string tenantId = 104;
+  string appKey = 105;
 }
 
 message SendSMSResponse {

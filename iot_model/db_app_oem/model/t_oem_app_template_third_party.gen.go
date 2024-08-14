@@ -15,15 +15,15 @@ type TOemAppTemplateThirdParty struct {
 	Id            int64     `gorm:"column:id;primaryKey" json:"id"`   // 主键唯一编号
 	Type          int32     `gorm:"column:type;not null" json:"type"` // 功能类型（字典：app_template_third_party_type)
 	Name          string    `gorm:"column:name;not null" json:"name"` // 中文描述
-	NameEn        string    `gorm:"column:name_en" json:"name_en"`    // 英文描述
+	NameEn        string    `gorm:"column:name_en" json:"nameEn"`     // 英文描述
 	Code          string    `gorm:"column:code;not null" json:"code"` // 页面组件id
 	Sort          int32     `gorm:"column:sort" json:"sort"`
 	Icon          string    `gorm:"column:icon" json:"icon"` // 图标
-	AppTemplateId int64     `gorm:"column:app_template_id;not null" json:"app_template_id"`
-	CreatedBy     int64     `gorm:"column:created_by" json:"created_by"` // 修改人
-	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"` // 创建时间
-	UpdatedBy     int64     `gorm:"column:updated_by" json:"updated_by"` // 修改人
-	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"` // 修改时间
+	AppTemplateId int64     `gorm:"column:app_template_id;not null" json:"appTemplateId"`
+	CreatedBy     int64     `gorm:"column:created_by" json:"createdBy"` // 修改人
+	CreatedAt     time.Time `gorm:"column:created_at" json:"createdAt"` // 创建时间
+	UpdatedBy     int64     `gorm:"column:updated_by" json:"updatedBy"` // 修改人
+	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updatedAt"` // 修改时间
 }
 
 // TableName TOemAppTemplateThirdParty's table name

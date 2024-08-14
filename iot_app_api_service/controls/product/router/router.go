@@ -3,6 +3,8 @@ package router
 import (
 	"cloud_platform/iot_app_api_service/controls"
 	"cloud_platform/iot_app_api_service/controls/product/apis"
+	"cloud_platform/iot_common/iotgin"
+	"cloud_platform/iot_common/iotnatsjs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,6 +13,8 @@ func RegisterRouter(e *gin.Engine) {
 	webApiPrefix := "/v1/platform/app"
 	admin := e.Group(webApiPrefix)
 	admin.Use(controls.AuthCheck)
+	admin.Use(controls.SetParams)
+	admin.Use(iotgin.AppLogger(iotnatsjs.GetJsClientPub()))
 	// 产品类型
 	admin.GET("/product/productType", apis.ProductTypecontroller.GetProductTypeByApp)
 	admin.GET("/product/productTypeV2", apis.ProductTypecontroller.GetProductTypeByAppV2)

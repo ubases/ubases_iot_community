@@ -6,12 +6,11 @@ import (
 	"cloud_platform/iot_common/iotgin"
 	"cloud_platform/iot_common/iotutil"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"io"
 	"net/url"
 	"os"
 	"path"
-
-	"github.com/gin-gonic/gin"
 )
 
 type CommonController struct {

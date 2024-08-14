@@ -75,6 +75,8 @@ func (t *tOemAppDocRelation) WithContext(ctx context.Context) *tOemAppDocRelatio
 
 func (t tOemAppDocRelation) TableName() string { return t.tOemAppDocRelationDo.TableName() }
 
+func (t tOemAppDocRelation) Alias() string { return t.tOemAppDocRelationDo.Alias() }
+
 func (t *tOemAppDocRelation) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

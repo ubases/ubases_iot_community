@@ -5,6 +5,7 @@
 package service
 
 import (
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotstruct"
 	"context"
 	"crypto/md5"
@@ -14,6 +15,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/http"
 	"sort"
 
 	"github.com/opentracing/opentracing-go/log"
@@ -45,7 +47,6 @@ import (
 
 	"go-micro.dev/v4/metadata"
 
-	"cloud_platform/iot_common/iotnats/jetstream"
 	"regexp"
 	"strconv"
 
@@ -54,7 +55,6 @@ import (
 	"path/filepath"
 
 	json "github.com/json-iterator/go"
-	"github.com/nats-io/nats.go"
 )
 
 type OemAppSvc struct {
@@ -140,9 +140,10 @@ func (s *OemAppSvc) GetBaseDataValue(dictType string, isImg int, ctx context.Con
 // 获取基础数据配置的回调地址.
 func (s *OemAppSvc) GetNotifyUrl(ctx context.Context) string {
 	if s.NotifyUrl == "" {
-		mp := s.GetBaseDataValue("oem_app_build_notify", 0, ctx)
-		evn := s.GetOemAppEnv()
-		s.NotifyUrl = iotutil.ToString(mp[evn])
+		//mp := s.GetBaseDataValue("oem_app_build_notify", 0, ctx)
+		//evn := s.GetOemAppEnv()
+		//s.NotifyUrl = iotutil.ToString(mp[evn])
+		s.NotifyUrl = config.Global.AppBuild.BuildNotify
 	}
 	return s.NotifyUrl
 }
@@ -150,9 +151,10 @@ func (s *OemAppSvc) GetNotifyUrl(ctx context.Context) string {
 // 获取区域服务URL
 func (s *OemAppSvc) GetBuildRegionServerUrl(ctx context.Context) string {
 	if RegionServerUrl == "" {
-		mp := s.GetBaseDataValue("oem_app_build_region_server_url", 0, ctx)
-		evn := s.GetOemAppEnv()
-		RegionServerUrl = iotutil.ToString(mp[evn])
+		//mp := s.GetBaseDataValue("oem_app_build_region_server_url", 0, ctx)
+		//evn := s.GetOemAppEnv()
+		//RegionServerUrl = iotutil.ToString(mp[evn])
+		RegionServerUrl = config.Global.AppBuild.RegionServerUrl
 	}
 	return RegionServerUrl
 }
@@ -400,7 +402,7 @@ func (s *OemAppSvc) CreateOemApp(req *proto.OemApp) (*proto.OemApp, error) {
 		Id:      androidCertId,
 		AppId:   dbObj.Id,
 		Version: dbObj.Version,
-		Resign:  1,
+		Resign:  2,
 	})
 	if errAndroidCert != nil {
 		return nil, errAndroidCert
@@ -1238,18 +1240,12 @@ func (s *OemAppSvc) CopyNewContext(old context.Context) context.Context {
 }
 
 func (s *OemAppSvc) Build(reqs *proto.OemAppBuildReq) error {
+	//云打包服务器配置参数检查
+	if config.Global.AppBuild.BuildMode != 1 && (config.Global.AppBuild.BuildServerUrl == "" || config.Global.AppBuild.BuildKey == "") {
+		return errors.New("云打包服务配置异常")
+	}
+
 	appID := iotutil.ToInt64(reqs.AppId)
-
-	// userid, _ := metadata.Get(s.Ctx, "userid")
-	// tenandId, _ := metadata.Get(s.Ctx, "tenantid")
-	// token, _ := metadata.Get(s.Ctx, "token")
-
-	// //新建一个ctx 在携程中使用.
-	// ctxDiy := metadata.NewContext(context.Background(),map[string]string{
-	//         "userid":   userid,
-	// 		"tenantid": tenandId,
-	// 		"token":    token,
-	// })
 	ctxDiy := s.CopyNewContext(s.Ctx)
 
 	//查询APP信息
@@ -1400,6 +1396,10 @@ func (s *OemAppSvc) Build(reqs *proto.OemAppBuildReq) error {
 		}
 
 		for _, v := range arrBuild {
+
+			var buildSvc = OemAppBuildRecordSvc{}
+			buildSvc.Ctx = ctxDiy
+
 			//1 ios, 2 android 3 android 海外
 			//生成zip包 所需要的数据结构
 			var bm = convert.BuildAppEntity{}
@@ -1484,7 +1484,14 @@ func (s *OemAppSvc) Build(reqs *proto.OemAppBuildReq) error {
 			tmpDir := iotutil.GetRandomString(18) + "_" + iotutil.ToString(v.Os)
 			dirname := s.CreateDir(tmpDir)
 			//2.下载文件
-			s.DownloadBuildFile(bm, dirname)
+			err = s.DownloadBuildFile(bm, dirname)
+			if err != nil {
+				iotlogger.LogHelper.Error("s.DownloadBuildFile", err)
+				//修改构建状态（修改构建失败，原因为用户取消）
+				buildResultMsg := "资源文件下载失败"
+				buildSvc.UpdateFieldsOemAppBuildRecord(&proto.OemAppBuildRecordUpdateFieldsRequest{Fields: []string{"status", "build_result_msg"}, Data: &proto.OemAppBuildRecord{Status: 4, BuildResultMsg: buildResultMsg, Id: buildId}})
+				continue
+			}
 			//3.创建 common.sh
 			s.CreateCommonSh(bm.CommonSh, dirname)
 			//4.创建 global.js
@@ -1513,8 +1520,6 @@ func (s *OemAppSvc) Build(reqs *proto.OemAppBuildReq) error {
 			zipMd5, _ := iotutil.FileMD5(zipFilePath)
 
 			//7.修改构建数据
-			var buildSvc = OemAppBuildRecordSvc{}
-			buildSvc.Ctx = ctxDiy
 			buildSvc.UpdateUrlAndMd5(&proto.OemAppBuildRecord{
 				Id:     v.Id,
 				ResUrl: zipUrl,
@@ -1534,7 +1539,6 @@ func (s *OemAppSvc) Build(reqs *proto.OemAppBuildReq) error {
 				Time:     time.Now().Unix(),
 				Type:     1,
 			})
-
 		}
 	}()
 
@@ -1877,6 +1881,7 @@ func (s *OemAppSvc) OutputCommonSh(csh map[string]interface{}, os int, buildId i
 			csh["oppo_appid"] = iotutil.ToString(oppo["oppoId"])
 			csh["oppo_appkey"] = iotutil.ToString(oppo["oppoKey"])
 			csh["oppo_appsecret"] = iotutil.ToString(oppo["oppoSecret"])
+			csh["oppo_push_channelid"] = iotutil.ToString(oppo["oppoChanelId"])
 		}
 		csh["meizu_appid"] = ""
 		csh["meizu_appkey"] = ""
@@ -1891,6 +1896,7 @@ func (s *OemAppSvc) OutputCommonSh(csh map[string]interface{}, os int, buildId i
 		csh["oppo_appid"] = ""
 		csh["oppo_appkey"] = ""
 		csh["oppo_appsecret"] = ""
+		csh["oppo_push_channelid"] = ""
 		csh["meizu_appid"] = ""
 		csh["meizu_appkey"] = ""
 		csh["honor_appid"] = ""
@@ -1915,6 +1921,7 @@ func (s *OemAppSvc) OutputCommonSh(csh map[string]interface{}, os int, buildId i
 	//csh["weixin_associated_domains"] = ""
 	csh["facebook_appid"] = ""
 
+	//[{"code":"wechat","name":"微信登录","appId":"wx65ce301983680a96","appKey":"2d3bdfe412fb479759302158f22a9e02"}]
 	if fConfig.Thirds != "" {
 		thirds := make([]map[string]interface{}, 0)
 		err := json.Unmarshal([]byte(fConfig.Thirds), &thirds)
@@ -2400,10 +2407,10 @@ func (s *OemAppSvc) thirdUpload(name string, path string) (string, error) {
 func (s *OemAppSvc) ossUpload(name string, path string) (string, error) {
 	cnf := config.Global.Oss.Ali
 	oss := file_store.OXS{
-		Endpoint:        cnf.Endpoint,
-		AccessKeyID:     cnf.AccessKeyID,
-		AccessKeySecret: cnf.AccessKeySecret,
-		BucketName:      cnf.BucketName,
+		Endpoint:        cnf.Endpoint,        //"https://iot-aithings-public.s3.amazonaws.com",
+		AccessKeyID:     cnf.AccessKeyID,     //"AKIA2K2HXFHOE6NNLAWC",
+		AccessKeySecret: cnf.AccessKeySecret, //"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",
+		BucketName:      cnf.BucketName,      //"iot-aithings-public",
 	}
 	ossType := oss.Setup(file_store.AliYunOSS)
 	err := ossType.UpLoad(name, path)
@@ -2417,10 +2424,10 @@ func (s *OemAppSvc) ossUpload(name string, path string) (string, error) {
 func (s *OemAppSvc) qiniuUpload(name string, path string) (string, error) {
 	cnf := config.Global.Oss.Qiniu
 	oss := file_store.OXS{
-		Endpoint:        cnf.Endpoint,
-		AccessKeyID:     cnf.AccessKeyID,
-		AccessKeySecret: cnf.AccessKeySecret,
-		BucketName:      cnf.BucketName,
+		Endpoint:        cnf.Endpoint,        // "rab4kk5ki.hn-bkt.clouddn.com",
+		AccessKeyID:     cnf.AccessKeyID,     //"_SRlsiDrTatwIIKLM84nINyCg0T25sA99B8GfTRF",
+		AccessKeySecret: cnf.AccessKeySecret, //"VnW3PHcMtPMST7XOT2R0yROgsjiQjcULVQ7Az8Co",
+		BucketName:      cnf.BucketName,      //   "aithings",
 	}
 	ossType := oss.Setup(file_store.QiNiuKodo)
 	err := ossType.UpLoad(name, path)
@@ -2434,10 +2441,10 @@ func (s *OemAppSvc) qiniuUpload(name string, path string) (string, error) {
 func (s *OemAppSvc) s3Upload(name string, path string) (string, error) {
 	cnf := config.Global.Oss.S3
 	oss := file_store.OXS{
-		Endpoint:        cnf.Endpoint,
-		AccessKeyID:     cnf.AccessKeyID,
-		AccessKeySecret: cnf.AccessKeySecret,
-		BucketName:      cnf.BucketName,
+		Endpoint:        cnf.Endpoint,        //"https://iot-aithings-public.s3.amazonaws.com",
+		AccessKeyID:     cnf.AccessKeyID,     //"AKIA2K2HXFHOE6NNLAWC",
+		AccessKeySecret: cnf.AccessKeySecret, //"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",
+		BucketName:      cnf.BucketName,      //"iot-aithings-public",
 		Region:          cnf.Region,
 	}
 	ossType := oss.Setup(file_store.AwsS3Kodo)
@@ -2450,33 +2457,58 @@ func (s *OemAppSvc) s3Upload(name string, path string) (string, error) {
 }
 
 func (s *OemAppSvc) PulisherBuildMessage(bi iotstruct.BuildInfo) error {
-	addrs := config.Global.Nats.Addrs
-	p, err := jetstream.NewJSPublisher("build_app_message", BUILD_APP, BUILD_APP+"."+bi.OS, connerrhandler, addrs...)
-	if err != nil {
-		return err
-	}
-	//2 发布消息
-	buf, err := json.Marshal(bi)
-	if err != nil {
-		return err
-	}
-
-	err = p.PublishEx([]byte(buf), handler)
-	if err != nil {
-		//log.Println(err.Error())
+	iotlogger.LogHelper.Info("PulisherBuildMessage build start ", iotutil.ToString(bi))
+	if config.Global.AppBuild.BuildMode == 1 {
+		client, err := iotnatsjs.NewJsClient(config.Global.Nats.Addrs...)
+		if err != nil {
+			return err
+		}
+		//2 发布消息
+		buf, err := json.Marshal(bi)
+		if err != nil {
+			return err
+		}
+		err = client.Publish(context.Background(), BUILD_APP+"."+bi.OS, buf)
+		if err != nil {
+			return err
+		}
+		client.Close()
 	} else {
-		//log.Println("消息发送成功:", buf)
+		if config.Global.AppBuild.BuildServerUrl == "" && config.Global.AppBuild.BuildKey == "" {
+			return errors.New("云打包服务配置异常")
+		}
+		//调用官方打包机
+		url := config.Global.AppBuild.BuildServerUrl
+		bi.Mode = 1 //私有云平台打包
+		payload := strings.NewReader(iotutil.ToString(bi))
+		client := &http.Client{}
+		req, err := http.NewRequest("POST", url, payload)
+		if err != nil {
+			iotlogger.LogHelper.Error("PulisherBuildMessage http.NewRequest:", err.Error())
+			return err
+		}
+		req.Header.Add("buildKey", config.Global.AppBuild.BuildKey)
+		req.Header.Add("Content-Type", "application/json")
+		res, err := client.Do(req)
+		if err != nil {
+			iotlogger.LogHelper.Error("PulisherBuildMessage client.Do:", err.Error())
+			return err
+		}
+		defer res.Body.Close()
+		var resObj iotstruct.BuildApplyResponse
+		err = json.NewDecoder(res.Body).Decode(&resObj)
+		if err != nil {
+			iotlogger.LogHelper.Error("PulisherBuildMessage json.NewDecoder:", err.Error())
+			return err
+		}
+		// 处理推送响应4
+		if resObj.Code != 200 {
+			iotlogger.LogHelper.Error("PulisherBuildMessage resObj.Code:", resObj.Msg)
+			return errors.New(iotutil.ToString(resObj.Msg))
+		}
+		return nil
 	}
-	time.Sleep(5 * time.Second)
-	//3 当不需要时关闭
-	p.Close()
 	return nil
-}
-func connerrhandler(conn *nats.Conn, err error) {
-
-}
-func handler(msg *nats.Msg, err error) {
-
 }
 
 func (s *OemAppSvc) OemAppUpdateVersion(appId int64, oldVersion string, newVersion string) error {

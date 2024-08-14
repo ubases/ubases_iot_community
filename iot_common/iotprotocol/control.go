@@ -19,7 +19,7 @@ type PackControl struct {
 
 func (o *PackControl) Encode(gid, name string, data map[string]interface{}) ([]byte, error) {
 	obj := PackControl{
-		Header:  EncodeHeader(CONTROL_HEAD_NS, name, gid),
+		Header:  EncodeHeader(CONTROL_HEAD_NS, name, gid, ""),
 		Payload: Control{CtrlData: data},
 	}
 	*o = obj
@@ -35,16 +35,21 @@ type Control struct {
 	CtrlData map[string]interface{} `json:"control,omitempty"`
 }
 
-func (o *PackControlAck) Encode(gid, name, mid string, err error) ([]byte, error) {
+func (o *PackControlAck) Encode(gid, name, mid string, err error, msg string) ([]byte, error) {
 	if mid == "" {
 		mid = uuid.NewV4().String()
 	}
 	obj := PackControlAck{
-		Header:  Header{Ns: CONTROL_HEAD_NS, Name: name, Mid: mid, Ts: time.Now().UTC().Unix(), Ver: "1.0.0", Gid: gid},
-		Payload: NormalAck{Code: 0},
+		Header:  Header{Ns: CONTROL_HEAD_NS, Name: name, Mid: mid, Ts: time.Now().UTC().Unix(), Ver: "1.0.0", Gid: gid, From: FROM_DEVICE},
+		Payload: NormalAck{Code: 0, Msg: "ok"},
 	}
 	if err != nil {
 		obj.Payload.Code = 1
+		if msg != "" {
+			obj.Payload.Msg = msg
+		} else {
+			obj.Payload.Msg = err.Error()
+		}
 	}
 	*o = obj
 	return json.Marshal(obj)

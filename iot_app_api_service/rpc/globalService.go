@@ -64,6 +64,7 @@ var (
 	ClientOpmThingModelService              protosService.OpmThingModelService
 	ClientOemAppIntroduce                   protosService.OemAppIntroduceService
 	ClientOemAppService                     protosService.OemAppService
+	ClientOemAppCustomRecordService         protosService.OemAppCustomRecordService
 	ClientOemAppFunctionConfigService       protosService.OemAppFunctionConfigService
 	ClientOemAppUiConfigService             protosService.OemAppUiConfigService
 	ClientOpmVoiceService                   protosService.OpmVoiceService
@@ -105,6 +106,7 @@ var (
 	ClientSysAppEntryService       protosService.SysAppEntryService
 
 	ClientOemAppDebuggerService protosService.OemAppDebuggerService
+	ClientSysAttachmentService  protosService.SysAttachmentService
 )
 
 var (

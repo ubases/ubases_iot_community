@@ -40,5 +40,7 @@ func RegisterGrpcServiceClient(name string, fun func(name string, client client.
 		client.RequestTimeout(120*time.Second),
 		client.DialTimeout(6*time.Second),
 	)
+	_ = cli.Init(grpc.MaxSendMsgSize(20 * 1024 * 1024))
+	_ = cli.Init(grpc.MaxRecvMsgSize(20 * 1024 * 1024))
 	fun(name, cli)
 }

@@ -1,12 +1,12 @@
 package service
 
 import (
-	iotmodel "cloud_platform/iot_model"
-	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotgincache/persist"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotutil"
+	iotmodel "cloud_platform/iot_model"
+	"cloud_platform/iot_model/db_product/model"
 	proto "cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"math"
@@ -98,6 +98,8 @@ func setCached(list []*model.TOpmProduct) {
 			"networkType":    item.NetworkType,
 			"controlPanelId": item.ControlPanelId,
 			"moduleId":       item.ModuleId,
+			"id":             item.Id,
+			"productId":      item.BaseProductId,
 		}
 		thingModelSvc := OpmThingModelSvc{Ctx: context.Background()}
 		thingModelData, err := thingModelSvc.GetOpmThingModelByProduct(&proto.OpmThingModelByProductRequest{

@@ -37,6 +37,7 @@ func Use(db *gorm.DB) *Query {
 		TOpmPanelStudio:                 newTOpmPanelStudio(db),
 		TOpmPanelStudioBuildRecord:      newTOpmPanelStudioBuildRecord(db),
 		TOpmProduct:                     newTOpmProduct(db),
+		TOpmProductAppRelation:          newTOpmProductAppRelation(db),
 		TOpmProductFirmwareRelation:     newTOpmProductFirmwareRelation(db),
 		TOpmProductManual:               newTOpmProductManual(db),
 		TOpmProductMaterialLanguage:     newTOpmProductMaterialLanguage(db),
@@ -59,7 +60,6 @@ func Use(db *gorm.DB) *Query {
 		TOpmVoiceProductMapGoogle:       newTOpmVoiceProductMapGoogle(db),
 		TOpmVoiceProductMapGoogleBak:    newTOpmVoiceProductMapGoogleBak(db),
 		TOpmVoicePublishRecord:          newTOpmVoicePublishRecord(db),
-		TPmControlPanel:                 newTPmControlPanel(db),
 		TPmControlPanels:                newTPmControlPanels(db),
 		TPmFirmware:                     newTPmFirmware(db),
 		TPmFirmwareSetting:              newTPmFirmwareSetting(db),
@@ -111,6 +111,7 @@ type Query struct {
 	TOpmPanelStudio                 tOpmPanelStudio
 	TOpmPanelStudioBuildRecord      tOpmPanelStudioBuildRecord
 	TOpmProduct                     tOpmProduct
+	TOpmProductAppRelation          tOpmProductAppRelation
 	TOpmProductFirmwareRelation     tOpmProductFirmwareRelation
 	TOpmProductManual               tOpmProductManual
 	TOpmProductMaterialLanguage     tOpmProductMaterialLanguage
@@ -133,7 +134,6 @@ type Query struct {
 	TOpmVoiceProductMapGoogle       tOpmVoiceProductMapGoogle
 	TOpmVoiceProductMapGoogleBak    tOpmVoiceProductMapGoogleBak
 	TOpmVoicePublishRecord          tOpmVoicePublishRecord
-	TPmControlPanel                 tPmControlPanel
 	TPmControlPanels                tPmControlPanels
 	TPmFirmware                     tPmFirmware
 	TPmFirmwareSetting              tPmFirmwareSetting
@@ -186,6 +186,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		TOpmPanelStudio:                 q.TOpmPanelStudio.clone(db),
 		TOpmPanelStudioBuildRecord:      q.TOpmPanelStudioBuildRecord.clone(db),
 		TOpmProduct:                     q.TOpmProduct.clone(db),
+		TOpmProductAppRelation:          q.TOpmProductAppRelation.clone(db),
 		TOpmProductFirmwareRelation:     q.TOpmProductFirmwareRelation.clone(db),
 		TOpmProductManual:               q.TOpmProductManual.clone(db),
 		TOpmProductMaterialLanguage:     q.TOpmProductMaterialLanguage.clone(db),
@@ -208,7 +209,6 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		TOpmVoiceProductMapGoogle:       q.TOpmVoiceProductMapGoogle.clone(db),
 		TOpmVoiceProductMapGoogleBak:    q.TOpmVoiceProductMapGoogleBak.clone(db),
 		TOpmVoicePublishRecord:          q.TOpmVoicePublishRecord.clone(db),
-		TPmControlPanel:                 q.TPmControlPanel.clone(db),
 		TPmControlPanels:                q.TPmControlPanels.clone(db),
 		TPmFirmware:                     q.TPmFirmware.clone(db),
 		TPmFirmwareSetting:              q.TPmFirmwareSetting.clone(db),
@@ -258,6 +258,7 @@ type queryCtx struct {
 	TOpmPanelStudio                 tOpmPanelStudioDo
 	TOpmPanelStudioBuildRecord      tOpmPanelStudioBuildRecordDo
 	TOpmProduct                     tOpmProductDo
+	TOpmProductAppRelation          tOpmProductAppRelationDo
 	TOpmProductFirmwareRelation     tOpmProductFirmwareRelationDo
 	TOpmProductManual               tOpmProductManualDo
 	TOpmProductMaterialLanguage     tOpmProductMaterialLanguageDo
@@ -280,7 +281,6 @@ type queryCtx struct {
 	TOpmVoiceProductMapGoogle       tOpmVoiceProductMapGoogleDo
 	TOpmVoiceProductMapGoogleBak    tOpmVoiceProductMapGoogleBakDo
 	TOpmVoicePublishRecord          tOpmVoicePublishRecordDo
-	TPmControlPanel                 tPmControlPanelDo
 	TPmControlPanels                tPmControlPanelsDo
 	TPmFirmware                     tPmFirmwareDo
 	TPmFirmwareSetting              tPmFirmwareSettingDo
@@ -330,6 +330,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		TOpmPanelStudio:                 *q.TOpmPanelStudio.WithContext(ctx),
 		TOpmPanelStudioBuildRecord:      *q.TOpmPanelStudioBuildRecord.WithContext(ctx),
 		TOpmProduct:                     *q.TOpmProduct.WithContext(ctx),
+		TOpmProductAppRelation:          *q.TOpmProductAppRelation.WithContext(ctx),
 		TOpmProductFirmwareRelation:     *q.TOpmProductFirmwareRelation.WithContext(ctx),
 		TOpmProductManual:               *q.TOpmProductManual.WithContext(ctx),
 		TOpmProductMaterialLanguage:     *q.TOpmProductMaterialLanguage.WithContext(ctx),
@@ -352,7 +353,6 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		TOpmVoiceProductMapGoogle:       *q.TOpmVoiceProductMapGoogle.WithContext(ctx),
 		TOpmVoiceProductMapGoogleBak:    *q.TOpmVoiceProductMapGoogleBak.WithContext(ctx),
 		TOpmVoicePublishRecord:          *q.TOpmVoicePublishRecord.WithContext(ctx),
-		TPmControlPanel:                 *q.TPmControlPanel.WithContext(ctx),
 		TPmControlPanels:                *q.TPmControlPanels.WithContext(ctx),
 		TPmFirmware:                     *q.TPmFirmware.WithContext(ctx),
 		TPmFirmwareSetting:              *q.TPmFirmwareSetting.WithContext(ctx),

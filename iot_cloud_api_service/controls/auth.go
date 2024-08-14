@@ -31,6 +31,7 @@ type UserInfo struct {
 	PostIds     []string `json:"postIds"`  //云平台用户才有，多个用逗号分隔
 	TenantId    string   `json:"tenantId"` //租户ID，开放测试平台使用
 	AccountType int32    `json:"accountType"`
+	Company     string   `json:"company"` //公司名称
 }
 
 type OpenUserInfo struct {
@@ -101,16 +102,16 @@ func GetUserId(c *gin.Context) int64 {
 	return c.GetInt64("userId")
 }
 
+func GetAccountType(c *gin.Context) int {
+	return c.GetInt("accountType")
+}
+
 func GetTenantId(c *gin.Context) string {
 	return c.GetString("tenantId")
 }
 
 func GetLang(c *gin.Context) string {
 	return c.GetHeader("lang")
-}
-
-func GetAccountType(c *gin.Context) int32 {
-	return int32(c.GetInt("accountType"))
 }
 
 // 获取userAgent信息
@@ -160,6 +161,7 @@ func GetAppKeyByHost(c *gin.Context) string {
 
 // 修改密码后清除该用户的token
 func ClearTokenByUserId(id int64) {
+	defer iotutil.PanicHandler(id)
 	ClearToken(id, true)
 }
 

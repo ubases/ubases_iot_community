@@ -2,6 +2,12 @@ package iotconst
 
 // APP版本
 var (
+	APP_DEV_TYPE_OEM    int32 = 1 //OEM APP
+	APP_DEV_TYPE_CUSTOM int32 = 2 //Custom APP
+	APP_DEV_TYPE_SDK    int32 = 3 //SDK APP
+)
+// APP版本
+var (
 	OS_IOS           int32 = 1 //iOS上架包
 	OS_ANDROID_CHINA int32 = 2 //Android国内版
 	OS_ANDROID       int32 = 3 //Android海外版

@@ -38,6 +38,7 @@ func InitServiceClient() {
 		ClientSysAppHelpCenterService = protosService.NewSysAppHelpCenterService(name, client)
 
 		ClientCloudAuthService = protosService.NewCloudAuthService(name, client)
+		ClientSysAttachmentService = protosService.NewSysAttachmentService(name, client)
 	})
 
 	RegisterGrpcServiceClient(iotconst.IOT_DEVICE_SERVICE, func(name string, client client.Client) {
@@ -136,8 +137,9 @@ func InitServiceClient() {
 		ClientDocumentTemplateService = protosService.NewTplDocumentTemplateService(name, client)
 		ClientProductHelpConfService = protosService.NewProductHelpConfService(name, client)
 		ClientProductHelpDocService = protosService.NewProductHelpDocService(name, client)
-
 		ClientProductTestAccountService = protosService.NewOpmProductTestAccountService(name, client)
+
+		ClientProductAppRelationService = protosService.NewOpmProductAppRelationService(name, client)
 	})
 	//开放平台
 	RegisterGrpcServiceClient(iotconst.IOT_OPEN_SYSTEM_SERVICE, func(name string, client client.Client) {
@@ -200,6 +202,7 @@ func InitServiceClient() {
 		ClientFeedbackTypeService = protosService.NewOemFeedbackTypeService(name, client)
 		ClientOemAppCustomRecordService = protosService.NewOemAppCustomRecordService(name, client)
 		ClientOemAppDebuggerService = protosService.NewOemAppDebuggerService(name, client)
+		ClientCloudAppBuildAuthService = protosService.NewCloudAppBuildAuthService(name, client)
 	})
 
 	//OEM APP
@@ -211,6 +214,8 @@ func InitServiceClient() {
 		ClientNoticeTemplateService = protosService.NewMsNoticeTemplateService(name, client)
 		ClientEmailService = protosService.NewEmailService(name, client)
 		ClientSmsService = protosService.NewSmsService(name, client)
+
+		ClientMsNoticeRecordService = protosService.NewMsNoticeRecordService(name, client)
 	})
 
 	RegisterGrpcServiceClient(iotconst.IOT_STATISTICS_SERVICE, func(name string, client client.Client) {
@@ -261,5 +266,9 @@ func RegisterGrpcServiceClient(name string, fun func(name string, client client.
 		client.RequestTimeout(120*time.Second), //for debug
 		client.DialTimeout(6*time.Second),
 	)
+	grpc.DefaultMaxRecvMsgSize = 100 * 1024 * 1024
+	grpc.DefaultMaxSendMsgSize = 100 * 1024 * 1024
+	_ = cli.Init(grpc.MaxSendMsgSize(20 * 1024 * 1024))
+	_ = cli.Init(grpc.MaxRecvMsgSize(20 * 1024 * 1024))
 	fun(name, cli)
 }

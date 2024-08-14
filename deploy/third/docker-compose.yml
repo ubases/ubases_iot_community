@@ -2,11 +2,11 @@ version: '3.7'
 
 services:
   nats:
-    image: nats:2.7.4
+    image: nats:2.10.16
     hostname: iot-nats
     container_name: nats-server
     privileged: true
-    command: "-c /nats/js.conf"
+    command: "-c /nats/conf/js.conf"
     volumes:
       - ./nats:/nats
       - ./nats/logs:/logs
@@ -58,6 +58,7 @@ services:
       - ./mysql/data:/var/lib/mysql
       - ./mysql/conf:/etc/mysql/conf.d
       - ./mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d/
+      - ./mysql/sql:/sql/
     user: mysql
     environment:
       TZ: Asia/Shanghai

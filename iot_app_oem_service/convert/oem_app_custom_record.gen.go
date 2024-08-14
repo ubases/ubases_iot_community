@@ -30,6 +30,9 @@ func OemAppCustomRecord_pb2db(src *proto.OemAppCustomRecord) *model.TOemAppCusto
 		UpdatedAt:     src.UpdatedAt.AsTime(),
 		PlistUrl:      src.PlistUrl,
 		LaunchMarkets: src.LaunchMarkets,
+		RemindDescEn: src.RemindDescEn,
+		RemindMode: src.RemindMode,
+		RemindDesc: src.RemindDesc,
 	}
 	return &dbObj
 }
@@ -53,6 +56,9 @@ func OemAppCustomRecord_db2pb(src *model.TOemAppCustomRecord) *proto.OemAppCusto
 		UpdatedAt:     timestamppb.New(src.UpdatedAt),
 		PlistUrl:      src.PlistUrl,
 		LaunchMarkets: src.LaunchMarkets,
+		RemindDescEn: src.RemindDescEn,
+		RemindMode: src.RemindMode,
+		RemindDesc: src.RemindDesc,
 	}
 	return &pbObj
 }

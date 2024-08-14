@@ -264,10 +264,14 @@ func RegisterHandler(service micro.Service) error {
 		iotlogger.LogHelper.Errorf("RegisterTplDocumentTemplateServiceHandler 错误:%s", err.Error())
 		return err
 	}
-
 	err = protosService.RegisterOpmProductTestAccountServiceHandler(service.Server(), new(OpmProductTestAccountHandler))
 	if err != nil {
 		iotlogger.LogHelper.Errorf("RegisterOpmProductTestAccountServiceHandler 错误:%s", err.Error())
+		return err
+	}
+	err = protosService.RegisterOpmProductAppRelationServiceHandler(service.Server(), new(OpmProductAppRelationHandler))
+	if err != nil {
+		iotlogger.LogHelper.Errorf("RegisterOpmProductAppRelationServiceHandler 错误:%s", err.Error())
 		return err
 	}
 	return nil

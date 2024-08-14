@@ -72,7 +72,7 @@ type UcUserFeedbackQuery struct {
 // UcUserFeedbackFilter，查询条件，字段请根据需要自行增减
 type UcUserFeedbackFilter struct {
 	AppKey        string `json:"appKey"`
-	TypeId        int64  `json:"typeId"`
+	TypeId        interface{}  `json:"typeId"`
 	ProductKey    string `json:"productKey"`
 	TimeQueryMode int32  `json:"timeQueryMode"` //字典：time_query_mode 1= 全部 =2 最近一周 =3 最近一个月 =4 最近三个月
 	Status        int32  `json:"status"`

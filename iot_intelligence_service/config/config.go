@@ -1,7 +1,13 @@
 package config
 
 import (
+	"cloud_platform/iot_common/iotconfig"
+	"cloud_platform/iot_common/iotredis"
+	"errors"
+	"fmt"
 	"os"
+
+	"go-micro.dev/v4/config/reader"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
@@ -10,13 +16,13 @@ import (
 )
 
 type Settings struct {
-	Service  ServiceConfig  `yaml:"service"`            //服务配置
-	Database DatabaseConfig `yaml:"database,omitempty"` //数据库配置
-	Redis    RedisConfig    `yaml:"redis,omitempty"`    //redis配置
-	Nats     NATSConfig     `yaml:"NATS,omitempty"`     //Nats配置
-	Zipkin   Zipkin         `yaml:"zipkin"`             //ZipKin配置
-	Etcd     EtcdCfg        `yaml:"etcd"`               //Etcd配置
-	ServerId int64          `yaml:"serverId"`
+	Service  ServiceConfig   `yaml:"service"`            //服务配置
+	Database DatabaseConfig  `yaml:"database,omitempty"` //数据库配置
+	Redis    iotredis.Config `yaml:"redis,omitempty"`    //redis配置
+	Nats     NATSConfig      `yaml:"NATS,omitempty"`     //Nats配置
+	Zipkin   Zipkin          `yaml:"zipkin"`             //ZipKin配置
+	Etcd     EtcdCfg         `yaml:"etcd"`               //Etcd配置
+	ServerId int64           `yaml:"serverId"`
 }
 type DatabaseConfig struct {
 	Database string `yaml:"database"`
@@ -45,13 +51,14 @@ type RedisConfig struct {
 }
 
 type ServiceConfig struct {
-	GrpcAddr string `yaml:"grpcAddr,omitempty"`
-	Grpcqps  int    `yaml:"grpcqps,omitempty"`
-	HttpAddr string `yaml:"httpAddr,omitempty"`
-	Httpqps  int    `yaml:"httpqps,omitempty"`
-	Logfile  string `yaml:"logfile"`
-	Loglevel string `yaml:"loglevel"`
-	ServerId int64  `yaml:"serverId"`
+	GrpcAddr     string `yaml:"grpcAddr,omitempty"`
+	Grpcqps      int    `yaml:"grpcqps,omitempty"`
+	HttpAddr     string `yaml:"httpAddr,omitempty"`
+	Httpqps      int    `yaml:"httpqps,omitempty"`
+	Logfile      string `yaml:"logfile"`
+	Loglevel     string `yaml:"loglevel"`
+	ServerId     int64  `yaml:"serverId"`
+	InstanceCode string `yaml:"instanceCode"`
 }
 
 type EtcdCfg struct {
@@ -88,6 +95,10 @@ func Init() error {
 
 	viper.SetConfigFile(configFile)
 	err = viper.ReadInConfig()
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 	if err = viper.Unmarshal(Global); err != nil {
 		log.Error(err)
 		return err
@@ -138,4 +149,37 @@ func InitTest(path ...string) error {
 	})
 	log.Info("setting init success !")
 	return err
+}
+
+func Init2() error {
+	cnf, err := iotconfig.LoadIotConfig()
+	if err != nil {
+		return Init()
+	}
+	if cnf.Config.Location == iotconfig.Location_local {
+		return Init()
+	}
+	if cnf.Config.Location != iotconfig.Location_nacos {
+		return errors.New("location unsupported ")
+	}
+	conf, err := iotconfig.NewNacosConfig(&cnf.Nacos, fmt.Sprintf("iot_intelligence_service-%s.yaml", cnf.Config.Env))
+	if err != nil {
+		return err
+	}
+	if err := conf.Scan(Global); err != nil {
+		return err
+	}
+	//开启监听
+	iotconfig.Watch(conf, WatchCB)
+	return nil
+}
+
+func WatchCB(v reader.Value, err error) {
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	if err = v.Scan(Global); err != nil {
+		log.Error(err)
+	}
 }

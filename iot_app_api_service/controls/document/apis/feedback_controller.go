@@ -2,9 +2,11 @@ package apis
 
 import (
 	"cloud_platform/iot_app_api_service/controls"
+	"cloud_platform/iot_app_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_app_api_service/controls/document/entitys"
 	apiservice "cloud_platform/iot_app_api_service/controls/document/services"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_app/model"
 
 	"github.com/gin-gonic/gin"
 
@@ -122,6 +124,7 @@ func (UcUserFeedbackController) Add(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
+	commonGlobal.SetAttachmentStatus(model.TableNameTUcUserFeedback, id, append(req.Pictures, req.Videos...)...)
 	iotgin.ResSuccess(c, id)
 }
 

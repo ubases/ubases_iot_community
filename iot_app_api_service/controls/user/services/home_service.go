@@ -52,7 +52,6 @@ func (s AppHomeService) SetApp(appKey, tenantId string) AppHomeService {
 func (s AppHomeService) AddHome(req entitys.UcHomeEntitys, userId int64) error {
 	saveObj := entitys.UcHomeReq_e2pb(&req)
 	saveObj.Id = iotutil.GetNextSeqInt64()
-	saveObj.Sid = 0 //todo 待处理
 	saveObj.UserId = userId
 	saveObj.CreatedBy = userId
 	_, err := rpc.UcHomeService.AddHome(s.Ctx, saveObj)
@@ -130,7 +129,9 @@ func (s AppHomeService) Details(c *gin.Context, homeId int64, userId int64) (*en
 		if res.Code != 200 {
 			return homeInfo, 0, errors.New(areaData.Message)
 		}
-		homeInfo.CountryName = getNameByLang(lang, areaData.Data[0].ChineseName, areaData.Data[0].EnglishName)
+		if areaData.Data != nil && len(areaData.Data) > 0 {
+			homeInfo.CountryName = getNameByLang(lang, areaData.Data[0].ChineseName, areaData.Data[0].EnglishName)
+		}
 	}
 	if len(homeInfo.ProvinceId) != 0 {
 		id, err := iotutil.ToInt32Err(homeInfo.ProvinceId)
@@ -146,7 +147,9 @@ func (s AppHomeService) Details(c *gin.Context, homeId int64, userId int64) (*en
 		if res.Code != 200 {
 			return homeInfo, 0, errors.New(areaData.Message)
 		}
-		homeInfo.ProvinceName = getNameByLang(lang, areaData.Data[0].ChineseName, areaData.Data[0].EnglishName)
+		if areaData.Data != nil && len(areaData.Data) > 0 {
+			homeInfo.ProvinceName = getNameByLang(lang, areaData.Data[0].ChineseName, areaData.Data[0].EnglishName)
+		}
 	}
 	if len(homeInfo.CityId) != 0 {
 		id, err := iotutil.ToInt32Err(homeInfo.CityId)
@@ -162,12 +165,18 @@ func (s AppHomeService) Details(c *gin.Context, homeId int64, userId int64) (*en
 		if res.Code != 200 {
 			return homeInfo, 0, errors.New(areaData.Message)
 		}
-		homeInfo.CityName = getNameByLang(lang, areaData.Data[0].ChineseName, areaData.Data[0].EnglishName)
+		if areaData.Data != nil && len(areaData.Data) > 0 {
+			homeInfo.CityName = getNameByLang(lang, areaData.Data[0].ChineseName, areaData.Data[0].EnglishName)
+		}
 	}
 	//如果省份为空，则将选择省份的名称赋值给Province
 	if homeInfo.Province == "" {
 		homeInfo.Province = homeInfo.ProvinceName
 	}
+	if homeInfo.Address == "" {
+		homeInfo.Address = fmt.Sprintf("%v%v%v", homeInfo.Country, homeInfo.Province, homeInfo.City)
+	}
+
 	//房间名称翻译
 	homeInfo.Name = HomeLanguage(lang, homeInfo.Name)
 	//获取家庭所在区域
@@ -192,6 +201,7 @@ func (s AppHomeService) Details(c *gin.Context, homeId int64, userId int64) (*en
 	defaultRooms := GetDefaultRooms(lang, tenantId, appKey)
 	roomDeviceCount := map[string]int32{}
 	var deviceMap sync.Map
+
 	for _, v := range homeDetail.DeviceList {
 		devInfo := v.Data
 		devStatus := s.GetDeviceStatus(devInfo.Did)
@@ -202,7 +212,9 @@ func (s AppHomeService) Details(c *gin.Context, homeId int64, userId int64) (*en
 			}
 		}
 		devInfo.RoomName = roomName
-		homeInfo.DeviceList = append(homeInfo.DeviceList, *entitys.HomeDevice_2e(homeInfo.Name, devInfo, devStatus, mqttInfo))
+
+		dev := *entitys.HomeDevice_2e(homeInfo.Name, devInfo, devStatus, mqttInfo)
+		homeInfo.DeviceList = append(homeInfo.DeviceList, dev)
 
 		deviceCount, _ := roomDeviceCount[devInfo.RoomId]
 		deviceCount = deviceCount + 1
@@ -213,11 +225,34 @@ func (s AppHomeService) Details(c *gin.Context, homeId int64, userId int64) (*en
 	homeInfo.SetRoom(defaultRooms, homeDetail.RoomList, roomDeviceCount)
 	//设置共享设备
 	s.setSharedDeviceList(userId, homeInfo, deviceMap)
+	//
+	//if proPanelsMap != nil {
+	//	if v, ok := proPanelsMap[v.ProductId]; ok {
+	//		dev.PanelCode = v.PanelCode
+	//	}
+	//}
+	//if v, ok := proPanelMap[devInfo.ProductId]; ok {
+	//	dev.PanelCode = v.PanelCode
+	//}
+
 	//设置群组信息
 	s.setGroupDeviceList(homeId, homeInfo)
 	//设置产品的面板更新信息
 	s.setProductPanel(homeInfo)
-
+	//设置面板编码
+	var proIds = make([]int64, 0)
+	for _, d := range homeInfo.DeviceList {
+		proIds = append(proIds, d.ProductId)
+	}
+	proIds = iotutil.RemoveRepeatInt64Element(proIds)
+	proPanelMap, _ := controls.GetProductPanelInfo(proIds...)
+	for i, d := range homeInfo.DeviceList {
+		if proPanelMap != nil {
+			if v, ok := proPanelMap[d.ProductId]; ok {
+				homeInfo.DeviceList[i].PanelCode = v.PanelCode
+			}
+		}
+	}
 	//根据sort进行排序
 	sort.Slice(homeInfo.DeviceList, func(i, j int) bool {
 		return homeInfo.DeviceList[i].Time > homeInfo.DeviceList[j].Time
@@ -371,7 +406,7 @@ func (s AppHomeService) setSharedDeviceList(userId int64, homeInfo *entitys.UcHo
 			if mqttInfo != nil && mqttInfo.WebsocketServer != "" {
 				mqttServer = mqttInfo.WebsocketServer
 			}
-			homeInfo.DeviceList = append(homeInfo.DeviceList, entitys.HomeDevice{
+			dev := entitys.HomeDevice{
 				Did:        v.DeviceId,
 				ProductId:  v.ProductId,
 				DeviceName: v.CustomName,
@@ -393,7 +428,8 @@ func (s AppHomeService) setSharedDeviceList(userId int64, homeInfo *entitys.UcHo
 				//UpgradeMode: devStatus.UpgradeMode,
 				DevType: 2, //共享设备
 				Time:    v.SharedTime.AsTime().Unix(),
-			})
+			}
+			homeInfo.DeviceList = append(homeInfo.DeviceList, dev)
 		}
 	}
 }
@@ -920,6 +956,14 @@ func (s AppHomeService) DeviceList(homeId int64) ([]entitys.HomeDevice, string) 
 	deviceList := []entitys.HomeDevice{}
 	//从缓存获取产品信息
 	productCached := controls.ProductCachedData{}
+
+	var proIds = make([]int64, 0)
+	for _, d := range deviceHomeList.DevList {
+		proIds = append(proIds, d.ProductId)
+	}
+	proIds = iotutil.RemoveRepeatInt64Element(proIds)
+	proPanelMap, _ := controls.GetProductPanelInfo(proIds...)
+
 	//默认房间翻译
 	defaultRooms := GetDefaultRooms(lang, tenantId, appKey)
 	for _, v := range deviceHomeList.DevList {
@@ -944,7 +988,7 @@ func (s AppHomeService) DeviceList(homeId int64) ([]entitys.HomeDevice, string) 
 				iotlogger.LogHelper.Infof("通过房间模板Id获取翻译失败，房间模板%v, defaultRooms: %v", devInfo.RoomTemplateId, iotutil.ToString(defaultRooms))
 			}
 		}
-		deviceList = append(deviceList, entitys.HomeDevice{
+		dev := entitys.HomeDevice{
 			Did:         devInfo.Did,
 			ProductId:   devInfo.ProductId,
 			DeviceName:  devInfo.DeviceName,
@@ -958,7 +1002,11 @@ func (s AppHomeService) DeviceList(homeId int64) ([]entitys.HomeDevice, string) 
 			DevSwitch:   0,
 			DevType:     1,
 			Time:        roomId,
-		})
+		}
+		if v, ok := proPanelMap[devInfo.ProductId]; ok {
+			dev.PanelCode = v.PanelCode
+		}
+		deviceList = append(deviceList, dev)
 	}
 	//根据sort进行排序
 	sort.Slice(deviceList, func(i, j int) bool {
@@ -1043,7 +1091,13 @@ func (s AppHomeService) UserDeviceList(userId int64) ([]entitys.HomeDevice, stri
 		return nil, err.Error()
 	}
 
-	deviceList := []entitys.HomeDevice{}
+	var proIds = make([]int64, 0)
+	for _, d := range deviceHomeList.DevList {
+		proIds = append(proIds, d.ProductId)
+	}
+	proIds = iotutil.RemoveRepeatInt64Element(proIds)
+	proPanelMap, _ := controls.GetProductPanelInfo(proIds...)
+	deviceList := make([]entitys.HomeDevice, 0)
 	productCached := controls.ProductCachedData{}
 	//默认房间翻译
 	defaultRooms := GetDefaultRooms(lang, tenantId, appKey)
@@ -1063,7 +1117,7 @@ func (s AppHomeService) UserDeviceList(userId int64) ([]entitys.HomeDevice, stri
 				roomName = dfVal
 			}
 		}
-		deviceList = append(deviceList, entitys.HomeDevice{
+		dev := entitys.HomeDevice{
 			Did:         devInfo.Did,
 			ProductId:   devInfo.ProductId,
 			DeviceName:  devInfo.DeviceName,
@@ -1077,7 +1131,11 @@ func (s AppHomeService) UserDeviceList(userId int64) ([]entitys.HomeDevice, stri
 			OnlineState: iotutil.ToInt32(devInfo.OnlineStatus),
 			DevSwitch:   0,
 			DevType:     1,
-		})
+		}
+		if v, ok := proPanelMap[devInfo.ProductId]; ok {
+			dev.PanelCode = v.PanelCode
+		}
+		deviceList = append(deviceList, dev)
 	}
 	return deviceList, ""
 }
@@ -1130,6 +1188,24 @@ func (s AppHomeService) Delete(homeId int64, userId int64, ip string) (code int3
 		}
 	}
 	go SendRemoveHomeMessage(SetAppInfoByContext(s.Ctx), ret, userId, homeId)
+	return 0, nil
+}
+
+func (s AppHomeService) SendMsgTest(homeId int64, userId int64, ip string) (code int32, err error) {
+	////删除之前查询，不然消息中心查询不到原来的家庭信息
+	//ret, err := rpc.UcHomeService.HomeDetail(context.Background(), &protosService.UcHomeDetailRequest{
+	//	HomeId: homeId,
+	//})
+	//if err != nil {
+	//	iotlogger.LogHelper.WithTag("method", "SendRemoveHomeMessage").Error(err)
+	//	return -1, err
+	//}
+	//if ret.Code != 200 {
+	//	iotlogger.LogHelper.WithTag("method", "SendRemoveHomeMessage").Error(ret.Message)
+	//	return -1, err
+	//}
+	SendCancelShareMessage(userId, userId, homeId, "jTwPYJz0UGN9RR5c", "iot-aithings-public-app", "ioqp4r")
+	//SendRemoveHomeMessage(SetAppInfoByContext(s.Ctx), ret, userId, homeId)
 	return 0, nil
 }
 
@@ -1287,15 +1363,15 @@ func GetRegionMqttById(sid string) (*protosService.SysRegionServer, error) {
 	//区域兼容处理regionId := controls.GetRegion(c)
 	if regionId != "" {
 		//读取区域数据
-		regionIdInt, err := iotutil.ToInt64AndErr(regionId)
-		if err == nil {
-			rep, err := rpc.SysRegionServerService.FindById(context.Background(), &protosService.SysRegionServerFilter{Id: regionIdInt})
-			if err == nil {
-				return rep.Data[0], nil
-			}
-		} else {
-			return nil, errors.New("区域参数错误，region: " + regionId)
+		//regionIdInt, err := iotutil.ToInt64AndErr(regionId)
+		//if err == nil {
+		rep, err := rpc.SysRegionServerService.Find(context.Background(), &protosService.SysRegionServerFilter{Sid: regionId})
+		if err == nil && len(rep.Data) > 0 {
+			return rep.Data[0], nil
 		}
+		//} else {
+		//	return nil, errors.New("区域参数错误，region: " + regionId)
+		//}
 	}
 	return nil, errors.New("异常")
 }

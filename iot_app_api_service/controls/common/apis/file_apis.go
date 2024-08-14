@@ -2,9 +2,11 @@ package apis
 
 import (
 	"cloud_platform/iot_app_api_service/config"
+	"cloud_platform/iot_app_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotgin"
 	"cloud_platform/iot_common/iotoss/file_store"
+	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
 	"encoding/base64"
 	"errors"
@@ -20,15 +22,6 @@ import (
 
 	"github.com/h2non/filetype"
 )
-
-type FileResponse struct {
-	Size     int64  `json:"size"`
-	Path     string `json:"path"`
-	FullPath string `json:"fullPath"`
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Key      string `json:"key"`
-}
 
 var tempPath = iotconst.GetWorkTempDir() + string(filepath.Separator)
 
@@ -53,7 +46,7 @@ type File struct {
 func (e File) UploadFile(c *gin.Context) {
 	tag, _ := c.GetPostForm("type")
 	urlPrefix := fmt.Sprintf("http://%s/", c.Request.Host)
-	var fileResponse FileResponse
+	var fileResponse iotstruct.FileResponse
 
 	switch tag {
 	case "1": // 单个文件
@@ -83,7 +76,7 @@ func (e File) UploadFile(c *gin.Context) {
 
 }
 
-func (e File) baseImg(c *gin.Context, fileResponse FileResponse, urlPerfix string) FileResponse {
+func (e File) baseImg(c *gin.Context, fileResponse iotstruct.FileResponse, urlPerfix string) iotstruct.FileResponse {
 	files, _ := c.GetPostForm("file")
 	file2list := strings.Split(files, ",")
 	ddd, _ := base64.StdEncoding.DecodeString(file2list[1])
@@ -96,12 +89,12 @@ func (e File) baseImg(c *gin.Context, fileResponse FileResponse, urlPerfix strin
 	err = iotutil.IsNotExistMkDir(tempPath + "/" + dir)
 	if err != nil {
 		iotgin.ResFailCode(c, "初始化文件路径失败", 500)
-		return FileResponse{}
+		return iotstruct.FileResponse{}
 	}
 	base64File := tempPath + fileName
 	_ = ioutil.WriteFile(base64File, ddd, 0666)
 	typeStr := strings.Replace(strings.Replace(file2list[0], "data:", "", -1), ";base64", "", -1)
-	fileResponse = FileResponse{
+	fileResponse = iotstruct.FileResponse{
 		Size:     iotutil.GetFileSize(base64File),
 		Path:     base64File,
 		FullPath: urlPerfix + base64File,
@@ -124,11 +117,11 @@ func (e File) baseImg(c *gin.Context, fileResponse FileResponse, urlPerfix strin
 	return fileResponse
 }
 
-func (e File) multipleFile(c *gin.Context, urlPerfix string) []FileResponse {
+func (e File) multipleFile(c *gin.Context, urlPerfix string) []iotstruct.FileResponse {
 	files := c.Request.MultipartForm.File["file"]
 	source, _ := c.GetPostForm("source")
 	dir, _ := c.GetPostForm("dir")
-	var multipartFile []FileResponse
+	var multipartFile []iotstruct.FileResponse
 	for _, f := range files {
 		guid := uuid.New().String()
 		fileName := fmt.Sprintf("%s/%s", dir, guid+iotutil.GetExt(f.Filename))
@@ -148,7 +141,7 @@ func (e File) multipleFile(c *gin.Context, urlPerfix string) []FileResponse {
 				iotgin.ResFailCode(c, "上传第三方失败", 500)
 				return nil
 			} else {
-				fileResponse := FileResponse{
+				fileResponse := iotstruct.FileResponse{
 					Size:     iotutil.GetFileSize(multipartFileName),
 					Path:     multipartFileName,
 					FullPath: urlPerfix + url,
@@ -166,15 +159,15 @@ func (e File) multipleFile(c *gin.Context, urlPerfix string) []FileResponse {
 			}
 		}
 	}
-	return multipartFile
+	return commonGlobal.SaveAttachmentRecord(dir, multipartFile...)
 }
 
-func (e File) singleFile(c *gin.Context, fileResponse FileResponse, urlPerfix string) (FileResponse, bool) {
+func (e File) singleFile(c *gin.Context, fileResponse iotstruct.FileResponse, urlPerfix string) (iotstruct.FileResponse, bool) {
 	files, err := c.FormFile("file")
 
 	if err != nil {
 		iotgin.ResFailCode(c, "图片不能为空", 500)
-		return FileResponse{}, true
+		return iotstruct.FileResponse{}, true
 	}
 	// 上传文件至指定目录
 	guid := uuid.New().String()
@@ -186,21 +179,21 @@ func (e File) singleFile(c *gin.Context, fileResponse FileResponse, urlPerfix st
 	err = iotutil.IsNotExistMkDir(tempPath + "/" + dir)
 	if err != nil {
 		iotgin.ResFailCode(c, "初始化文件路径失败", 500)
-		return FileResponse{}, false
+		return iotstruct.FileResponse{}, false
 	}
 	singleFile := tempPath + fileName
 	//if  iotutil.GetFileSize(singleFile) > 10485760 {
 	//	iotgin.ResFailCode(c, "上传文件大小超过10m", 500)
-	//	return FileResponse{}, true
+	//	return iotstruct.FileResponse{}, true
 	//}
 	_ = c.SaveUploadedFile(files, singleFile)
 	fileKey, _ := iotutil.FileMD5(singleFile)
 	//if err != nil {
 	//	iotgin.ResFailCode(c, "初始化文件路径失败", 500)
-	//	return FileResponse{}, false
+	//	return iotstruct.FileResponse{}, false
 	//}
 	fileType, _ := iotutil.GetType(singleFile)
-	fileResponse = FileResponse{
+	fileResponse = iotstruct.FileResponse{
 		Size:     iotutil.GetFileSize(singleFile),
 		Path:     singleFile,
 		FullPath: urlPerfix + singleFile,
@@ -212,7 +205,7 @@ func (e File) singleFile(c *gin.Context, fileResponse FileResponse, urlPerfix st
 	url, err := thirdUpload(config.Global.Oss.UseOss, fileName, singleFile)
 	if err != nil {
 		iotgin.ResFailCode(c, "上传第三方失败", 500)
-		return FileResponse{}, true
+		return iotstruct.FileResponse{}, true
 	}
 	if source == "1" {
 		fileResponse.Path = "/static/uploadfile/" + fileName
@@ -221,7 +214,7 @@ func (e File) singleFile(c *gin.Context, fileResponse FileResponse, urlPerfix st
 		fileResponse.Path = fileName
 		fileResponse.FullPath = url
 	}
-	return fileResponse, false
+	return commonGlobal.SaveAttachmentRecord(dir, fileResponse)[0], false
 }
 
 func thirdUpload(source string, name string, path string) (string, error) {
@@ -258,10 +251,10 @@ func ossUpload(name string, path string) (string, error) {
 func s3Upload(name string, path string) (string, error) {
 	cnf := config.Global.Oss.S3
 	oss := file_store.OXS{
-		Endpoint:        cnf.Endpoint,
-		AccessKeyID:     cnf.AccessKeyID,
-		AccessKeySecret: cnf.AccessKeySecret,
-		BucketName:      cnf.BucketName,
+		Endpoint:        cnf.Endpoint,        //"https://iot-aithings-public.s3.amazonaws.com",
+		AccessKeyID:     cnf.AccessKeyID,     //"AKIA2K2HXFHOE6NNLAWC",
+		AccessKeySecret: cnf.AccessKeySecret, //"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",
+		BucketName:      cnf.BucketName,      //"iot-aithings-public",
 		Region:          cnf.Region,
 	}
 	ossType := oss.Setup(file_store.AwsS3Kodo)
@@ -293,19 +286,20 @@ func qiniuUpload(name string, path string) (string, error) {
 
 /*
 SaveFileToOSS 保存文件到OSS，用于form表单直接上传文件，参考管理平台代码
+const TestCaseTempPath = "testCase"
+f, err := apis.SaveFileToOSS(c, file, apis.TestCaseTempPath, "xlsx", "xls")
 
-	const TestCaseTempPath = "testCase"
-	f, err := apis.SaveFileToOSS(c, file, apis.TestCaseTempPath, "xlsx", "xls")
 	if err != nil {
 		return
 	} else {
+
 		req.TplFile = f.FullPath
 		req.TplFileName = file.Filename
 		req.TplFileSize = file.Size
 		break
 	}
 */
-func SaveFileToOSS(c *gin.Context, f *multipart.FileHeader, savedir string, wantType ...string) (*FileResponse, error) {
+func SaveFileToOSS(c *gin.Context, f *multipart.FileHeader, savedir string, wantType ...string) (*iotstruct.FileResponse, error) {
 	guid := uuid.New().String()
 	dir := filepath.Join(tempPath, savedir)
 	fileName := fmt.Sprintf("%s/%s", savedir, guid+iotutil.GetExt(f.Filename))
@@ -329,11 +323,12 @@ func SaveFileToOSS(c *gin.Context, f *multipart.FileHeader, savedir string, want
 	if err != nil {
 		return nil, err
 	}
-	return &FileResponse{
+	fileRes := commonGlobal.SaveAttachmentRecord(dir, iotstruct.FileResponse{
 		Size:     iotutil.GetFileSize(savefile),
 		Path:     fileName,
 		FullPath: url,
 		Name:     f.Filename,
 		Type:     realExension,
-	}, nil
+	})
+	return &fileRes[0], nil
 }

@@ -12,25 +12,25 @@ const TableNameTOemAppFlashScreen = "t_oem_app_flash_screen"
 
 // TOemAppFlashScreen mapped from table <t_oem_app_flash_screen>
 type TOemAppFlashScreen struct {
-	Id           int64     `gorm:"column:id;primaryKey" json:"id"`                       // 主键
-	TenantId     string    `gorm:"column:tenant_id;not null" json:"tenant_id"`           // 租户ID
-	Name         string    `gorm:"column:name;not null" json:"name"`                     // 闪屏名称
-	AppName      string    `gorm:"column:app_name;not null" json:"app_name"`             // app名称
-	AppKey       string    `gorm:"column:app_key;not null" json:"app_key"`               // appKey
-	AppVersion   string    `gorm:"column:app_version;not null" json:"app_version"`       // app当前版本;空字符串代码所有版本
-	PutinUser    int32     `gorm:"column:putin_user;not null" json:"putin_user"`         // 投放人群;1代表所有用户,2代表指定用户
-	OpenPageType int32     `gorm:"column:open_page_type;not null" json:"open_page_type"` // 打开页面类型;1代表应用内页面,2代表其他网址
-	AppPageType  int32     `gorm:"column:app_page_type;not null" json:"app_page_type"`   // 应用页面类型;1代表首页,2代表场景,3代表我的
-	OpenPageUrl  string    `gorm:"column:open_page_url" json:"open_page_url"`            // 打开页面链接
-	StartTime    time.Time `gorm:"column:start_time" json:"start_time"`                  // 开始时间
-	EndTime      time.Time `gorm:"column:end_time" json:"end_time"`                      // 结束时间
-	ShowTime     int32     `gorm:"column:show_time;not null" json:"show_time"`           // 展示时长
-	PutinImgUrls string    `gorm:"column:putin_img_urls" json:"putin_img_urls"`          // 投放图片
-	Status       int32     `gorm:"column:status;not null" json:"status"`                 // 状态;1代表未开始,2代表投放中,3代表已停止,4代表已完成
-	CreatedBy    int64     `gorm:"column:created_by" json:"created_by"`                  // 创建人
-	CreatedAt    time.Time `gorm:"column:created_at" json:"created_at"`                  // 创建时间
-	UpdatedBy    int64     `gorm:"column:updated_by" json:"updated_by"`                  // 修改人
-	UpdatedAt    time.Time `gorm:"column:updated_at" json:"updated_at"`                  // 修改时间
+	Id           int64     `gorm:"column:id;primaryKey" json:"id"`                     // 主键
+	TenantId     string    `gorm:"column:tenant_id;not null" json:"tenantId"`          // 租户ID
+	Name         string    `gorm:"column:name;not null" json:"name"`                   // 闪屏名称
+	AppName      string    `gorm:"column:app_name;not null" json:"appName"`            // app名称
+	AppKey       string    `gorm:"column:app_key;not null" json:"appKey"`              // appKey
+	AppVersion   string    `gorm:"column:app_version;not null" json:"appVersion"`      // app当前版本;空字符串代码所有版本
+	PutinUser    int32     `gorm:"column:putin_user;not null" json:"putinUser"`        // 投放人群;1代表所有用户,2代表指定用户
+	OpenPageType int32     `gorm:"column:open_page_type;not null" json:"openPageType"` // 打开页面类型;1代表应用内页面,2代表其他网址
+	AppPageType  int32     `gorm:"column:app_page_type;not null" json:"appPageType"`   // 应用页面类型;1代表首页,2代表场景,3代表我的
+	OpenPageUrl  string    `gorm:"column:open_page_url" json:"openPageUrl"`            // 打开页面链接
+	StartTime    time.Time `gorm:"column:start_time" json:"startTime"`                 // 开始时间
+	EndTime      time.Time `gorm:"column:end_time" json:"endTime"`                     // 结束时间
+	ShowTime     int32     `gorm:"column:show_time;not null" json:"showTime"`          // 展示时长
+	PutinImgUrls string    `gorm:"column:putin_img_urls" json:"putinImgUrls"`          // 投放图片
+	Status       int32     `gorm:"column:status;not null" json:"status"`               // 状态;1代表未开始,2代表投放中,3代表已停止,4代表已完成
+	CreatedBy    int64     `gorm:"column:created_by" json:"createdBy"`                 // 创建人
+	CreatedAt    time.Time `gorm:"column:created_at" json:"createdAt"`                 // 创建时间
+	UpdatedBy    int64     `gorm:"column:updated_by" json:"updatedBy"`                 // 修改人
+	UpdatedAt    time.Time `gorm:"column:updated_at" json:"updatedAt"`                 // 修改时间
 }
 
 // TableName TOemAppFlashScreen's table name

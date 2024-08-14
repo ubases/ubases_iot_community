@@ -4,17 +4,16 @@
 package protosService
 
 import (
+	// _ "/api"
 	fmt "fmt"
-	math "math"
-
 	proto "google.golang.org/protobuf/proto"
+	math "math"
+)
 
+import (
 	context "context"
-
 	api "go-micro.dev/v4/api"
-
 	client "go-micro.dev/v4/client"
-
 	server "go-micro.dev/v4/server"
 )
 
@@ -166,6 +165,20 @@ func NewOpmProductServiceEndpoints() []*api.Endpoint {
 			Body:    "*",
 			Handler: "rpc",
 		},
+		{
+			Name:    "OpmProductService.CreateDemoProduct",
+			Path:    []string{"/v1/opmProduct/createDemoProduct"},
+			Method:  []string{"POST"},
+			Body:    "*",
+			Handler: "rpc",
+		},
+		{
+			Name:    "OpmProductService.GetProductPanelInfo",
+			Path:    []string{"/v1/opmProduct/getProductPanelInfo"},
+			Method:  []string{"POST"},
+			Body:    "*",
+			Handler: "rpc",
+		},
 	}
 }
 
@@ -210,6 +223,10 @@ type OpmProductService interface {
 	PanelListsByProductIds(ctx context.Context, in *ListsByProductIdsRequest, opts ...client.CallOption) (*OpmProductResponse, error)
 	//根据productIds合并物模型数据
 	MergeProductThingsModel(ctx context.Context, in *ListsByProductIdsRequest, opts ...client.CallOption) (*OpmThingModelByProductResponse, error)
+	//创建Demo产品
+	CreateDemoProduct(ctx context.Context, in *CreateDemoProductRequest, opts ...client.CallOption) (*CreateDemoProductResponse, error)
+	//获取指定产品的面板信息
+	GetProductPanelInfo(ctx context.Context, in *ListsByProductIdsRequest, opts ...client.CallOption) (*ProductPanelInfoResponse, error)
 }
 
 type opmProductService struct {
@@ -414,6 +431,26 @@ func (c *opmProductService) MergeProductThingsModel(ctx context.Context, in *Lis
 	return out, nil
 }
 
+func (c *opmProductService) CreateDemoProduct(ctx context.Context, in *CreateDemoProductRequest, opts ...client.CallOption) (*CreateDemoProductResponse, error) {
+	req := c.c.NewRequest(c.name, "OpmProductService.CreateDemoProduct", in)
+	out := new(CreateDemoProductResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *opmProductService) GetProductPanelInfo(ctx context.Context, in *ListsByProductIdsRequest, opts ...client.CallOption) (*ProductPanelInfoResponse, error) {
+	req := c.c.NewRequest(c.name, "OpmProductService.GetProductPanelInfo", in)
+	out := new(ProductPanelInfoResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for OpmProductService service
 
 type OpmProductServiceHandler interface {
@@ -455,6 +492,10 @@ type OpmProductServiceHandler interface {
 	PanelListsByProductIds(context.Context, *ListsByProductIdsRequest, *OpmProductResponse) error
 	//根据productIds合并物模型数据
 	MergeProductThingsModel(context.Context, *ListsByProductIdsRequest, *OpmThingModelByProductResponse) error
+	//创建Demo产品
+	CreateDemoProduct(context.Context, *CreateDemoProductRequest, *CreateDemoProductResponse) error
+	//获取指定产品的面板信息
+	GetProductPanelInfo(context.Context, *ListsByProductIdsRequest, *ProductPanelInfoResponse) error
 }
 
 func RegisterOpmProductServiceHandler(s server.Server, hdlr OpmProductServiceHandler, opts ...server.HandlerOption) error {
@@ -478,6 +519,8 @@ func RegisterOpmProductServiceHandler(s server.Server, hdlr OpmProductServiceHan
 		ResetOpmProductThingsModel(ctx context.Context, in *OpmProduct, out *Response) error
 		PanelListsByProductIds(ctx context.Context, in *ListsByProductIdsRequest, out *OpmProductResponse) error
 		MergeProductThingsModel(ctx context.Context, in *ListsByProductIdsRequest, out *OpmThingModelByProductResponse) error
+		CreateDemoProduct(ctx context.Context, in *CreateDemoProductRequest, out *CreateDemoProductResponse) error
+		GetProductPanelInfo(ctx context.Context, in *ListsByProductIdsRequest, out *ProductPanelInfoResponse) error
 	}
 	type OpmProductService struct {
 		opmProductService
@@ -616,6 +659,20 @@ func RegisterOpmProductServiceHandler(s server.Server, hdlr OpmProductServiceHan
 		Body:    "*",
 		Handler: "rpc",
 	}))
+	opts = append(opts, api.WithEndpoint(&api.Endpoint{
+		Name:    "OpmProductService.CreateDemoProduct",
+		Path:    []string{"/v1/opmProduct/createDemoProduct"},
+		Method:  []string{"POST"},
+		Body:    "*",
+		Handler: "rpc",
+	}))
+	opts = append(opts, api.WithEndpoint(&api.Endpoint{
+		Name:    "OpmProductService.GetProductPanelInfo",
+		Path:    []string{"/v1/opmProduct/getProductPanelInfo"},
+		Method:  []string{"POST"},
+		Body:    "*",
+		Handler: "rpc",
+	}))
 	return s.Handle(s.NewHandler(&OpmProductService{h}, opts...))
 }
 
@@ -697,4 +754,12 @@ func (h *opmProductServiceHandler) PanelListsByProductIds(ctx context.Context, i
 
 func (h *opmProductServiceHandler) MergeProductThingsModel(ctx context.Context, in *ListsByProductIdsRequest, out *OpmThingModelByProductResponse) error {
 	return h.OpmProductServiceHandler.MergeProductThingsModel(ctx, in, out)
+}
+
+func (h *opmProductServiceHandler) CreateDemoProduct(ctx context.Context, in *CreateDemoProductRequest, out *CreateDemoProductResponse) error {
+	return h.OpmProductServiceHandler.CreateDemoProduct(ctx, in, out)
+}
+
+func (h *opmProductServiceHandler) GetProductPanelInfo(ctx context.Context, in *ListsByProductIdsRequest, out *ProductPanelInfoResponse) error {
+	return h.OpmProductServiceHandler.GetProductPanelInfo(ctx, in, out)
 }

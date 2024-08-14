@@ -91,7 +91,9 @@ message OpmFirmwareVersion {
     // @inject_tag: json:"deletedAt" gorm:"default:删除标识（0-正常 1-删除）;comment:删除标识（0-正常 1-删除）;"
     google.protobuf.Timestamp deletedAt = 119;
 
-    
+    //用户新增固件版本之后直接绑定到产品
+    int64 productId = 120;
+    int64 relationId = 121;
 }
 
 message OpmFirmwareVersionFilter {

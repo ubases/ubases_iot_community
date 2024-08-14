@@ -104,6 +104,14 @@ func (OpenRoleController) RoleSetUser(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
+	if req.RoleId == "" || req.RoleId == "0" {
+		iotgin.ResBadRequest(c, "角色Id不能为空！")
+		return
+	}
+	if req.UserName == "" {
+		iotgin.ResBadRequest(c, "用户名不能为空！")
+		return
+	}
 	res, err := OpenRoleService.SetContext(controls.WithOpenUserContext(c)).RoleSetUser(&req)
 	if err != nil {
 		iotgin.ResErrCli(c, err)

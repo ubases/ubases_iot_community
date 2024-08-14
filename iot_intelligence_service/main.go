@@ -1,13 +1,13 @@
 package main
 
 import (
+	"cloud_platform/iot_common/iotconst"
+	"cloud_platform/iot_common/iottrace"
 	"cloud_platform/iot_intelligence_service/cached"
 	"cloud_platform/iot_intelligence_service/config"
 	"cloud_platform/iot_intelligence_service/rpc/rpcserver"
 	"cloud_platform/iot_intelligence_service/service/scene_executor"
 	model "cloud_platform/iot_model"
-	"cloud_platform/iot_common/iotconst"
-	"cloud_platform/iot_common/iottrace"
 	"log"
 
 	"github.com/opentracing/opentracing-go"
@@ -16,13 +16,13 @@ import (
 )
 
 var (
-	version string = "2.0.0"
+	version string = "2.1.0"
 	name           = "iot_intelligence_service"
 )
 
 func main() {
 	log.Println(version)
-	if err := config.Init(); err != nil {
+	if err := config.Init2(); err != nil {
 		log.Println("加载配置文件发生错误:", err)
 		return
 	}

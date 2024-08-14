@@ -108,6 +108,8 @@ func (t *tOemAppTemplate) WithContext(ctx context.Context) *tOemAppTemplateDo {
 
 func (t tOemAppTemplate) TableName() string { return t.tOemAppTemplateDo.TableName() }
 
+func (t tOemAppTemplate) Alias() string { return t.tOemAppTemplateDo.Alias() }
+
 func (t *tOemAppTemplate) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

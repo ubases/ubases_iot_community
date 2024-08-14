@@ -26,7 +26,7 @@ type TPmControlPanels struct {
 	PreviewName    string         `gorm:"column:preview_name" json:"previewName"`                // 预览图名称
 	PreviewUrl     string         `gorm:"column:preview_url" json:"previewUrl"`                  // 面板地址
 	PreviewSize    int32          `gorm:"column:preview_size" json:"previewSize"`                // 预览图大小
-	ProductTypeId  int64          `gorm:"column:product_type_id;not null" json:"productTypeId"`  // 产品分类编号
+	ProductTypeId  int64          `gorm:"column:product_type_id;not null;default:0" json:"productTypeId"` // 产品分类编号
 	ProductId      int64          `gorm:"column:product_id" json:"productId"`                    // 产品品类编号
 	Status         int32          `gorm:"column:status" json:"status"`                           // 状态（1=启用 2=禁用）
 	CreatedBy      int64          `gorm:"column:created_by;not null;default:0" json:"createdBy"` // 创建人
@@ -36,6 +36,7 @@ type TPmControlPanels struct {
 	DeletedAt      gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"`                    // 删除时间
 	HasLangPackage int32          `gorm:"column:has_lang_package" json:"hasLangPackage"`         // 有语言包
 	LangFileName   string         `gorm:"column:lang_file_name" json:"langFileName"`             // 语言文件名称
+	Code         string    `gorm:"column:code" json:"code"`                           // 面板描述
 }
 
 // TableName TPmControlPanels's table name

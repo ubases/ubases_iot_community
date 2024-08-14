@@ -85,16 +85,8 @@ func (u *SceneIntelligenceCondition) ConditionExecutor(intelligenceId string, co
 	for _, cond := range intellObj.SceneIntelligenceCondition {
 		//外部conditionId，代表该条件已经满足
 		//iotlogger.LogHelper.WithTag("Id", intelligenceId).WithTag("conditionId", conditionId).Infof("条件判断 " + iotutil.ToString(cond.Id))
-		ct := iotconst.ConditionType(cond.ConditionType)
 		if conditionId == iotutil.ToString(cond.Id) {
-			//设备需要检查属性状态变化
-			if ct == iotconst.CONDITION_TYPE_SATACHANGE {
-				iotlogger.LogHelper.Debugf("开始检查设备状态变化,%v", intellObj.Id)
-				resultFlag = append(resultFlag, u.DeviceStatusCheck(intellObj, cond, redisSaveQueue))
-			} else {
-				iotlogger.LogHelper.Debugf("条件发生变更并直接成功,%v", intellObj.Id)
-				resultFlag = append(resultFlag, true)
-			}
+			resultFlag = append(resultFlag, true)
 			continue
 		}
 		switch iotconst.ConditionType(cond.ConditionType) {
@@ -286,10 +278,17 @@ func (u *SceneIntelligenceCondition) DeviceStatusCheck(intellObj *protosService.
 	}
 	if currVal, ok := deviceInfo[condition.DevicePropKey]; ok {
 		redisKey := fmt.Sprintf("scene_%d_status_before", intellObj.Id)
+		//beforeVal := deviceInfo[condition.DevicePropKey+"_before"]
 		beforeValCmd := iotredis.GetClient().HGet(context2.Background(), redisKey, condition.DevicePropKey)
+
+		//if val == "true" {
+		//	val = "1"
+		//} else if val == "false" {
+		//	val = "0"
+		//}
 		if GetTestIntelligenceId(iotutil.ToString(intellObj.Id)) {
 			iotlogger.LogHelper.Infof("信息对比：id：%d, currVal: %s, before: %s, key: %s", intellObj.Id, currVal, beforeValCmd.Val(), condition.DevicePropValue)
-			iotlogger.LogHelper.Infof("信息对比：属性是否变化[old-%v:curr-%v]：%v, 是否符合条件[cond-%v:curr-%v]：%v", beforeValCmd.Val(), currVal, beforeValCmd.Val() != currVal, condition.DevicePropValue, currVal, condition.DevicePropValue == currVal)
+			iotlogger.LogHelper.Info("信息对比：属性变化：", beforeValCmd.Val() != currVal, "  是否符合条件：", condition.DevicePropValue == currVal)
 		}
 		// 如何判断属性变化
 		//1为等于 2 大于 ....  condition.DevicePropCompare 暂时不需要大于和小于
@@ -302,12 +301,14 @@ func (u *SceneIntelligenceCondition) DeviceStatusCheck(intellObj *protosService.
 		if hasChange {
 			//条件满足
 			iotlogger.LogHelper.Infof("%d属性变化条件满足，设备当前状态为%s", intellObj.Id, currVal)
+			//iotredis.GetClient().HSet(context2.Background(), redisKey, condition.DevicePropKey, val)
 			*redisSaveQueue = append(*redisSaveQueue, setKeyValue(redisKey, condition.DevicePropKey, currVal, 0))
 			return true
 		} else {
-			iotlogger.LogHelper.Debugf("属性变化条件未满足，清理缓存数据的值 %d", intellObj.Id)
 			//如果出现其它值，则清除设备执行的缓存数据
 			iotredis.GetClient().HSet(context2.Background(), redisKey, condition.DevicePropKey, "")
+			//iotredis.GetClient().HSet(context2.Background(), redisKey, condition.DevicePropKey, val)
+			//*redisSaveQueue = append(*redisSaveQueue, setKeyValue(redisKey, condition.DevicePropKey, val, 0))
 			return false
 		}
 	}
@@ -449,7 +450,6 @@ func (u *SceneIntelligenceCondition) ExecuteTask(intellObj *protosService.SceneI
 
 // NewBuilder 初始化生成器
 func NewBuilder() {
-	iotlogger.LogHelper.Info("NewBuilder 初始化启动")
 	//初始化定时器
 	cron2.InitTimerCron()
 	//清理天气redisKey
@@ -472,6 +472,7 @@ func NewBuilder() {
 		Status:         1,
 		Type:           2,
 		RegionServerId: config.Global.Service.ServerId,
+		InstanceCode:   config.Global.Service.InstanceCode, //是实例部署
 	})
 	var totalCount int64
 	countTx := do.Count(&totalCount)
@@ -506,8 +507,7 @@ func NewBuilder() {
 	//从redis中找到城市key并创建监听任务
 	InitMonitorWeatherData()
 	//初始化redis订阅（设备状态）
-	go InitRedisSub()
-	iotlogger.LogHelper.Info("NewBuilder 初始化方法调用结束")
+	go InitReportSub()
 }
 
 // GetWeekIndex 星期索引值转换

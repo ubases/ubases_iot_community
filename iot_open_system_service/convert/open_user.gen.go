@@ -33,6 +33,7 @@ func OpenUser_pb2db(src *proto.OpenUser) *model.TOpenUser {
 		AccountType:  src.AccountType,
 		CompanyName:  src.CompanyName,
 		CreatedBy:    src.CreatedBy,
+		HasGuided: src.HasGuided,
 		//UpdatedBy:src.UpdatedBy,
 	}
 	if src.LastLoginTime.IsValid() {
@@ -74,6 +75,7 @@ func OpenUser_db2pb(src *model.TOpenUser) *proto.OpenUser {
 		CreatedBy:     src.CreatedBy,
 		UpdatedAt:     timestamppb.New(src.UpdatedAt),
 		UpdatedBy:     src.UpdatedBy,
+		HasGuided: src.HasGuided,
 	}
 	return &pbObj
 }

@@ -20,12 +20,6 @@ func (s OpmProductTestAccountService) SetContext(ctx context.Context) OpmProduct
 
 // QueryOpmProductTestAccountList 列表
 func (s OpmProductTestAccountService) QueryOpmProductTestAccountList(filter entitys.OpmProductTestAccountQuery) ([]*entitys.OpmProductTestAccountEntitys, int64, error) {
-	if filter.Query == nil {
-		return nil, 0, errors.New("参数异常")
-	}
-	if filter.Query.ProductId == 0 {
-		return nil, 0, errors.New("productId  not found")
-	}
 	queryObj := &protosService.OpmProductTestAccountFilter{
 		Account:   filter.Query.Account,
 		ProductId: filter.Query.ProductId,

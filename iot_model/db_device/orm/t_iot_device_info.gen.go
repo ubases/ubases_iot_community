@@ -66,6 +66,7 @@ func newTIotDeviceInfo(db *gorm.DB) tIotDeviceInfo {
 	_tIotDeviceInfo.ModuleVersion = field.NewString(tableName, "module_version")
 	_tIotDeviceInfo.Sid = field.NewInt64(tableName, "sid")
 	_tIotDeviceInfo.UseType = field.NewInt32(tableName, "use_type")
+	_tIotDeviceInfo.RegionServerId = field.NewString(tableName, "region_server_id")
 
 	_tIotDeviceInfo.fillFieldMap()
 
@@ -117,6 +118,7 @@ type tIotDeviceInfo struct {
 	ModuleVersion     field.String
 	Sid               field.Int64
 	UseType           field.Int32
+	RegionServerId    field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -174,6 +176,7 @@ func (t *tIotDeviceInfo) updateTableName(table string) *tIotDeviceInfo {
 	t.ModuleVersion = field.NewString(table, "module_version")
 	t.Sid = field.NewInt64(table, "sid")
 	t.UseType = field.NewInt32(table, "use_type")
+	t.RegionServerId = field.NewString(table, "region_server_id")
 
 	t.fillFieldMap()
 
@@ -198,7 +201,7 @@ func (t *tIotDeviceInfo) GetFieldByName(fieldName string) (field.OrderExpr, bool
 }
 
 func (t *tIotDeviceInfo) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 41)
+	t.fieldMap = make(map[string]field.Expr, 42)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["did"] = t.Did
 	t.fieldMap["product_id"] = t.ProductId
@@ -240,6 +243,7 @@ func (t *tIotDeviceInfo) fillFieldMap() {
 	t.fieldMap["module_version"] = t.ModuleVersion
 	t.fieldMap["sid"] = t.Sid
 	t.fieldMap["use_type"] = t.UseType
+	t.fieldMap["region_server_id"] = t.RegionServerId
 }
 
 func (t tIotDeviceInfo) clone(db *gorm.DB) tIotDeviceInfo {

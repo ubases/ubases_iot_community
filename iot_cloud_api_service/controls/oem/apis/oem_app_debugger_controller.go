@@ -2,6 +2,7 @@ package apis
 
 import (
 	"cloud_platform/iot_cloud_api_service/controls"
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/config/services"
 	"cloud_platform/iot_cloud_api_service/controls/oem/entitys"
 	services2 "cloud_platform/iot_cloud_api_service/controls/oem/services"
@@ -119,9 +120,15 @@ func (s *OemAppDebuggerController) Add(c *gin.Context) {
 	}
 	saveObj := entitys.OemAppDebugger_e2pb(&req)
 	saveObj.Id = iotutil.GetNextSeqInt64()
+
+	regionServerId, err := commonGlobal.RegionIdToServerId(iotutil.ToString(req.RegionId))
+	if err != nil {
+		iotgin.ResBadRequest(c, err.Error())
+		return
+	}
 	userReq, err := rpc.UcUserService.Find(context.Background(), &protosService.UcUserFilter{
 		UserName:       req.UserName,
-		RegionServerId: req.RegionId,
+		RegionServerId: regionServerId,
 		AppKey:         req.AppKey,
 	})
 	if err != nil {

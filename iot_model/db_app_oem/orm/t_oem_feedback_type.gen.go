@@ -87,6 +87,8 @@ func (t *tOemFeedbackType) WithContext(ctx context.Context) *tOemFeedbackTypeDo 
 
 func (t tOemFeedbackType) TableName() string { return t.tOemFeedbackTypeDo.TableName() }
 
+func (t tOemFeedbackType) Alias() string { return t.tOemFeedbackTypeDo.Alias() }
+
 func (t *tOemFeedbackType) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

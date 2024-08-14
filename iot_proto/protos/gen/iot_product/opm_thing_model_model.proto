@@ -274,6 +274,10 @@ message OpmThingModelByProductRequest {
     int64 productTypeId = 101;
     string productKey = 102;
     int32 custom = 103;
+    bool unQueryService = 104;//不查詢服務
+    bool unQueryEvent = 105; //不查詢事件
+    bool unQueryProperties = 106;//不查詢屬性
+    string dataType = 107; //過濾數據類型
 }
 
 message OpmThingModelAllList {

@@ -41,6 +41,7 @@ func newTOpmFirmware(db *gorm.DB) tOpmFirmware {
 	_tOpmFirmware.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_tOpmFirmware.DeletedAt = field.NewField(tableName, "deleted_at")
 	_tOpmFirmware.FirmwareKey = field.NewString(tableName, "firmware_key")
+	_tOpmFirmware.NameEn = field.NewString(tableName, "name_en")
 
 	_tOpmFirmware.fillFieldMap()
 
@@ -67,6 +68,7 @@ type tOpmFirmware struct {
 	UpdatedAt       field.Time
 	DeletedAt       field.Field
 	FirmwareKey     field.String
+	NameEn          field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -99,6 +101,7 @@ func (t *tOpmFirmware) updateTableName(table string) *tOpmFirmware {
 	t.UpdatedAt = field.NewTime(table, "updated_at")
 	t.DeletedAt = field.NewField(table, "deleted_at")
 	t.FirmwareKey = field.NewString(table, "firmware_key")
+	t.NameEn = field.NewString(table, "name_en")
 
 	t.fillFieldMap()
 
@@ -123,7 +126,7 @@ func (t *tOpmFirmware) GetFieldByName(fieldName string) (field.OrderExpr, bool) 
 }
 
 func (t *tOpmFirmware) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 16)
+	t.fieldMap = make(map[string]field.Expr, 17)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["tenant_id"] = t.TenantId
 	t.fieldMap["name"] = t.Name
@@ -140,6 +143,7 @@ func (t *tOpmFirmware) fillFieldMap() {
 	t.fieldMap["updated_at"] = t.UpdatedAt
 	t.fieldMap["deleted_at"] = t.DeletedAt
 	t.fieldMap["firmware_key"] = t.FirmwareKey
+	t.fieldMap["name_en"] = t.NameEn
 }
 
 func (t tOpmFirmware) clone(db *gorm.DB) tOpmFirmware {

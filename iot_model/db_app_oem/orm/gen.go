@@ -14,6 +14,7 @@ import (
 func Use(db *gorm.DB) *Query {
 	return &Query{
 		db:                         db,
+		TCloudAppBuildAuth:         newTCloudAppBuildAuth(db),
 		TOemApp:                    newTOemApp(db),
 		TOemAppAndroidCert:         newTOemAppAndroidCert(db),
 		TOemAppAssistRelease:       newTOemAppAssistRelease(db),
@@ -33,7 +34,6 @@ func Use(db *gorm.DB) *Query {
 		TOemAppFunctionConfig:      newTOemAppFunctionConfig(db),
 		TOemAppIntroduce:           newTOemAppIntroduce(db),
 		TOemAppIosCert:             newTOemAppIosCert(db),
-		TOemAppMallLink:            newTOemAppMallLink(db),
 		TOemAppPushCert:            newTOemAppPushCert(db),
 		TOemAppTemplate:            newTOemAppTemplate(db),
 		TOemAppTemplateDeveloper:   newTOemAppTemplateDeveloper(db),
@@ -52,6 +52,7 @@ func Use(db *gorm.DB) *Query {
 type Query struct {
 	db *gorm.DB
 
+	TCloudAppBuildAuth         tCloudAppBuildAuth
 	TOemApp                    tOemApp
 	TOemAppAndroidCert         tOemAppAndroidCert
 	TOemAppAssistRelease       tOemAppAssistRelease
@@ -71,7 +72,6 @@ type Query struct {
 	TOemAppFunctionConfig      tOemAppFunctionConfig
 	TOemAppIntroduce           tOemAppIntroduce
 	TOemAppIosCert             tOemAppIosCert
-	TOemAppMallLink            tOemAppMallLink
 	TOemAppPushCert            tOemAppPushCert
 	TOemAppTemplate            tOemAppTemplate
 	TOemAppTemplateDeveloper   tOemAppTemplateDeveloper
@@ -91,6 +91,7 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                         db,
+		TCloudAppBuildAuth:         q.TCloudAppBuildAuth.clone(db),
 		TOemApp:                    q.TOemApp.clone(db),
 		TOemAppAndroidCert:         q.TOemAppAndroidCert.clone(db),
 		TOemAppAssistRelease:       q.TOemAppAssistRelease.clone(db),
@@ -110,7 +111,6 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		TOemAppFunctionConfig:      q.TOemAppFunctionConfig.clone(db),
 		TOemAppIntroduce:           q.TOemAppIntroduce.clone(db),
 		TOemAppIosCert:             q.TOemAppIosCert.clone(db),
-		TOemAppMallLink:            q.TOemAppMallLink.clone(db),
 		TOemAppPushCert:            q.TOemAppPushCert.clone(db),
 		TOemAppTemplate:            q.TOemAppTemplate.clone(db),
 		TOemAppTemplateDeveloper:   q.TOemAppTemplateDeveloper.clone(db),
@@ -127,6 +127,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 }
 
 type queryCtx struct {
+	TCloudAppBuildAuth         tCloudAppBuildAuthDo
 	TOemApp                    tOemAppDo
 	TOemAppAndroidCert         tOemAppAndroidCertDo
 	TOemAppAssistRelease       tOemAppAssistReleaseDo
@@ -146,7 +147,6 @@ type queryCtx struct {
 	TOemAppFunctionConfig      tOemAppFunctionConfigDo
 	TOemAppIntroduce           tOemAppIntroduceDo
 	TOemAppIosCert             tOemAppIosCertDo
-	TOemAppMallLink            tOemAppMallLinkDo
 	TOemAppPushCert            tOemAppPushCertDo
 	TOemAppTemplate            tOemAppTemplateDo
 	TOemAppTemplateDeveloper   tOemAppTemplateDeveloperDo
@@ -163,6 +163,7 @@ type queryCtx struct {
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		TCloudAppBuildAuth:         *q.TCloudAppBuildAuth.WithContext(ctx),
 		TOemApp:                    *q.TOemApp.WithContext(ctx),
 		TOemAppAndroidCert:         *q.TOemAppAndroidCert.WithContext(ctx),
 		TOemAppAssistRelease:       *q.TOemAppAssistRelease.WithContext(ctx),
@@ -182,7 +183,6 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		TOemAppFunctionConfig:      *q.TOemAppFunctionConfig.WithContext(ctx),
 		TOemAppIntroduce:           *q.TOemAppIntroduce.WithContext(ctx),
 		TOemAppIosCert:             *q.TOemAppIosCert.WithContext(ctx),
-		TOemAppMallLink:            *q.TOemAppMallLink.WithContext(ctx),
 		TOemAppPushCert:            *q.TOemAppPushCert.WithContext(ctx),
 		TOemAppTemplate:            *q.TOemAppTemplate.WithContext(ctx),
 		TOemAppTemplateDeveloper:   *q.TOemAppTemplateDeveloper.WithContext(ctx),

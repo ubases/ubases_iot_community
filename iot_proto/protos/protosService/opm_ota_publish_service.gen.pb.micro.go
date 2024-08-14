@@ -109,6 +109,13 @@ func NewOpmOtaPublishServiceEndpoints() []*api.Endpoint {
 			Body:    "*",
 			Handler: "rpc",
 		},
+		{
+			Name:    "OpmOtaPublishService.CheckOtaUpgradeList",
+			Path:    []string{"/v1/opmOtaPublish/checkOtaUpgradeList"},
+			Method:  []string{"POST"},
+			Body:    "*",
+			Handler: "rpc",
+		},
 	}
 }
 
@@ -135,8 +142,10 @@ type OpmOtaPublishService interface {
 	Find(ctx context.Context, in *OpmOtaPublishFilter, opts ...client.CallOption) (*OpmOtaPublishResponse, error)
 	//查找，支持分页，可返回多条数据
 	Lists(ctx context.Context, in *OpmOtaPublishListRequest, opts ...client.CallOption) (*OpmOtaPublishResponse, error)
-	//查找，支持分页，可返回多条数据
+	//检查OTA升级信息
 	CheckOtaVersion(ctx context.Context, in *CheckOtaVersionRequest, opts ...client.CallOption) (*CheckOtaVersionResponse, error)
+	//检查OTA升级列表，根据固件类型全部返回
+	CheckOtaUpgradeList(ctx context.Context, in *CheckOtaVersionRequest, opts ...client.CallOption) (*CheckOtaListResponse, error)
 }
 
 type opmOtaPublishService struct {
@@ -261,6 +270,16 @@ func (c *opmOtaPublishService) CheckOtaVersion(ctx context.Context, in *CheckOta
 	return out, nil
 }
 
+func (c *opmOtaPublishService) CheckOtaUpgradeList(ctx context.Context, in *CheckOtaVersionRequest, opts ...client.CallOption) (*CheckOtaListResponse, error) {
+	req := c.c.NewRequest(c.name, "OpmOtaPublishService.CheckOtaUpgradeList", in)
+	out := new(CheckOtaListResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for OpmOtaPublishService service
 
 type OpmOtaPublishServiceHandler interface {
@@ -284,8 +303,10 @@ type OpmOtaPublishServiceHandler interface {
 	Find(context.Context, *OpmOtaPublishFilter, *OpmOtaPublishResponse) error
 	//查找，支持分页，可返回多条数据
 	Lists(context.Context, *OpmOtaPublishListRequest, *OpmOtaPublishResponse) error
-	//查找，支持分页，可返回多条数据
+	//检查OTA升级信息
 	CheckOtaVersion(context.Context, *CheckOtaVersionRequest, *CheckOtaVersionResponse) error
+	//检查OTA升级列表，根据固件类型全部返回
+	CheckOtaUpgradeList(context.Context, *CheckOtaVersionRequest, *CheckOtaListResponse) error
 }
 
 func RegisterOpmOtaPublishServiceHandler(s server.Server, hdlr OpmOtaPublishServiceHandler, opts ...server.HandlerOption) error {
@@ -301,6 +322,7 @@ func RegisterOpmOtaPublishServiceHandler(s server.Server, hdlr OpmOtaPublishServ
 		Find(ctx context.Context, in *OpmOtaPublishFilter, out *OpmOtaPublishResponse) error
 		Lists(ctx context.Context, in *OpmOtaPublishListRequest, out *OpmOtaPublishResponse) error
 		CheckOtaVersion(ctx context.Context, in *CheckOtaVersionRequest, out *CheckOtaVersionResponse) error
+		CheckOtaUpgradeList(ctx context.Context, in *CheckOtaVersionRequest, out *CheckOtaListResponse) error
 	}
 	type OpmOtaPublishService struct {
 		opmOtaPublishService
@@ -383,6 +405,13 @@ func RegisterOpmOtaPublishServiceHandler(s server.Server, hdlr OpmOtaPublishServ
 		Body:    "*",
 		Handler: "rpc",
 	}))
+	opts = append(opts, api.WithEndpoint(&api.Endpoint{
+		Name:    "OpmOtaPublishService.CheckOtaUpgradeList",
+		Path:    []string{"/v1/opmOtaPublish/checkOtaUpgradeList"},
+		Method:  []string{"POST"},
+		Body:    "*",
+		Handler: "rpc",
+	}))
 	return s.Handle(s.NewHandler(&OpmOtaPublishService{h}, opts...))
 }
 
@@ -432,4 +461,8 @@ func (h *opmOtaPublishServiceHandler) Lists(ctx context.Context, in *OpmOtaPubli
 
 func (h *opmOtaPublishServiceHandler) CheckOtaVersion(ctx context.Context, in *CheckOtaVersionRequest, out *CheckOtaVersionResponse) error {
 	return h.OpmOtaPublishServiceHandler.CheckOtaVersion(ctx, in, out)
+}
+
+func (h *opmOtaPublishServiceHandler) CheckOtaUpgradeList(ctx context.Context, in *CheckOtaVersionRequest, out *CheckOtaListResponse) error {
+	return h.OpmOtaPublishServiceHandler.CheckOtaUpgradeList(ctx, in, out)
 }

@@ -2,16 +2,14 @@ package service
 
 import (
 	"cloud_platform/iot_common/iotconst"
-	"cloud_platform/iot_common/iotprotocol"
+	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_device_service/config"
+	"cloud_platform/iot_device_service/service/job"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
-	"sync"
-	"time"
-
 	jsoniter "github.com/json-iterator/go"
 	"github.com/robfig/cron/v3"
-	"go-micro.dev/v4/logger"
+	"sync"
 )
 
 var (
@@ -55,9 +53,13 @@ type DeviceJob struct {
 }
 
 func (dj DeviceJob) Run() {
-	// 将定时任务data数据发送至nats消息队列
-	logger.Infof("send job data %s to nats", dj.Data)
-	PushNatsData(dj.ProductKey, dj.DeviceId, "", iotprotocol.GetTopic(iotprotocol.TP_C_CONTROL, dj.ProductKey, dj.DeviceId), iotconst.NATS_SUBJECT_DEVICE_JOB /*obj.Header.Ts*/, time.Now().Unix(), dj.Data)
+	iotlogger.LogHelper.Infof("send job %s data %s to nats", dj.DeviceId, dj.Data)
+	var dataMap map[string]interface{}
+	if err := json.Unmarshal([]byte(dj.Data), &dataMap); err != nil {
+		iotlogger.LogHelper.Errorf("解析载荷信息失败,内容[%s],错误:%s", dj.Data, err.Error())
+	} else {
+		job.PubControl(dj.ProductKey, dj.DeviceId, dataMap)
+	}
 	if dj.TaskType == iotconst.Task_Countdown_Job {
 		// 调用iot_device_service接口, 关闭倒计时任务
 		req := &protosService.IotDeviceCountdownJobReq{
@@ -66,7 +68,7 @@ func (dj DeviceJob) Run() {
 		countdownCtx := IotDeviceCountdownSvcEx{Ctx: context.Background()}
 		err := countdownCtx.StopIotDeviceCountdownJob(req)
 		if err != nil {
-			logger.Errorf("倒计时任务已执行完，关闭倒计时任务失败：%v", err)
+			iotlogger.LogHelper.Errorf("倒计时任务已执行完，关闭倒计时任务失败：%v", err)
 		}
 	} else if dj.TaskType == iotconst.Task_Timer_Job_Once {
 		// 调用iot_device_service接口, 关闭定时任务(只执行一次)
@@ -77,7 +79,7 @@ func (dj DeviceJob) Run() {
 			timerCtx := IotDeviceTimerSvcEx{Ctx: context.Background()}
 			err := timerCtx.StopIotDeviceTimerJob(req)
 			if err != nil {
-				logger.Errorf("定时任务(Once)已执行完，关闭倒计时任务失败：%v", err)
+				iotlogger.LogHelper.Errorf("定时任务(Once)已执行完，关闭倒计时任务失败：%v", err)
 			}
 		} else if dj.TimerType == 2 {
 			if dj.IsEndTimer == 2 {
@@ -87,7 +89,7 @@ func (dj DeviceJob) Run() {
 				timerCtx := IotDeviceTimerSvcEx{Ctx: context.Background()}
 				err := timerCtx.StopIotDeviceTimerJob(req)
 				if err != nil {
-					logger.Errorf("定时任务(Once)已执行完，关闭倒计时任务失败：%v", err)
+					iotlogger.LogHelper.Errorf("定时任务(Once)已执行完，关闭倒计时任务失败：%v", err)
 				}
 			}
 		}
@@ -176,7 +178,6 @@ func (co *CronObj) Stop() {
 
 func InitCron() error {
 	svc := new(IotJobSvc)
-	// 分页查数据，防止一次性查询大量数据，需要改动底层orm，后面考虑改动，先实现功能，修复bug
 	req := &protosService.IotJobListRequest{
 		Query: &protosService.IotJob{
 			Enabled:        1,
@@ -190,7 +191,7 @@ func InitCron() error {
 
 	for i := range jobs {
 		if err := cronObj.CreateJob(jobs[i]); err != nil {
-			logger.Errorf("create task:[%s] job error: [%s]", jobs[i].TaskId, err)
+			iotlogger.LogHelper.Errorf("create task:[%s] job error: [%s]", jobs[i].TaskId, err)
 			continue
 		}
 	}

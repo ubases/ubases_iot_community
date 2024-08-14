@@ -113,13 +113,17 @@ func GetLast7Day() time.Time {
 	return iotutil.New(t1).BeginningOfDay()
 }
 
-// 注意:srcList必须是按照时间顺序升序排列
 func FillTimeData(srcList []*proto.TimeData, flag int, begin, end time.Time) []*proto.TimeData {
-	src := srcList
+	mapSrc := make(map[string]int64)
+	for _, v := range srcList {
+		mapSrc[v.Time] = v.Total
+	}
+	var ret []*proto.TimeData
 	curr := begin
 	var next time.Time
 	strTime := ""
 	i := 0
+	//先初始化返回数据列表
 	for curr.Before(end) || curr == end {
 		if flag == 1 { //月
 			strTime = curr.Format("2006-01")
@@ -128,17 +132,13 @@ func FillTimeData(srcList []*proto.TimeData, flag int, begin, end time.Time) []*
 			strTime = curr.Format("2006-01-02")
 			next = curr.AddDate(0, 0, 1)
 		}
-		if len(src) > i {
-			if src[i].Time != strTime {
 				obj := proto.TimeData{Time: strTime, Total: 0}
-				src = append(src[:i], append([]*proto.TimeData{&obj}, src[i:]...)...)
+		if total, ok := mapSrc[strTime]; ok {
+			obj.Total = total
 			}
-		} else {
-			obj := proto.TimeData{Time: strTime, Total: 0}
-			src = append(src, &obj)
-		}
+		ret = append(ret, &obj)
 		curr = next
 		i++
 	}
-	return src
+	return ret
 }

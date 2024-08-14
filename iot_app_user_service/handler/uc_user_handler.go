@@ -93,6 +93,14 @@ func (h *UcUserHandler) UpdateAll(ctx context.Context, req *proto.UcUser, resp *
 	return nil
 }
 
+// 更新
+func (h *UcUserHandler) UpdateAgreementFlag(ctx context.Context, req *proto.UcUser, resp *proto.Response) error {
+	s := service.UcUserSvc{Ctx: ctx}
+	_, err := s.UpdateAgreementFlag(req)
+	SetResponse(resp, err)
+	return nil
+}
+
 // 根据主键更新指定列
 func (h *UcUserHandler) UpdateFields(ctx context.Context, req *proto.UcUserUpdateFieldsRequest, resp *proto.Response) error {
 	s := service.UcUserSvc{Ctx: ctx}

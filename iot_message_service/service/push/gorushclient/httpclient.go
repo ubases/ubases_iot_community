@@ -2,7 +2,6 @@ package gorushclient
 
 import (
 	"bytes"
-	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotutil"
 	"encoding/json"
 	"fmt"
@@ -39,6 +38,7 @@ type PushNotificationRequest struct {
 }
 
 type PushNotification struct {
+	ID               string   `json:"notif_id,omitempty"`
 	Tokens           []string `json:"tokens" binding:"required"`
 	Platform         int      `json:"platform" binding:"required"`
 	Message          string   `json:"message,omitempty"`
@@ -48,6 +48,27 @@ type PushNotification struct {
 	CredentialSecret string   `json:"credentialSecret"`      //证书密钥
 	AppKey           string   `json:"appKey,omitempty"`
 	Data             D        `json:"data,omitempty"`
+	AppID            string   `json:"app_id,omitempty"`
+	AppSecret        string   `json:"app_secret,omitempty"`
+	HuaweiData       string   `json:"huawei_data,omitempty"`
+	Intent           string   `json:"intent,omitempty"` //自定义的intent参数
+	Color            string   `json:"color,omitempty"`
+	ClickAction      string   `json:"click_action,omitempty"` //%v.MainActivity
+	PkgName          string   `json:"pkg_name,omitempty"`     //包名
+
+	Category  string `json:"category,omitempty"`
+	ChannelId string `json:"channel_id"`
+
+	ClientID     string `json:"client_id,omitempty"`
+	ClientSecret string `json:"client_secret,omitempty"`
+
+	//小米
+	XiaomiChanelId     int `json:"xiaomi_chanel_id,omitempty"`
+	XiaomiNotifyEffect int `json:"extra_notify_effect"` //预定义通知栏消息的点击行为 https://dev.mi.com/distribute/doc/details?pId=1559
+	XiaomiNotifyType   int `json:"xiaomi_notify_type"`  // notify_type的值可以是DEFAULT_ALL或者以下其他几种的OR组合： DEFAULT_ALL = -1;DEFAULT_SOUND = 1; // 使用默认提示音提示；DEFAULT_VIBRATE = 2; // 使用默认振动提示；DEFAULT_LIGHTS = 4; // 使用默认呼吸灯提示。
+
+	//VIVO
+	VivoAddBadge bool `json:"vivo_add_badge"` //角标
 }
 
 // D provide string array
@@ -69,7 +90,6 @@ func (gc *GorushClient) SendPush(notification PushNotificationRequest) error {
 	if err != nil {
 		return err
 	}
-	iotlogger.LogHelper.Info("Gorush参数：", iotutil.ToString(payload))
 	url := fmt.Sprintf("%s/api/push", gc.BaseURL)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {

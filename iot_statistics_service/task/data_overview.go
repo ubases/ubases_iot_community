@@ -106,11 +106,19 @@ func HourDataOveriew(preHour time.Time) error {
 	if err != nil {
 		return err
 	}
+	mapTenantFaultCount, err := GetDeviceFaultStatistics(preHour, 0)
+	if err != nil {
+		return err
+	}
+	faultCount, err := GetDeviceFaultCount(preHour, 0)
+	if err != nil {
+		return err
+	}
 	now := time.Now()
 	all := statisticsModel.TDataOverviewHour{
 		DataTime:             preHour,
 		TenantId:             "",
-		DeviceFaultSum:       0,
+		DeviceFaultSum:       faultCount,
 		DeveloperRegisterSum: total,
 		UpdatedAt:            now,
 	}
@@ -120,7 +128,7 @@ func HourDataOveriew(preHour time.Time) error {
 			DataTime:             preHour,
 			TenantId:             v,
 			DeviceActiveSum:      mapActive[v],
-			DeviceFaultSum:       0,
+			DeviceFaultSum:       mapTenantFaultCount[v],
 			DeveloperRegisterSum: 0,
 			UserRegisterSum:      mapAppUserRegister[v],
 			UpdatedAt:            now,
@@ -164,11 +172,21 @@ func MonthDataOveriew(start time.Time) error {
 	if err != nil {
 		return err
 	}
+
+	mapTenantFaultCount, err := GetDeviceFaultStatistics(start, 2)
+	if err != nil {
+		return err
+	}
+	faultCount, err := GetDeviceFaultCount(start, 2)
+	if err != nil {
+		return err
+	}
+
 	now := time.Now()
 	all := statisticsModel.TDataOverviewMonth{
 		DataTime:             start,
 		TenantId:             "",
-		DeviceFaultSum:       0,
+		DeviceFaultSum:       faultCount,
 		DeveloperRegisterSum: total,
 		UpdatedAt:            now,
 	}
@@ -178,7 +196,7 @@ func MonthDataOveriew(start time.Time) error {
 			DataTime:             start,
 			TenantId:             v,
 			DeviceActiveSum:      mapActive[v],
-			DeviceFaultSum:       0,
+			DeviceFaultSum:       mapTenantFaultCount[v],
 			DeveloperRegisterSum: 0,
 			UserRegisterSum:      mapAppUserRegister[v],
 			UpdatedAt:            now,
@@ -233,7 +251,7 @@ func GetDeviceActiveStatistics(start time.Time, flag int) (map[string]int64, err
 	var datas []TenantIdData
 	t := deviceOrm.Use(deviceDB).TIotDeviceInfo
 	err := t.WithContext(context.Background()).Select(t.TenantId, t.TenantId.Count().As("total")).
-		Where(t.LastActivatedTime.Gte(start), t.LastActivatedTime.Lt(end), t.UseType.Eq(0), t.TenantId.IsNotNull()).
+		Where(t.LastActivatedTime.Gte(start), t.LastActivatedTime.Lt(end) /*t.UseType.Eq(0),*/, t.TenantId.IsNotNull()).
 		Group(t.TenantId).Scan(&datas)
 	if err != nil {
 		return nil, err

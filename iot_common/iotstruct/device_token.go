@@ -21,6 +21,8 @@ type DeviceNetworkTokenCacheModel struct {
 	City         string                  `json:"city"`
 	District     string                  `json:"district"`
 	TenantId     string                  `json:"tenantId"`
+	RegionId       string                  `json:"regionId"`
+	RegionServerId string                  `json:"regionServerId"`
 	DeviceNature int32                   `json:"deviceNature"`
 }
 

@@ -9,16 +9,16 @@ const TableNameTOemAppFunctionConfig = "t_oem_app_function_config"
 // TOemAppFunctionConfig mapped from table <t_oem_app_function_config>
 type TOemAppFunctionConfig struct {
 	Id            int64  `gorm:"column:id;primaryKey" json:"id"`
-	AppId         int64  `gorm:"column:app_id" json:"app_id"`                 // t_opm_app主键id
-	Version       string `gorm:"column:version" json:"version"`               // app版本
-	AboutUs       int32  `gorm:"column:about_us" json:"about_us"`             // 关于我们，1支持，2不支持
-	Eula          int32  `gorm:"column:eula" json:"eula"`                     // 用户协议，1支持，2不支持
-	PrivacyPolicy int32  `gorm:"column:privacy_policy" json:"privacy_policy"` // 隐私协议，1支持，2不支持
-	Weather       int32  `gorm:"column:weather" json:"weather"`               // 天气插件 1 支持, 2 不支持
-	Voices        string `gorm:"column:voices" json:"voices"`                 // 语音服务
-	Thirds        string `gorm:"column:thirds" json:"thirds"`                 // 三方服务
-	AutoUpgrade   string `gorm:"column:auto_upgrade" json:"auto_upgrade"`     // app自动升级
-	Geo           int32  `gorm:"column:geo;default:1" json:"geo"`             // 地图 1 支持, 2 不支持
+	AppId         int64  `gorm:"column:app_id" json:"appId"`                 // t_opm_app主键id
+	Version       string `gorm:"column:version" json:"version"`              // app版本
+	AboutUs       int32  `gorm:"column:about_us" json:"aboutUs"`             // 关于我们，1支持，2不支持
+	Eula          int32  `gorm:"column:eula" json:"eula"`                    // 用户协议，1支持，2不支持
+	PrivacyPolicy int32  `gorm:"column:privacy_policy" json:"privacyPolicy"` // 隐私协议，1支持，2不支持
+	Weather       int32  `gorm:"column:weather" json:"weather"`              // 天气插件 1 支持, 2 不支持
+	Voices        string `gorm:"column:voices" json:"voices"`                // 语音服务
+	Thirds        string `gorm:"column:thirds" json:"thirds"`                // 三方服务
+	AutoUpgrade   string `gorm:"column:auto_upgrade" json:"autoUpgrade"`     // app自动升级
+	Geo           int32  `gorm:"column:geo;default:1" json:"geo"`            // 地图 1 支持, 2 不支持
 }
 
 // TableName TOemAppFunctionConfig's table name

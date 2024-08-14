@@ -1,11 +1,11 @@
 package push
 
 import (
-	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_message_service/config"
 	"cloud_platform/iot_message_service/service/push/gorushclient"
+	"cloud_platform/iot_message_service/service/push/platforms"
 	"cloud_platform/iot_message_service/service/push/pushModel"
 	"fmt"
 )
@@ -19,8 +19,7 @@ type GorushClient struct {
 }
 
 func (g *GorushClient) ClearAlias(userId, appKey string) error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (g *GorushClient) checkConfig(appKey string) error {
@@ -53,41 +52,20 @@ func (g *GorushClient) checkLang(inputTarget pushModel.MessageTarget, message pu
 }
 
 func (g *GorushClient) PushMessage(inputTarget pushModel.MessageTarget, message pushModel.MessageRequestModel) error {
-	iotlogger.LogHelper.Infof("GorushClient.PushMessage Gorush开始推送")
+	iotlogger.LogHelper.WithTag("mode", "gorush").Infof("GorushClient.PushMessage Gorush开始推送")
 	g.InputTarget = inputTarget
 	g.Message = message
 	defer iotutil.PanicHandler()
 	g.checkConfig(message.AppKey)
 	g.checkLang(inputTarget, message)
-	platformTokens := make(map[int]map[string][]string)
-	for _, token := range inputTarget.PushTokens {
-		if token.Lang == "" {
-			//token.Lang = "zh"
-			iotlogger.LogHelper.Errorf("GorushClient.PushMessage 未设置语言")
-			continue
-		}
-		//初始化
-		appPushPlatform, _ := iotutil.ToIntErr(token.AppPushPlatform)
-		switch appPushPlatform {
-		case iotconst.PlatformHuawei:
-			checkPlatformTokens(platformTokens, token.Lang, gorushclient.PlatformHuawei)
-			platformTokens[gorushclient.PlatformHuawei][token.Lang] = append(platformTokens[gorushclient.PlatformHuawei][token.Lang], token.AppToken)
-		case iotconst.PlatformIos:
-			checkPlatformTokens(platformTokens, token.Lang, gorushclient.PlatformIos)
-			platformTokens[gorushclient.PlatformIos][token.Lang] = append(platformTokens[gorushclient.PlatformIos][token.Lang], token.AppToken)
-		case iotconst.PlatformAndroid:
-			checkPlatformTokens(platformTokens, token.Lang, gorushclient.PlatformAndroid)
-			platformTokens[gorushclient.PlatformAndroid][token.Lang] = append(platformTokens[gorushclient.PlatformAndroid][token.Lang], token.AppToken)
-		case iotconst.PlatformXiaomi:
-			//platformTokens[gorushclient.PlatformXiaomi][token.Lang] = append(platformTokens[gorushclient.PlatformXiaomi][token.Lang], token.AppToken)
-		case iotconst.PlatformOppo:
-			//platformTokens[gorushclient.PlatformOppo][token.Lang] = append(platformTokens[gorushclient.PlatformOppo][token.Lang], token.AppToken)
-		case iotconst.PlatformVivo:
-			//platformTokens[gorushclient.PlatformVivo][token.Lang] = append(platformTokens[gorushclient.PlatformVivo][token.Lang], token.AppToken)
-		case iotconst.PlatformHoner:
-			//platformTokens[gorushclient.PlatformHoner][token.Lang] = append(platformTokens[gorushclient.PlatformHoner][token.Lang], token.AppToken)
-		case iotconst.PlatformMeizu:
-			//platformTokens[gorushclient.PlatformMeizu][token.Lang] = append(platformTokens[gorushclient.PlatformMeizu][token.Lang], token.AppToken)
+	//token分组
+	platformTokens := platforms.TokenGroup(inputTarget.PushTokens)
+
+	//日志输出
+	iotlogger.LogHelper.WithTag("mode", "gorush").Debugf(fmt.Sprintf("start manufacturer push, platform total: %v", len(inputTarget.PushTokens)))
+	for p, tokens := range platformTokens {
+		if len(tokens) > 0 {
+			iotlogger.LogHelper.WithTag("mode", "gorush").Debugf(fmt.Sprintf("%v platform: push token count: %v", getPushPlatformName(p), len(tokens)))
 		}
 	}
 	req := gorushclient.PushNotificationRequest{[]gorushclient.PushNotification{}}
@@ -97,49 +75,30 @@ func (g *GorushClient) PushMessage(inputTarget pushModel.MessageTarget, message 
 	iotutil.StructToStruct(sendMessage, &msgInfo)
 
 	for platform, items := range platformTokens {
+		p := platforms.PlatformSelect(platform, g.Cfg, g.LangCt)
 		if len(items) > 0 {
-			credentials, credentialSecret := "", ""
-			if platform == gorushclient.PlatformAndroid {
-				//fcmJson: -credentials "D:\code\work\test\go\golang_demo\fcm\push.json"
-				credentials = iotutil.MapGetStringVal(g.Cfg.Fcm["fcmJsonContent"], "")
-			} else if platform == gorushclient.PlatformIos {
-				credentials = iotutil.MapGetStringVal(g.Cfg.Apns["apnsCert"], "")
-				credentialSecret = iotutil.MapGetStringVal(g.Cfg.Apns["apnsSecret"], "")
-			}
+			p.GetCredentialInfo(msgInfo)
 			for lang, tokens := range items {
-				if len(tokens) == 0 {
-					continue
-				}
-				m, ok := g.LangCt[lang]
-				if !ok {
-					continue
-				}
-				n := gorushclient.PushNotification{
-					Tokens:   tokens,
-					Platform: platform,
-					//Title:    m.Title, //消息他标题
-					Message:          m.Content,
-					Data:             msgInfo,
-					Topic:            g.Cfg.IosPkgName,
-					AppKey:           m.AppKey,
-					CredentialSecret: credentialSecret,
-				}
-				if credentials != "" {
-					n.Credentials = credentials
-				}
-				req.Notifications = append(req.Notifications, n)
+				n := p.SetPushNotification(msgInfo, tokens, lang, nil)
+				req.Notifications = append(req.Notifications, *n)
 			}
 		}
 	}
 	if len(req.Notifications) > 0 {
 		err := g.GorushCli.SendPush(req)
 		if err != nil {
-			iotlogger.LogHelper.Errorf("g.GorushCli.SendPush error: %v", err.Error())
+			iotlogger.LogHelper.WithTag("mode", "gorush").Errorf("g.GorushCli.SendPush error: %v", err.Error())
 			return err
 		}
 	}
-	iotlogger.LogHelper.Infof("GorushClient.PushMessage Gorush推送完成，通知数量：%v", len(req.Notifications))
+	iotlogger.LogHelper.WithTag("mode", "gorush").Infof("GorushClient.PushMessage Gorush推送完成，通知数量：%v", len(req.Notifications))
 	return nil
+}
+
+func getIntentUrl(pkgName string, platform int, data map[string]interface{}) string {
+	return fmt.Sprintf("intent:#Intent;action=android.intent.action.MAIN;component=%v/%v.MainActivity;S.PushExtra=%v;end",
+		pkgName, pkgName, iotutil.ToString(data),
+	)
 }
 
 func checkPlatformTokens(platformTokens map[int]map[string][]string, lang string, appPushPlatform int) {

@@ -14,7 +14,7 @@ import (
 	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_device_service/config"
 	"cloud_platform/iot_device_service/rpc/rpcClient"
-	"cloud_platform/iot_smart_speaker_service/cached"
+	"cloud_platform/iot_voice_service/cached"
 	"context"
 	"errors"
 	"sort"
@@ -645,86 +645,84 @@ func (s *IotDeviceHomeSvc) RemoveDev(request *proto.RemoveDevRequest) error {
 
 		devIds := []string{}
 		if request.DevId != "" {
+			//移除房间设备
 			//request.RoomId必传
-			devIds = append(devIds, request.DevId)
-			tIotDeviceHomeDo = tIotDeviceHomeDo.Where(t.RoomId.Eq(iotutil.ToInt64(request.RoomId)))
+			_, err := tIotDeviceHomeDo.Where(t.RoomId.Eq(iotutil.ToInt64(request.RoomId)), t.DeviceId.Eq(request.DevId)).
+				Select(t.RoomId).UpdateColumn(t.RoomId, 0)
+			if err != nil {
+				logger.Errorf("RemoveDev error : %s", err.Error())
+				return err
+			}
+			return nil
 		} else if len(request.DevIdList) > 0 {
 			devIds = request.DevIdList
 		} else {
 			logger.Errorf("设备id参数有误")
 			return errors.New("设备id参数有误")
 		}
-		if request.DevId != "" {
-			_, err := tIotDeviceHomeDo.Select(t.RoomId).UpdateColumn(t.RoomId, 0)
 
+		deviceHomes, err := tIotDeviceHomeDo.Where(t.HomeId.Eq(iotutil.ToInt64(request.HomeId)),
+			t.DeviceId.In(devIds...)).Find()
+		if err != nil {
+			return err
+		}
+		_, err = tIotDeviceHomeDo.Where(t.HomeId.Eq(iotutil.ToInt64(request.HomeId)),
+			t.DeviceId.In(devIds...)).Delete()
+
+		if err != nil {
+			logger.Errorf("RemoveDev error : %s", err.Error())
+			return err
+		}
+
+		if len(request.DevIdList) > 0 {
+			//还原设备三元组
+			tTriad := tx.TIotDeviceTriad
+			doTriad := tTriad.WithContext(context.Background())
+			deviceList, err := doTriad.Where(tTriad.Did.In(request.DevIdList...)).Find()
 			if err != nil {
-				logger.Errorf("RemoveDev error : %s", err.Error())
 				return err
 			}
-		} else {
-			deviceHomes, err := tIotDeviceHomeDo.Where(t.HomeId.Eq(iotutil.ToInt64(request.HomeId)),
-				t.DeviceId.In(devIds...)).Find()
-			if err != nil {
-				return err
+			if len(deviceList) == 0 {
+				logger.Errorf("RemoveDev query deviceTriad :  not found")
+				return errors.New("未找到三元组数据")
 			}
-			_, err = tIotDeviceHomeDo.Where(t.HomeId.Eq(iotutil.ToInt64(request.HomeId)),
-				t.DeviceId.In(devIds...)).Delete()
-
-			if err != nil {
-				logger.Errorf("RemoveDev error : %s", err.Error())
-				return err
+			virtualDevIds := []string{}
+			normalDevIds := []string{}
+			for _, dev := range deviceList {
+				if dev.UseType == iotconst.Use_Type_Device_Real_Test {
+					virtualDevIds = append(virtualDevIds, dev.Did)
+				} else {
+					normalDevIds = append(normalDevIds, dev.Did)
+				}
 			}
-
-			if len(request.DevIdList) > 0 {
-				//还原设备三元组
-				tTriad := tx.TIotDeviceTriad
-				doTriad := tTriad.WithContext(context.Background())
-				deviceList, err := doTriad.Where(tTriad.Did.In(request.DevIdList...)).Find()
+			//虚拟设备直接移除
+			if len(virtualDevIds) > 0 {
+				doTriad.Where(tTriad.Did.In(virtualDevIds...)).Delete()
+			}
+			//真实设备恢复初始化
+			if len(normalDevIds) > 0 {
+				_, err = doTriad.Where(tTriad.Did.In(normalDevIds...)).
+					Select(tTriad.IsTest, tTriad.AppName, tTriad.AppKey, tTriad.UserAccount, tTriad.UserId, tTriad.Status).
+					Updates(map[string]interface{}{
+						string(tTriad.UserId.ColumnName()):      gorm.Expr("NULL"),
+						string(tTriad.AppName.ColumnName()):     gorm.Expr("NULL"),
+						string(tTriad.AppKey.ColumnName()):      gorm.Expr("NULL"),
+						string(tTriad.UserAccount.ColumnName()): gorm.Expr("NULL"),
+						string(tTriad.Status.ColumnName()):      0,
+					})
 				if err != nil {
 					return err
 				}
-				if len(deviceList) == 0 {
-					logger.Errorf("RemoveDev query deviceTriad :  not found")
-					return errors.New("未找到三元组数据")
-				}
-				virtualDevIds := []string{}
-				normalDevIds := []string{}
-				for _, dev := range deviceList {
-					if dev.UseType == iotconst.Use_Type_Device_Real_Test {
-						virtualDevIds = append(virtualDevIds, dev.Did)
-					} else {
-						normalDevIds = append(normalDevIds, dev.Did)
-					}
-				}
-				//虚拟设备直接移除
-				if len(virtualDevIds) > 0 {
-					doTriad.Where(tTriad.Did.In(virtualDevIds...)).Delete()
-				}
-				//真实设备恢复初始化
-				if len(normalDevIds) > 0 {
-					_, err = doTriad.Where(tTriad.Did.In(normalDevIds...)).
-						Select(tTriad.IsTest, tTriad.AppName, tTriad.AppKey, tTriad.UserAccount, tTriad.UserId, tTriad.Status).
-						Updates(map[string]interface{}{
-							string(tTriad.UserId.ColumnName()):      gorm.Expr("NULL"),
-							string(tTriad.AppName.ColumnName()):     gorm.Expr("NULL"),
-							string(tTriad.AppKey.ColumnName()):      gorm.Expr("NULL"),
-							string(tTriad.UserAccount.ColumnName()): gorm.Expr("NULL"),
-							string(tTriad.Status.ColumnName()):      0,
-						})
-					if err != nil {
-						return err
-					}
-				}
-				//移除设备信息
-				tInfo := tx.TIotDeviceInfo
-				_, err = tInfo.WithContext(context.Background()).Where(tInfo.Did.In(request.DevIdList...)).Delete()
-				if err != nil {
-					return err
-				}
-
-				//清理相关资料
-				go goRemoveDeviceClear(request, deviceHomes)
 			}
+			//移除设备信息
+			tInfo := tx.TIotDeviceInfo
+			_, err = tInfo.WithContext(context.Background()).Where(tInfo.Did.In(request.DevIdList...)).Delete()
+			if err != nil {
+				return err
+			}
+
+			//清理相关资料
+			go goRemoveDeviceClear(request, deviceHomes)
 		}
 		return nil
 	})
@@ -1161,8 +1159,6 @@ func (s *IotDeviceHomeSvc) HomeDevListExcludeVirtualDevices(homeId int64, homeId
 	var MqttServer string
 	if len(config.Global.AppMQTT.Addrs) > 0 {
 		MqttServer = config.Global.AppMQTT.Addrs[0]
-	} else {
-		MqttServer = "ws://120.77.64.252:8883/mqtt"
 	}
 	for i, v := range list {
 		devInfo := convert.IotDevInfo_db2pbNew(v)

@@ -1,10 +1,12 @@
 package services
 
 import (
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/product/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotenums"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
@@ -76,6 +78,9 @@ func (s PmFirmwareVersionService) AddPmFirmwareVersion(req entitys.PmFirmwareVer
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
 	}
+	if req.FilePath != "" && req.ZipFilePath != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmFirmwareVersion, iotutil.ToString(req.Id), req.FilePath, req.ZipFilePath)
+	}
 	return iotutil.ToString(saveObj.Id), err
 }
 
@@ -91,6 +96,9 @@ func (s PmFirmwareVersionService) UpdatePmFirmwareVersion(req entitys.PmFirmware
 	}
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
+	}
+	if req.FilePath != "" && req.ZipFilePath != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmFirmwareVersion, iotutil.ToString(req.Id), req.FilePath, req.ZipFilePath)
 	}
 	return iotutil.ToString(req.Id), err
 }

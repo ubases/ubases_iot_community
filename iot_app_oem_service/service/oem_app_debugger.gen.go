@@ -29,7 +29,15 @@ func (s *OemAppDebuggerSvc) CreateOemAppDebugger(req *proto.OemAppDebugger) (*pr
 	do := t.WithContext(context.Background())
 	dbObj := convert.OemAppDebugger_pb2db(req)
 	dbObj.Status = 1
-	err := do.Create(dbObj)
+	//重复查询
+	has, err := s.exitsDebugger(req.AppKey, req.RegionId, req.UserName)
+	if err != nil {
+		return nil, err
+	}
+	if has {
+		return nil, errors.New("APP调试信息已存在")
+	}
+	err = do.Create(dbObj)
 	if err != nil {
 		logger.Errorf("CreateOemAppDebugger error : %s", err.Error())
 		return nil, err
@@ -320,12 +328,12 @@ func (s *OemAppDebuggerSvc) GetListOemAppDebugger(req *proto.OemAppDebuggerListR
 	}
 	orderCol, ok := t.GetFieldByName(req.OrderKey)
 	if !ok {
-		orderCol = t.Id
+		orderCol = t.CreatedAt
 	}
 	if req.OrderDesc != "" {
 		do = do.Order(orderCol.Desc())
 	} else {
-		do = do.Order(orderCol)
+		do = do.Order(orderCol.Desc())
 	}
 
 	var list []struct {
@@ -361,4 +369,25 @@ func (s *OemAppDebuggerSvc) GetListOemAppDebugger(req *proto.OemAppDebuggerListR
 		result[i].AppImg = v.AppIconUrl
 	}
 	return result, total, nil
+}
+
+
+func (s *OemAppDebuggerSvc) exitsDebugger(appKey string, regionId int64, userName string) (bool, error) {
+	t := orm.Use(iotmodel.GetDB()).TOemAppDebugger
+	do := t.WithContext(context.Background())
+	// fixme 请检查条件和校验参数
+
+	do = do.Where(t.AppKey.Eq(appKey))
+	do = do.Where(t.RegionId.Eq(regionId))
+	do = do.Where(t.UserName.Eq(userName))
+
+	c, err := do.Count()
+	if err != nil {
+		logger.Errorf("exitsDebugger error : %s", err.Error())
+		return false, err
+	}
+	if c > 0 {
+		return true, nil
+	}
+	return false, err
 }

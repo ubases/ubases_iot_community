@@ -18,7 +18,7 @@ type PackUpgrade struct {
 
 func (o *PackUpgrade) Encode(gid string, data UpgradeDetailParam) ([]byte, error) {
 	obj := PackUpgrade{
-		Header:  EncodeHeader(OTA_HEAD_NS, OTA_HEAD_NAME_OTAINFO, gid),
+		Header:  EncodeHeader(OTA_HEAD_NS, OTA_HEAD_NAME_OTAINFO, gid, ""),
 		Payload: UpgradeParam{Param: data},
 	}
 	*o = obj
@@ -30,9 +30,29 @@ type PackUpgradeAck struct {
 	Payload NormalAck `json:"payload"`
 }
 
+func (o *PackUpgradeAck) Encode(gid, mid string, err error) ([]byte, error) {
+	obj := PackUpgradeAck{
+		Header:  EncodeHeader(OTA_HEAD_NS, OTA_HEAD_NAME_OTAINFO, gid, mid),
+		Payload: NormalAck{Code: 0, Msg: "ok"},
+	}
+	if err != nil {
+		obj.Payload.Code = 1
+		obj.Payload.Msg = err.Error()
+	}
+	*o = obj
+	return json.Marshal(obj)
+}
 type PackUpgradeReport struct {
 	Header  Header        `json:"header"`
 	Payload UpgradeReport `json:"payload"`
+}
+func (o *PackUpgradeReport) Encode(gid, mid string, state string, code, progress int, ver, pubId, otaVer string) ([]byte, error) {
+	obj := PackUpgradeReport{
+		Header:  EncodeHeader(OTA_HEAD_NS, OTA_HEAD_NAME_OTAPROGRESS, gid, mid),
+		Payload: UpgradeReport{OtaState: state, Code: code, Progress: progress, Version: ver, PubId: pubId /*, OtaVer: otaVer*/},
+	}
+	*o = obj
+	return json.Marshal(obj)
 }
 
 type UpgradeParam struct {
@@ -45,8 +65,8 @@ type UpgradeDetailParam struct {
 	BaseVer    string `json:"baseVer"`
 	McuBaseVer string `json:"mcuBaseVer"`
 	OtaType    string `json:"otaType"`
-	AppURL     string `json:"appUrl"`
-	McuURL     string `json:"mcuUrl"`
+	AppURL     string `json:"appUrl,omitempty"`
+	McuURL     string `json:"mcuUrl,omitempty"`
 	Md5        string `json:"md5"`
 	PubId      string `json:"pubId"`  //ota发布Id
 	OtaVer     string `json:"otaVer"` //ota版本号

@@ -5,12 +5,16 @@
 package service
 
 import (
+	"cloud_platform/iot_cloud_api_service/controls/open/entitys"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_device_service/config"
+	iotmodel "cloud_platform/iot_model"
+	"cloud_platform/iot_model/db_device/model"
+	"cloud_platform/iot_model/db_device/orm"
 	proto "cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
@@ -553,7 +557,8 @@ func (s *IotDeviceLogProductSvc) FindReportLog(mId string, productKey string) (i
 	params := []interface{}{}
 	params = append(params, mId)
 	var count int64
-	tx := db.Raw(sqlBuilder.String(), params...).Count(&count)
+	tx := db.Table(tableName).Where("id = ?", mId).Count(&count)
+	//tx := db.Raw(sqlBuilder.String(), params...).Count(&count)
 	if tx.Error != nil {
 		return 0, tx.Error
 	}
@@ -900,4 +905,73 @@ func DeviceOperationFailLogListObj_e2pb(src *DeviceOperationFailLogListModel) *p
 		UploadMethod: src.UploadMethod,
 	}
 	return &ret
+}
+func (s *IotDeviceLogProductSvc) ReportFault(natsData *iotstruct.MqttToNatsData, deviceId, deviceName, productId string,
+	payload map[string]interface{}) error {
+	rdCmd := iotredis.GetClient().HGetAll(context.Background(), iotconst.HKEY_PRODUCT_DATA+natsData.ProductKey)
+	if rdCmd.Err() != nil {
+		return rdCmd.Err()
+	}
+	//注意，redis中productId是产品品类ID，不是产品ID
+	baseProductId := rdCmd.Val()["productId"]
+	var nBaseProductId int64
+	if baseProductId != "" {
+		nBaseProductId = iotutil.ToInt64(baseProductId)
+	}
+	tenantId := rdCmd.Val()["tenantId"]
+	productName := rdCmd.Val()["productName"]
+	nProductId, _ := strconv.Atoi(productId) //产品ID
+	var faultList []*model.TIotDeviceFault
+	for key, val := range payload {
+		tlsStr := rdCmd.Val()[iotconst.FIELD_PREFIX_TLS+key]
+		var tlsInfo map[string]interface{}
+		err := json.Unmarshal([]byte(tlsStr), &tlsInfo)
+		if err != nil || tlsInfo == nil {
+			continue
+		}
+		identifier := iotutil.ToString(tlsInfo["identifier"])
+
+		//故障类型
+		dpid, _ := strconv.Atoi(key)
+		dataType := iotutil.ToString(tlsInfo["dataType"])
+		if dataType == "FAULT" {
+			fault := &model.TIotDeviceFault{
+				Id:              iotutil.GetNextSeqInt64(),
+				DeviceId:        0,
+				DeviceKey:       deviceId,
+				DeviceName:      deviceName,
+				BaseProductId:   nBaseProductId,
+				ProductId:       int64(nProductId),
+				ProductKey:      natsData.ProductKey,
+				ProductName:     productName,
+				FaultIdentifier: identifier,
+				FaultDpid:       int32(dpid),
+				TenantId:        tenantId,
+				//FaultCode:       val.(string),
+				//FaultName:       "",
+				CreatedAt: time.Unix(natsData.Time, 0),
+			}
+			var faultSpaces []entitys.EnumDataSpaces
+			dataSpecListStr := iotutil.ToString(tlsInfo["dataSpecsList"])
+			err = json.Unmarshal([]byte(dataSpecListStr), &faultSpaces)
+			if err != nil {
+				continue
+			}
+			for _, v := range faultSpaces {
+				if int(v.Value) == iotutil.ToInt(val) {
+					fault.FaultCode = strconv.Itoa(int(v.Value))
+					fault.FaultName = v.Name
+					faultList = append(faultList, fault)
+					break
+				}
+			}
+		}
+	}
+	if len(faultList) > 0 {
+		err := orm.Use(iotmodel.GetDB()).TIotDeviceFault.WithContext(context.Background()).CreateInBatches(faultList, len(faultList))
+		if err != nil {
+			iotlogger.LogHelper.Errorf("存储故障数据错误:%s", err.Error())
+		}
+	}
+	return nil
 }

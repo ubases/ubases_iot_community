@@ -333,7 +333,7 @@ func Logout(msg string, c *gin.Context) error {
 	}
 	//
 	appPushId := GetAppPushId(c)
-	if appPushId != "" {
+	if appPushId == "" {
 		iotlogger.LogHelper.Error("Logout.AppPushTokenUserService.appPushId is empty")
 		return errors.New("appPushId is empty")
 	}

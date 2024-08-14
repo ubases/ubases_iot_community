@@ -1,8 +1,8 @@
 package scanobject
 
 import (
-	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	proto "cloud_platform/iot_proto/protos/protosService"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -42,6 +42,7 @@ func (o ScanPmControlPanels) ToPb() *proto.PmControlPanelsDetails {
 		UpdatedAt:           timestamppb.New(o.UpdatedAt),
 		LangFileName:        o.LangFileName,
 		PanelKey:            o.PanelKey,
+		Code:                o.Code,
 	}
 	return &pbObj
 }

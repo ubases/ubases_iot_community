@@ -83,10 +83,17 @@ service OpmOtaPublishService {
 		};
 	}
 
-	//查找，支持分页，可返回多条数据
+	//检查OTA升级信息
 	rpc CheckOtaVersion(CheckOtaVersionRequest) returns (CheckOtaVersionResponse) {
 		option (google.api.http) = {
 			post:"/v1/opmOtaPublish/checkOtaVersion"
+			body:"*"
+		};
+	}
+	//检查OTA升级列表，根据固件类型全部返回
+	rpc CheckOtaUpgradeList(CheckOtaVersionRequest) returns (CheckOtaListResponse) {
+		option (google.api.http) = {
+			post:"/v1/opmOtaPublish/checkOtaUpgradeList"
 			body:"*"
 		};
 	}

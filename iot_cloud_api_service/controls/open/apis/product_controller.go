@@ -54,6 +54,27 @@ func (OpmProductController) QueryList(c *gin.Context) {
 	iotgin.ResPageSuccess(c, res, total, int(filter.Page))
 }
 
+// 平台查询的产品列表
+func (OpmProductController) QueryListToPlatform(c *gin.Context) {
+	var filter entitys.OpmProductQuery
+	err := c.ShouldBindJSON(&filter)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	if filter.Query == nil {
+		filter.Query = new(entitys.OpmProductFilter)
+	}
+	filter.IsPlatform = true
+	res, total, err := productServices.SetContext(controls.WithUserContext(c)).QueryOpmProductList(filter)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+
+	iotgin.ResPageSuccess(c, res, total, int(filter.Page))
+}
+
 func (OpmProductController) QueryDetail(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -122,6 +143,7 @@ func (OpmProductController) Add(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
+	req.TenantId = controls.GetTenantId(c)
 	id, err := productServices.SetContext(controls.WithUserContext(c)).AddOpmProduct(req)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
@@ -499,6 +521,22 @@ func (OpmProductController) SaveProductControlPanel(c *gin.Context) {
 		return
 	}
 	iotgin.ResSuccess(c, panel)
+}
+
+// 提交面板
+func (OpmProductController) CancelReminder(c *gin.Context) {
+	var req entitys.OpmProductPanelRelationEntitys
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	err = productServices.SetContext(controls.WithUserContext(c)).ControlPanelRelationUpdateCreatedAt(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccessMsg(c)
 }
 
 // QueryAllDetail 开发完成查询

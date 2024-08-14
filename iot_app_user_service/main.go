@@ -9,6 +9,7 @@ import (
 	"cloud_platform/iot_common/iottrace"
 	"cloud_platform/iot_common/iotutil"
 	model "cloud_platform/iot_model"
+	"context"
 	"log"
 
 	"github.com/opentracing/opentracing-go"
@@ -19,13 +20,13 @@ import (
 )
 
 var (
-	version string = "2.0.0"
+	version string = "2.1.0"
 	name           = "iot_app_user_service"
 )
 
 func main() {
 	log.Println(version)
-	if err := config.Init(); err != nil {
+	if err := config.Init2(); err != nil {
 		log.Println("加载配置文件发生错误:", err)
 		return
 	}
@@ -73,14 +74,18 @@ func main() {
 		iotlogger.LogHelper.Error(err)
 		return
 	}
+	//初始化微信小程序
+	service.InitWechat()
 
 	// 通知清理缓存
-	go service.InitRedisSub()
+	ctx, cancel := context.WithCancel(context.Background())
+	go service.InitClearCachedSub(ctx)
 
 	//运行服务
 	if err = grpcservice.Run(); err != nil {
 		iotlogger.LogHelper.Error("grpcservice.Run failed:", err)
 	}
+	cancel()
 	iotlogger.LogHelper.Warn("Server exiting")
 }
 

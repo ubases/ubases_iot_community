@@ -42,6 +42,7 @@ type TSceneIntelligence struct {
 	TenantId         string         `gorm:"column:tenant_id" json:"tenantId"`                      // 开发者租户编号
 	Timezone         string         `gorm:"column:timezone" json:"timezone"`                       // 时区
 	RegionServerId   int64          `gorm:"column:region_server_id" json:"regionServerId"`         // 区域服务器Id
+	InstanceCode         string         `gorm:"column:instance_code" json:"instanceCode"`          // 运行实例编码
 }
 
 // TableName TSceneIntelligence's table name

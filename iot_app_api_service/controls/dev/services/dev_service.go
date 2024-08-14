@@ -2,6 +2,7 @@ package services
 
 import (
 	"cloud_platform/iot_app_api_service/cached"
+	"cloud_platform/iot_app_api_service/controls"
 	"cloud_platform/iot_app_api_service/controls/dev/entitys"
 	services2 "cloud_platform/iot_app_api_service/controls/user/services"
 	"cloud_platform/iot_app_api_service/rpc"
@@ -122,6 +123,13 @@ func (s AppDevService) DeviceInfo(devId string, userId int64, devSecret string, 
 		deviceInfo.ProductName = deviceInfoProto.ProductName
 	}
 	props := map[string]entitys.TslInfo{}
+
+	//加载面板编码
+	proId, _ := iotutil.ToInt64AndErr(deviceInfo.ProductId)
+	proPanelMap, _ := controls.GetProductPanelInfo(proId)
+	if v, ok := proPanelMap[proId]; ok {
+		deviceInfo.PanelCode = v.PanelCode
+	}
 
 	//物模型
 	cacheKey := fmt.Sprintf("%s_%s", tenantId, iotconst.HKEY_LANGUAGE_DATA_PREFIX+iotconst.LANG_PRODUCT_THINGS_MODEL)

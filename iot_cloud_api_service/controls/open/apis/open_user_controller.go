@@ -29,7 +29,7 @@ func (OpenUserController) GetTest(c *gin.Context) {
 	iotgin.ResSuccess(c, id)
 }
 
-// 开放平台注册
+// Register 开放平台注册
 func (OpenUserController) Register(c *gin.Context) {
 	var req entitys.OpenUserRegisterReq
 	err := c.ShouldBindJSON(&req)
@@ -39,16 +39,46 @@ func (OpenUserController) Register(c *gin.Context) {
 	}
 	req.IP = c.ClientIP()
 	res, err := OpenUserService.SetContext(controls.WithOpenUserContext(c)).RegisterUser(req)
-
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
 	}
-
 	iotgin.ResSuccess(c, res)
 }
 
-// 登录
+// GuideCheck 引导检查
+func (OpenUserController) GuideCheck(c *gin.Context) {
+	var req entitys.GuideCheckReq
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	req.UserId = controls.GetUserId(c)
+	req.TenantId = controls.GetTenantId(c)
+	req.AccountType = int32(controls.GetAccountType(c))
+	err = OpenUserService.SetContext(controls.WithOpenUserContext(c)).GuideCheck(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccessMsg(c)
+}
+
+// SetHasGuided 设置引导完成
+func (OpenUserController) SetHasGuided(c *gin.Context) {
+	req := entitys.GuideCheckReq{
+		UserId: controls.GetUserId(c),
+	}
+	err := OpenUserService.SetContext(controls.WithOpenUserContext(c)).SetHasGuided(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccessMsg(c)
+}
+
+// Login 登录
 func (OpenUserController) Login(c *gin.Context) {
 	var resq entitys.UserLoginReq
 	err := c.ShouldBindJSON(&resq)
@@ -207,16 +237,20 @@ func (OpenUserController) GetRouters(c *gin.Context) {
 }
 
 func (OpenUserController) GetVerificationCode(c *gin.Context) {
-	userName := c.Query("userName")
-	lang := c.GetHeader("lang")
-	codeType := c.Query("type")
+	var (
+		userName = c.Query("userName")
+		lang     = controls.GetLang(c)
+		tenantId = controls.GetTenantId(c)
+		codeType = c.Query("type")
+	)
 
 	code, err := iotutil.ToInt32Err(codeType)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
 	}
-	res, err := OpenUserService.SendVerificationCode(userName, lang, code)
+
+	res, err := OpenUserService.SendVerificationCode(userName, tenantId, lang, code)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
@@ -226,11 +260,14 @@ func (OpenUserController) GetVerificationCode(c *gin.Context) {
 
 // 获取验证码
 func (OpenUserController) GetVerificationCodeForExists(c *gin.Context) {
-	userName := c.Query("userName")
-	lang := c.GetHeader("lang")
-	codeType := c.Query("type")
+	var (
+		userName = c.Query("userName")
+		lang     = controls.GetLang(c)
+		tenantId = controls.GetTenantId(c)
+		codeType = c.Query("type")
+	)
 
-	res, err := OpenUserService.SendVerificationCodeForExists(userName, lang, iotutil.ToInt32(codeType))
+	res, err := OpenUserService.SendVerificationCodeForExists(userName, tenantId, lang, iotutil.ToInt32(codeType))
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return

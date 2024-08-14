@@ -31,6 +31,8 @@ type ClientOptions struct {
 	Password      string
 	TLSConfig     *tls.Config
 	AutoReconnect bool
+	Keepalive     int
+	Clean         bool
 }
 
 type QOS byte
@@ -68,6 +70,10 @@ func NewClient(options ClientOptions, connhandler ConnHandler) (*Client, error) 
 	}
 	pahoOptions.SetClientID(options.ClientID)
 	pahoOptions.SetProtocolVersion(4)
+	pahoOptions.SetKeepAlive(time.Duration(options.Keepalive) * time.Second)
+	pahoOptions.SetWriteTimeout(10 * time.Second)
+	pahoOptions.SetConnectTimeout(10 * time.Second)
+	pahoOptions.SetPingTimeout(10 * time.Second)
 
 	if options.TLSConfig != nil {
 		pahoOptions.SetTLSConfig(options.TLSConfig)
@@ -81,7 +87,7 @@ func NewClient(options ClientOptions, connhandler ConnHandler) (*Client, error) 
 	pahoOptions.SetAutoReconnect(options.AutoReconnect)
 	pahoOptions.SetMaxReconnectInterval(15 * time.Second)
 
-	pahoOptions.SetCleanSession(false)
+	pahoOptions.SetCleanSession(options.Clean)
 
 	var client Client
 	client.connHandler = connhandler
@@ -125,15 +131,37 @@ func (c *Client) IsConnectionOpen() bool {
 }
 
 func (c *Client) DisconnectImmediately() {
-	c.client.Disconnect(250)
+	c.client.Disconnect(3000)
 }
 
+/*
 func tokenWithContext(ctx context.Context, token paho.Token) error {
 	completer := make(chan error)
 
 	go func() {
 		token.Wait()
 		completer <- token.Error()
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-completer:
+			return err
+		}
+	}
+}
+*/
+func tokenWithContext(ctx context.Context, token paho.Token) error {
+	completer := make(chan error)
+	go func() {
+		var err error
+		if ret := token.WaitTimeout(60 * time.Second); ret {
+			err = token.Error()
+		} else {
+			err = errors.New("timeout")
+		}
+		completer <- err
 	}()
 
 	for {

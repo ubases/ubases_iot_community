@@ -1,18 +1,90 @@
-#注意代码包，你要生成的代码，最终要放到哪个服务下，改为那个服务的包路径
+#system:
+#  gendir: "./gen"
+#  #数据库model所在包，如cloud_platform/iot_model/db_device/model
+#  dbmodelpackage: "cloud_platform/iot_model/db_device/model"
+#  #数据库orm所在包，如cloud_platform/iot_model/db_product/orm
+#  dbormpackage: "cloud_platform/iot_model/db_device/orm"
+#  #proto生成的go文件所在包，cloud_platform/iot_proto/protos/protosService
+#  protopackage: "cloud_platform/iot_proto/protos/protosService"
+#  #生成的service文件所在包，cloud_platform/iot_product_service/service
+#  servicepackage: "cloud_platform/iot_job_service/service"
+#  #生成的convert文件所在包，如cloud_platform/iot-document-service/convert
+#  convertpackage: "cloud_platform/iot_job_service/convert"
+
+#system:
+#  gendir: "./gen"
+#  #数据库model所在包，如cloud_platform/iot_model/db_product/model
+#  dbmodelpackage: "cloud_platform/iot_model/db_app_oem/model"
+#  #数据库orm所在包，如cloud_platform/iot_model/db_product/orm
+#  dbormpackage: "cloud_platform/iot_model/db_app_oem/orm"
+#  #proto生成的go文件所在包，cloud_platform/iot_proto/protos/protosService
+#  protopackage: "cloud_platform/iot_proto/protos/protosService"
+#  #生成的service文件所在包，cloud_platform/iot_product_service/service
+#  servicepackage: "cloud_platform/iot_app_oem_service/service"
+#  #生成的convert文件所在包，如cloud_platform/iot-document-service/convert
+#  convertpackage: "cloud_platform/iot_app_oem_service/convert"
+
+
 system:
   gendir: "./gen"
+  #数据库model所在包，如cloud_platform/iot_model/db_product/model
   dbmodelpackage: "cloud_platform/iot_model/db_product/model"
+  #数据库orm所在包，如cloud_platform/iot_model/db_product/orm
   dbormpackage: "cloud_platform/iot_model/db_product/orm"
+  #proto生成的go文件所在包，cloud_platform/iot_proto/protos/protosService
   protopackage: "cloud_platform/iot_proto/protos/protosService"
-  servicepackage: "cloud_platform/iot_app_user_service/service"
-  convertpackage: "cloud_platform/iot_app_user_service/convert"
+  #生成的service文件所在包，cloud_platform/iot_product_service/service
+  servicepackage: "cloud_platform/iot_product_service/service"
+  #生成的convert文件所在包，如cloud_platform/iot-document-service/convert
+  convertpackage: "cloud_platform/iot_product_service/convert"
+
+
+#system:
+#  gendir: "./gen"
+#  dbmodelpackage: "cloud_platform/iot_model/db_app_oem/model"
+#  dbormpackage: "cloud_platform/iot_model/db_app_oem/orm"
+#  protopackage: "cloud_platform/iot_proto/protos/protosService"
+#  servicepackage: "cloud_platform/iot_app_oem_service/service"
+#  convertpackage: "cloud_platform/iot_app_oem_service/convert"
+
+#system:
+#  gendir: "./gen"
+#  #数据库model所在包，如cloud_platform/iot_model/db_product/model
+#  dbmodelpackage: "cloud_platform/iot_model/db_product/model"
+#  #数据库orm所在包，如cloud_platform/iot_model/db_product/orm
+#  dbormpackage: "cloud_platform/iot_model/db_product/orm"
+#  #proto生成的go文件所在包，cloud_platform/iot_proto/protos/protosService
+#  protopackage: "cloud_platform/iot_proto/protos/protosService"
+#  #生成的service文件所在包，cloud_platform/iot_system_service/service
+#  servicepackage: "cloud_platform/iot_app_user_service/service"
+#  #生成的convert文件所在包，如cloud_platform/iot_system_service/convert
+#  convertpackage: "cloud_platform/iot_app_user_service/convert"
+
+#system:
+# gendir: "./gen"
+# dbmodelpackage: "cloud_platform/iot_model/db_device/model"
+# dbormpackage: "cloud_platform/iot_model/db_device/orm"
+# protopackage: "cloud_platform/iot_proto/protos/protosService"
+# servicepackage: "cloud_platform/iot_intelligence_service/service"
+# convertpackage: "cloud_platform/iot_intelligence_service/convert"
+
+# mysql configuration
+#mysql:
+#  path: '127.0.0.1:3306'
+#  config: 'charset=utf8mb4&parseTime=True&loc=Local'
+#  db-name: 'goadmin'
+#  username: 'root'
+#  password: 'root'
+#  max-idle-conns: 10
+#  max-open-conns: 10
+#  log-mode: true
 
 mysql:
-  path: '127.0.0.1:3306'
+  path: '120.77.64.252:3306'
   config: 'charset=utf8mb4&parseTime=True&loc=Local'
-  db-name: 'iot_product'  #数据库
+  db-name: 'iot_product'
   username: 'root'
-  password: '123456'
+  password: 'slave753@aixingyun.com'
   max-idle-conns: 10
   max-open-conns: 10
   log-mode: true

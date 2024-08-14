@@ -33,6 +33,8 @@ type OemAppChangeNameReq struct {
 	Name       string `json:"name"`
 	NameEn     string `json:"nameEn"`
 	AppIconUrl string `json:"appIconUrl"`
+	IosTeamId string `json:"iosTeamId"`
+	Status int32 `json:"status"`
 }
 
 // 修改名称入参
@@ -105,6 +107,8 @@ type OemAppEntityListRes struct {
 	AndroidInterVersion string `json:"androidInterVersion"`
 	AndroidOuterVersion string `json:"androidOuterVersion"`
 	IsDefault           int32  `json:"isDefault"`
+	IosTeamId string `json:"iosTeamId"`
+	ProductList []string `json:"productList"`
 }
 
 // pb对象转实体
@@ -131,6 +135,7 @@ func OemApp_pb2eList(src *proto.OemApp) *OemAppEntityListRes {
 		AndroidInterVersion: src.AndroidInterVersion,
 		AndroidOuterVersion: src.AndroidOuterVersion,
 		IsDefault:           src.IsDefault,
+		IosTeamId: src.IosTeamId,
 	}
 	return &entitysObj
 }
@@ -143,7 +148,6 @@ type OemAppEntityDetailRes struct {
 	Status                    int32     `json:"status"` //1.配置中  2.构建中  3.构建完成  4.上架中  5.已上架
 	CurrentStep               int32     `json:"currentStep"`
 	IosPkgName                string    `json:"iosPkgName"`
-	IosTeamId                 string    `json:"iosTeamId"`
 	AndroidPkgName            string    `json:"androidPkgName"`
 	Channel                   string    `json:"channel"`
 	IconUrl                   string    `json:"iconUrl"`
@@ -166,6 +170,7 @@ type OemAppEntityDetailRes struct {
 	LastIosCertUpdateTime     time.Time `json:"lastIosCertUpdateTime,omitempty"`     //最后ios证书配置时间
 	ThemeJson                 string    `json:"themeJson"`
 	IsDefault                 int32     `json:"isDefault"`
+	IosTeamId string `json:"iosTeamId"`
 }
 
 // pb对象转实体
@@ -181,7 +186,6 @@ func OemApp_pb2eDetail(src *proto.OemApp) *OemAppEntityDetailRes {
 		CurrentStep:               src.CurrentStep,
 		AndroidPkgName:            src.AndroidPkgName,
 		IosPkgName:                src.IosPkgName,
-		IosTeamId:                 src.IosTeamId,
 		Channel:                   src.Channel,
 		AppKey:                    src.AppKey,
 		TenantId:                  src.TenantId,
@@ -201,6 +205,7 @@ func OemApp_pb2eDetail(src *proto.OemApp) *OemAppEntityDetailRes {
 		LastAndroidCertUpdateTime: src.LastAndroidCertUpdateTime.AsTime(),
 		LastIosCertUpdateTime:     src.LastIosCertUpdateTime.AsTime(),
 		IsDefault:                 src.IsDefault,
+		IosTeamId: src.IosTeamId,
 	}
 	return &entitysObj
 }
@@ -213,7 +218,6 @@ type OemAppEntitys struct {
 	Name               string    `json:"name,omitempty"`
 	Version            string    `json:"version,omitempty"`
 	IosPkgName         string    `json:"iosPkgName,omitempty"`
-	IosTeamId          string    `json:"iosTeamId"`
 	AndroidPkgName     string    `json:"androidPkgName,omitempty"`
 	Channel            string    `json:"channel,omitempty"`
 	Status             int32     `json:"status,omitempty"`
@@ -231,6 +235,7 @@ type OemAppEntitys struct {
 	AppType            int32     `json:"appType"` //APP类型
 	AppTemplateId      string    `json:"appTemplateId"`
 	AppTemplateVersion string    `json:"appTemplateVersion"`
+	IosTeamId string `json:"iosTeamId"`
 }
 
 // 新增参数非空检查
@@ -266,7 +271,6 @@ type OemAppFilter struct {
 	Name               string    `json:"name,omitempty"`
 	Version            string    `json:"version,omitempty"`
 	IosPkgName         string    `json:"iosPkgName,omitempty"`
-	IosTeamId          string    `json:"iosTeamId"`
 	AndroidPkgName     string    `json:"androidPkgName,omitempty"`
 	Channel            string    `json:"channel,omitempty"`
 	Status             int32     `json:"status,omitempty"`
@@ -297,7 +301,6 @@ func OemApp_e2pb(src *OemAppEntitys) *proto.OemApp {
 		Name:               src.Name,
 		Version:            src.Version,
 		IosPkgName:         src.IosPkgName,
-		IosTeamId:          src.IosTeamId,
 		AndroidPkgName:     src.AndroidPkgName,
 		Channel:            src.Channel,
 		Status:             src.Status,
@@ -314,6 +317,7 @@ func OemApp_e2pb(src *OemAppEntitys) *proto.OemApp {
 		AppType:            src.AppType,
 		AppTemplateId:      iotutil.ToInt64(src.AppTemplateId),
 		AppTemplateVersion: src.AppTemplateVersion,
+		IosTeamId: src.IosTeamId,
 	}
 	return &pbObj
 }
@@ -346,6 +350,7 @@ func OemApp_pb2e(src *proto.OemApp) *OemAppEntitys {
 		AppType:            src.AppType,
 		AppTemplateId:      iotutil.ToString(src.AppTemplateId),
 		AppTemplateVersion: src.AppTemplateVersion,
+		IosTeamId: src.IosTeamId,
 	}
 	return &entitysObj
 }

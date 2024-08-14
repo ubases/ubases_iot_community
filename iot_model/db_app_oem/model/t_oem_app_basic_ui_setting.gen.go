@@ -17,15 +17,15 @@ type TOemAppBasicUiSetting struct {
 	Id              int64          `gorm:"column:id;primaryKey" json:"id"`   // 主键唯一编号
 	Type            string         `gorm:"column:type;not null" json:"type"` // 选择功能类型（字典配置 app_template_ui_type)
 	Desc            string         `gorm:"column:desc;not null" json:"desc"` // 中文描述
-	DescEn          string         `gorm:"column:desc_en" json:"desc_en"`    // 英文描述
+	DescEn          string         `gorm:"column:desc_en" json:"descEn"`     // 英文描述
 	Sort            int32          `gorm:"column:sort" json:"sort"`
-	PageJson        string         `gorm:"column:page_json" json:"page_json"`
-	PreviewPageJson string         `gorm:"column:preview_page_json" json:"preview_page_json"`
-	CreatedBy       int64          `gorm:"column:created_by" json:"created_by"` // 修改人
-	CreatedAt       time.Time      `gorm:"column:created_at" json:"created_at"` // 创建时间
-	UpdatedBy       int64          `gorm:"column:updated_by" json:"updated_by"` // 修改人
-	UpdatedAt       time.Time      `gorm:"column:updated_at" json:"updated_at"` // 修改时间
-	DeletedAt       gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"` // 删除标识（0-正常 1-删除）
+	PageJson        string         `gorm:"column:page_json" json:"pageJson"`
+	PreviewPageJson string         `gorm:"column:preview_page_json" json:"previewPageJson"`
+	CreatedBy       int64          `gorm:"column:created_by" json:"createdBy"` // 修改人
+	CreatedAt       time.Time      `gorm:"column:created_at" json:"createdAt"` // 创建时间
+	UpdatedBy       int64          `gorm:"column:updated_by" json:"updatedBy"` // 修改人
+	UpdatedAt       time.Time      `gorm:"column:updated_at" json:"updatedAt"` // 修改时间
+	DeletedAt       gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"` // 删除标识（0-正常 1-删除）
 }
 
 // TableName TOemAppBasicUiSetting's table name

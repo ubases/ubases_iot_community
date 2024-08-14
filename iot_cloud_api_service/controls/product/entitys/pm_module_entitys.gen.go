@@ -10,9 +10,6 @@ import (
 	"cloud_platform/iot_common/iotutil"
 	proto "cloud_platform/iot_proto/protos/protosService"
 	"errors"
-	"time"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // 增、删、改及查询返回
@@ -23,6 +20,7 @@ type PmModuleEntitys struct {
 	FirmwareType     int32                              `json:"firmwareType"`
 	FirmwareFlag     string                             `json:"firmwareFlag"`
 	FirmwareName     string                             `json:"firmwareName"`
+	FirmwareNameEn     string                             `json:"firmwareNameEn"`
 	FirmwareKey      string                             `json:"firmwareKey"`
 	FirmwareTypeName string                             `json:"firmwareTypeName"`
 	FirmwareId       string                             `json:"firmwareId"`
@@ -130,19 +128,18 @@ func PmModule_e2pb(src *PmModuleEntitys) *proto.PmModule {
 	if src == nil {
 		return nil
 	}
+	firmwareId, _ := iotutil.ToInt64AndErr(src.FirmwareId)
 	pbObj := proto.PmModule{
 		ModuleName:     src.ModuleName,
 		ModuleNameEn:   src.ModuleNameEn,
 		FirmwareFlag:   src.FirmwareFlag,
-		FirmwareId:     iotutil.ToInt64(src.FirmwareId),
+		FirmwareId:     firmwareId,
 		ImgUrl:         src.ImgUrl,
 		Status:         src.Status,
 		FileUrl:        src.FileUrl,
 		FileName:       src.FileName,
 		Remark:         src.Remark,
-		CreatedAt:      timestamppb.New(time.Unix(src.CreatedAt, 0)),
 		UpdatedBy:      src.UpdatedBy,
-		UpdatedAt:      timestamppb.New(time.Unix(src.UpdatedAt, 0)),
 		DefaultVersion: src.DefaultVersion,
 		VersionList:    src.VersionList,
 	}
@@ -199,6 +196,7 @@ func PmModuleVo_pb2e(src *proto.PmModuleVo) *PmModuleEntitys {
 		ModuleNameEn:     src.ModuleNameEn,
 		FirmwareFlag:     src.FirmwareFlag,
 		FirmwareName:     src.FirmwareName,
+		FirmwareNameEn:     src.FirmwareNameEn,
 		FirmwareTypeName: firmwareType.ValueStr(src.FirmwareType),
 		FirmwareId:       iotutil.ToString(src.FirmwareId),
 		FirmwareKey:      src.FirmwareKey,

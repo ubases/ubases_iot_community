@@ -40,3 +40,12 @@ var (
 	NATS_PRODUCT_PUBLISH         = "product"
 	NATS_SUBJECT_PRODUCT_PUBLISH = NATS_PRODUCT_PUBLISH + ".datasync"
 )
+const NATS_BUILDAPP = "buildapp"
+const HKEY_CACHED_CLEAR_PUB_PREFIX string = "clearCached" //原来的HKEY_CACHED_CLEAR_PUB_PREFIX
+// TODO 原来发布到redis的消息主题,为了减少改动,暂时兼容,后续会废除,后续统一用NATS_STREAM_DEVICE流.
+const NATS_STREAM_ORIGINAL_REDIS = "redis"
+const HKEY_REPORT_DATA_PUB_PREFIX string = NATS_STREAM_ORIGINAL_REDIS + ".report"      //设备数据发布到redis的前缀
+const HKEY_ONLINE_DATA_PUB_PREFIX string = NATS_STREAM_ORIGINAL_REDIS + ".online"      //设备数据发布到redis的前缀
+const HKEY_UPDATE_DATA_PUB_PREFIX string = NATS_STREAM_ORIGINAL_REDIS + ".update"      //设备数据发布到redis的前缀
+const HKEY_ACK_DATA_PUB_PREFIX string = NATS_STREAM_ORIGINAL_REDIS + ".ack"            //设备数据发布到redis的前缀
+const HKEY_QUERY_ACK_DATA_PUB_PREFIX string = NATS_STREAM_ORIGINAL_REDIS + ".queryAck" //设备数据发布到redis的前缀

@@ -29,11 +29,15 @@ func newTIotDeviceFault(db *gorm.DB) tIotDeviceFault {
 	_tIotDeviceFault.DeviceId = field.NewInt64(tableName, "device_id")
 	_tIotDeviceFault.DeviceKey = field.NewString(tableName, "device_key")
 	_tIotDeviceFault.DeviceName = field.NewString(tableName, "device_name")
+	_tIotDeviceFault.BaseProductId = field.NewInt64(tableName, "base_product_id")
 	_tIotDeviceFault.ProductId = field.NewInt64(tableName, "product_id")
 	_tIotDeviceFault.ProductKey = field.NewString(tableName, "product_key")
 	_tIotDeviceFault.ProductName = field.NewString(tableName, "product_name")
+	_tIotDeviceFault.FaultIdentifier = field.NewString(tableName, "fault_identifier")
+	_tIotDeviceFault.FaultDpid = field.NewInt32(tableName, "fault_dpid")
 	_tIotDeviceFault.FaultCode = field.NewString(tableName, "fault_code")
 	_tIotDeviceFault.FaultName = field.NewString(tableName, "fault_name")
+	_tIotDeviceFault.TenantId = field.NewString(tableName, "tenant_id")
 	_tIotDeviceFault.CreatedAt = field.NewTime(tableName, "created_at")
 
 	_tIotDeviceFault.fillFieldMap()
@@ -49,11 +53,15 @@ type tIotDeviceFault struct {
 	DeviceId    field.Int64
 	DeviceKey   field.String
 	DeviceName  field.String
+	BaseProductId   field.Int64
 	ProductId   field.Int64
 	ProductKey  field.String
 	ProductName field.String
+	FaultIdentifier field.String
+	FaultDpid       field.Int32
 	FaultCode   field.String
 	FaultName   field.String
+	TenantId        field.String
 	CreatedAt   field.Time
 
 	fieldMap map[string]field.Expr
@@ -75,11 +83,15 @@ func (t *tIotDeviceFault) updateTableName(table string) *tIotDeviceFault {
 	t.DeviceId = field.NewInt64(table, "device_id")
 	t.DeviceKey = field.NewString(table, "device_key")
 	t.DeviceName = field.NewString(table, "device_name")
+	t.BaseProductId = field.NewInt64(table, "base_product_id")
 	t.ProductId = field.NewInt64(table, "product_id")
 	t.ProductKey = field.NewString(table, "product_key")
 	t.ProductName = field.NewString(table, "product_name")
+	t.FaultIdentifier = field.NewString(table, "fault_identifier")
+	t.FaultDpid = field.NewInt32(table, "fault_dpid")
 	t.FaultCode = field.NewString(table, "fault_code")
 	t.FaultName = field.NewString(table, "fault_name")
+	t.TenantId = field.NewString(table, "tenant_id")
 	t.CreatedAt = field.NewTime(table, "created_at")
 
 	t.fillFieldMap()
@@ -105,16 +117,20 @@ func (t *tIotDeviceFault) GetFieldByName(fieldName string) (field.OrderExpr, boo
 }
 
 func (t *tIotDeviceFault) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 10)
+	t.fieldMap = make(map[string]field.Expr, 13)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["device_id"] = t.DeviceId
 	t.fieldMap["device_key"] = t.DeviceKey
 	t.fieldMap["device_name"] = t.DeviceName
+	t.fieldMap["base_product_id"] = t.BaseProductId
 	t.fieldMap["product_id"] = t.ProductId
 	t.fieldMap["product_key"] = t.ProductKey
 	t.fieldMap["product_name"] = t.ProductName
+	t.fieldMap["fault_identifier"] = t.FaultIdentifier
+	t.fieldMap["fault_dpid"] = t.FaultDpid
 	t.fieldMap["fault_code"] = t.FaultCode
 	t.fieldMap["fault_name"] = t.FaultName
+	t.fieldMap["tenant_id"] = t.TenantId
 	t.fieldMap["created_at"] = t.CreatedAt
 }
 

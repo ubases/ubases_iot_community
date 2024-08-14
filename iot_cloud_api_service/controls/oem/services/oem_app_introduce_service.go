@@ -1,9 +1,9 @@
 package services
 
 import (
+	"cloud_platform/iot_cloud_api_service/config"
 	"cloud_platform/iot_cloud_api_service/controls/oem/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
-	"cloud_platform/iot_common/iotstrings"
 	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
@@ -20,9 +20,11 @@ func (s OemAppIntroduceService) SetContext(ctx context.Context) OemAppIntroduceS
 }
 
 func (s OemAppIntroduceService) OemAppIntroduceCheckVersion(req entitys.OemAppIntroduceVersionReq) (bool, error) {
-	res, err := rpc.ClientOemAppIntroduceService.Find(s.Ctx, &protosService.OemAppIntroduceFilter{
-		AppId:       iotutil.ToInt64(req.AppId),
-		ContentType: req.ContentType,
+	res, err := rpc.ClientOemAppIntroduceService.Lists(s.Ctx, &protosService.OemAppIntroduceListRequest{
+		Query: &protosService.OemAppIntroduce{
+			AppId:       iotutil.ToInt64(req.AppId),
+			ContentType: req.ContentType,
+		},
 	})
 
 	if err != nil {
@@ -38,7 +40,7 @@ func (s OemAppIntroduceService) OemAppIntroduceCheckVersion(req entitys.OemAppIn
 
 	result := true
 	for _, v := range res.Data {
-		if !iotstrings.VersionCompared(req.Version, v.Version) {
+		if r, _ := iotutil.VerCompare(req.Version, v.Version); r == -1 {
 			result = false
 			break
 		}
@@ -66,6 +68,7 @@ func (s OemAppIntroduceService) OemAppIntroduceAdd(req entitys.OemAppIntroduceSa
 		AppKey:      resApp.Data[0].AppKey,
 		VoiceCode:   req.VioceCode,
 		Abstract:    req.Abstract,
+		RemindMode:  req.RemindMode,
 	})
 	if err != nil {
 		return "", err
@@ -164,8 +167,9 @@ func (s OemAppIntroduceService) UpdateStatusDisable(appId string, contentType in
 
 // 修改
 func (s OemAppIntroduceService) OemAppIntroduceUpdate(req entitys.OemAppIntroduceSaveReq) (string, error) {
+	appId := iotutil.ToInt64(req.AppId)
 	resFind, errFind := rpc.ClientOemAppIntroduceService.Find(s.Ctx, &protosService.OemAppIntroduceFilter{
-		AppId:       iotutil.ToInt64(req.AppId),
+		AppId:       appId,
 		Version:     req.Version,
 		ContentType: req.ContentType,
 		Lang:        req.Lang,
@@ -187,19 +191,35 @@ func (s OemAppIntroduceService) OemAppIntroduceUpdate(req entitys.OemAppIntroduc
 			Version:     req.Version,
 			VioceCode:   req.VioceCode,
 			Abstract:    req.Abstract,
+			RemindMode:  req.RemindMode,
 		})
+		if errAdd == nil {
+			//同步所有语言的提醒方式
+			rpc.ClientOemAppIntroduceService.UpdateFields(s.Ctx, &protosService.OemAppIntroduceUpdateFieldsRequest{
+				Fields: []string{"remind_mode"},
+				Data: &protosService.OemAppIntroduce{
+					AppId:       appId,
+					Version:     req.Version,
+					RemindMode:  req.RemindMode,
+					ContentType: req.ContentType},
+			})
+		}
 		return resAdd, errAdd
 	} else {
 		var fields = []string{"content"}
 		if req.ContentType == 4 {
 			fields = append(fields, "abstract")
 		}
+		if req.RemindMode != 0 {
+			fields = append(fields, "remind_mode")
+		}
 		res, err := rpc.ClientOemAppIntroduceService.UpdateFields(s.Ctx, &protosService.OemAppIntroduceUpdateFieldsRequest{
 			Fields: fields,
 			Data: &protosService.OemAppIntroduce{
-				Id:       resFind.Data[0].Id,
-				Content:  req.Content,
-				Abstract: req.Abstract,
+				Id:         resFind.Data[0].Id,
+				Content:    req.Content,
+				Abstract:   req.Abstract,
+				RemindMode: req.RemindMode,
 			},
 		})
 		if err != nil {
@@ -208,6 +228,15 @@ func (s OemAppIntroduceService) OemAppIntroduceUpdate(req entitys.OemAppIntroduc
 		if res.Code != 200 && res.Message != "record not found" {
 			return "", errors.New(res.Message)
 		}
+		//同步所有语言的提醒方式
+		rpc.ClientOemAppIntroduceService.UpdateFields(s.Ctx, &protosService.OemAppIntroduceUpdateFieldsRequest{
+			Fields: []string{"remind_mode"},
+			Data: &protosService.OemAppIntroduce{
+				AppId:       resFind.Data[0].AppId,
+				Version:     resFind.Data[0].Version,
+				RemindMode:  req.RemindMode,
+				ContentType: req.ContentType},
+		})
 		return "success", nil
 	}
 }
@@ -245,6 +274,7 @@ func (s OemAppIntroduceService) OemAppIntroduceDetail(req entitys.OemAppIntroduc
 		result.ContentType = res.Data[0].ContentType
 		result.VioceCode = res.Data[0].VoiceCode
 		result.Abstract = res.Data[0].Abstract
+		result.RemindMode = res.Data[0].RemindMode
 	}
 	return &result, nil
 }
@@ -254,6 +284,23 @@ func (s OemAppIntroduceService) OemAppIntroduceStatusEnable(req entitys.OemAppIn
 	if err != nil {
 		return "", errors.New("appId error")
 	}
+
+	appRes, err := rpc.ClientOemAppService.FindById(s.Ctx, &protosService.OemAppFilter{Id: appId})
+	if err != nil {
+		return "", errors.New("appId error")
+	}
+
+	lastInfo, err := rpc.ClientOemAppIntroduceService.Lists(s.Ctx, &protosService.OemAppIntroduceListRequest{
+		Query: &protosService.OemAppIntroduce{
+			AppId:       iotutil.ToInt64(req.AppId),
+			Status:      1,
+			ContentType: req.ContentType,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+
 	//启用文档
 	res, err := rpc.ClientOemAppIntroduceService.Enable(s.Ctx, &protosService.OemAppIntroduce{
 		AppId:       appId,
@@ -266,34 +313,32 @@ func (s OemAppIntroduceService) OemAppIntroduceStatusEnable(req entitys.OemAppIn
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
 	}
-	//
-	////把目前已经启动的状态变更为未启用.(只能有一个版本属于启用的状态)
-	//errDis := s.UpdateStatusDisable(req.AppId, req.ContentType)
-	//if errDis != nil {
-	//	return "", errDis
-	//}
-	////把该版本下所有的语种记录都改为已启用.
-	//d, errSel := s.GetOemAppIntroduceListBySel(req.AppId, req.Version, req.ContentType)
-	//if errSel != nil {
-	//	return "", errSel
-	//}
-	//for _, v := range d {
-	//	res, err := rpc.ClientOemAppIntroduceService.UpdateFields(s.Ctx, &protosService.OemAppIntroduceUpdateFieldsRequest{
-	//		Fields: []string{"status"},
-	//		Data: &protosService.OemAppIntroduce{
-	//			Id:     v.Id,
-	//			Status: 1,
-	//		},
-	//	})
-	//	if err != nil {
-	//		return "", err
-	//	}
-	//	if res.Code != 200 && res.Message != "record not found" {
-	//		return "", errors.New(res.Message)
-	//	}
-	//}
-	return "success", nil
 
+	//协议标记为提醒，启用协议的时候需要将用户的协议标记进行修改
+	//1 用户协议,2隐私政策,3关于我们
+	if req.ContentType == 1 || req.ContentType == 2 {
+		var isRemind int32 = 2
+		//检查如果有提醒，就给用户设置提醒
+		for _, last := range lastInfo.Data {
+			if req.ContentType == 1 || req.ContentType == 2 {
+				if last.RemindMode == 2 {
+					isRemind = 1
+					break
+				}
+			}
+		}
+		go s.SetAgreementFlag(appRes.Data[0].AppKey, isRemind)
+	}
+	return "success", nil
+}
+
+// 设置协议提醒标记
+func (s OemAppIntroduceService) SetAgreementFlag(appKey string, agreementFlag int32) {
+	defer iotutil.PanicHandler("SetAgreementFlag", appKey)
+	rpc.UcUserService.UpdateAgreementFlag(context.Background(), &protosService.UcUser{
+		AppKey:        appKey,
+		AgreementFlag: agreementFlag,
+	})
 }
 
 // 获取协议文档链接的列表
@@ -327,13 +372,19 @@ func (s OemAppIntroduceService) OemAppIntroduceLinkList(req entitys.OemAppIntrod
 	}
 
 	var result = make([]*entitys.OemAppIntroduceLinkRes, 0)
-	mp := GetBaseDataValue("oem_app_package_domain", s.Ctx)
-	domain := iotutil.ToString(mp[GetOemAppEnv()])
+	//mp := GetBaseDataValue("oem_app_package_domain", s.Ctx)
+	//domain := iotutil.ToString(mp[GetOemAppEnv()])
+	domain := config.Global.Service.OemAppPackageDomain
+	domainSimple := config.Global.Service.OemAppPackageDomainSimple
 
 	for _, v := range res.Data {
 		var tmp = entitys.OemAppIntroduceLinkRes{}
 		tmp.Lang = v.Lang
-		tmp.Url = domain + "/app/introduce/detail/" + iotutil.ToString(v.Id) + "/" + v.Lang + ".html"
+		if domainSimple != "" {
+			tmp.Url = domainSimple + iotutil.ToString(v.Id) + "/" + v.Lang + ".html"
+		} else {
+			tmp.Url = domain + "/app/introduce/detail/" + iotutil.ToString(v.Id) + "/" + v.Lang + ".html"
+		}
 		result = append(result, &tmp)
 
 	}
@@ -373,6 +424,7 @@ func (s OemAppIntroduceService) OemAppIntroduceList(filter entitys.OemAppIntrodu
 			Status:      v.Status,
 			AppId:       iotutil.ToString(v.AppId),
 			ContentType: v.ContentType,
+			RemindMode:  v.RemindMode,
 		})
 	}
 	return resultList, rep.Total, err
@@ -433,8 +485,10 @@ func (s OemAppIntroduceService) OemAppIntroduceTemplateLink(contentType int) ([]
 
 	var reslist = make([]*entitys.OemAppIntroduceLinkRes, 0)
 
-	mp := GetBaseDataValue("oem_app_package_domain", s.Ctx)
-	domain := iotutil.ToString(mp[GetOemAppEnv()])
+	//mp := GetBaseDataValue("oem_app_package_domain", s.Ctx)
+	//domain := iotutil.ToString(mp[GetOemAppEnv()])
+	domain := config.Global.Service.OemAppPackageDomain
+
 	for _, v := range resFind.Data {
 		var tmp = entitys.OemAppIntroduceLinkRes{}
 		tmp.Lang = v.Lang
@@ -444,4 +498,20 @@ func (s OemAppIntroduceService) OemAppIntroduceTemplateLink(contentType int) ([]
 	}
 
 	return reslist, nil
+}
+
+// OemAppIntroduceCopy 复制
+func (s OemAppIntroduceService) OemAppIntroduceCopy(req *entitys.OemAppIntroduceCopyReq) error {
+	res, err := rpc.ClientOemAppIntroduceService.Copy(s.Ctx, &protosService.OemAppIntroduceCopyRequest{
+		AppId:      req.AppId,
+		NewVersion: req.NewVersion,
+		OldVersion: req.OldVersion,
+	})
+	if err != nil {
+		return err
+	}
+	if res.Code != 200 {
+		return errors.New(res.Message)
+	}
+	return nil
 }

@@ -632,10 +632,19 @@ func (s *OemAppTemplateSvc) GetListOemAppTemplate(req *proto.OemAppTemplateListR
 	if !ok {
 		do = do.Order(t.CreatedAt.Desc())
 	} else {
-		if req.OrderDesc != "" {
-			do = do.Order(orderCol.Desc())
+		//version的排序特殊处理
+		if req.OrderKey == "version" {
+			if req.OrderDesc != "" {
+				do = do.Order(field.Func.VersionOrder(t.Version).Desc())
+			} else {
+				do = do.Order(field.Func.VersionOrder(t.Version))
+			}
 		} else {
-			do = do.Order(orderCol)
+			if req.OrderDesc != "" {
+				do = do.Order(orderCol.Desc())
+			} else {
+				do = do.Order(orderCol)
+			}
 		}
 	}
 

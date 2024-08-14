@@ -81,6 +81,8 @@ func (t *tOemAppEntry) WithContext(ctx context.Context) *tOemAppEntryDo {
 
 func (t tOemAppEntry) TableName() string { return t.tOemAppEntryDo.TableName() }
 
+func (t tOemAppEntry) Alias() string { return t.tOemAppEntryDo.Alias() }
+
 func (t *tOemAppEntry) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

@@ -84,6 +84,10 @@ message PmModule {
 
     //固件版本数量
     int32 versionCount = 120;
+
+    string FirmwareNameEn = 121;
+
+    int64 relationId = 122;//固件与产品关联Id
 }
 
 //授权固件版本

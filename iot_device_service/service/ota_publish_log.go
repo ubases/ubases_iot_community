@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotstruct"
 
 	"cloud_platform/iot_common/iotconst"
@@ -14,11 +15,11 @@ func pushOtaPublishLog(log iotstruct.OtaPublishLog) error {
 	if err != nil {
 		return err
 	}
-	pd := &NatsPubData{
+	pd := &iotnatsjs.NatsPubData{
 		Subject: iotconst.NATS_SUBJECT_PRODUCT_PUBLISH,
 		Data:    string(data),
 	}
-	GetJsPublisherMgr().PushData(pd)
+	iotnatsjs.GetJsClientPub().PushData(pd)
 	iotlogger.LogHelper.Helper.Debugf("pushOtaPublishLog subject: %s data: %s", pd.Subject, pd.Data)
 	return nil
 }

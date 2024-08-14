@@ -1,13 +1,13 @@
 package service
 
 import (
+	"cloud_platform/iot_device_service/rpc/rpcClient"
+	"cloud_platform/iot_model/db_device/model"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
-	"cloud_platform/iot_device_service/rpc/rpcClient"
-	"cloud_platform/iot_model/db_device/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	proto "cloud_platform/iot_proto/protos/protosService"
 	"context"

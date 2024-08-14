@@ -126,7 +126,7 @@ func DeviceStatistics() (map[string]int64, error) {
 	var activeDeviceList []TenantTotal
 	tDeviceInfo := deviceOrm.Use(deviceDB).TIotDeviceInfo
 	err := tDeviceInfo.WithContext(context.Background()).Select(tDeviceInfo.TenantId, tDeviceInfo.TenantId.Count().As("total")).
-		Where(tDeviceInfo.TenantId.IsNotNull(), tDeviceInfo.UseType.Eq(0)).Group(tDeviceInfo.TenantId).Scan(&activeDeviceList)
+		Where(tDeviceInfo.TenantId.IsNotNull() /*tDeviceInfo.UseType.Eq(0)*/).Group(tDeviceInfo.TenantId).Scan(&activeDeviceList)
 	if err != nil {
 		return nil, err
 	}

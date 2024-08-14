@@ -55,6 +55,7 @@ func IotDeviceHome_db2pb(src *model.TIotDeviceHome) *proto.IotDeviceHome {
 		DeviceId:   src.DeviceId,
 		RoomId:     src.RoomId,
 		ProductId:  src.ProductId,
+		ProductKey: src.ProductKey,
 		CustomName: src.CustomName,
 		BindTime:   timestamppb.New(src.BindTime),
 		CustomPic:  src.CustomPic,

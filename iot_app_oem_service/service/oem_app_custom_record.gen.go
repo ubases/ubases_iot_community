@@ -159,6 +159,15 @@ func (s *OemAppCustomRecordSvc) UpdateOemAppCustomRecord(req *proto.OemAppCustom
 	if req.LaunchMarkets != "" { //字符串
 		updateField = append(updateField, t.LaunchMarkets)
 	}
+	if req.RemindMode != 0 { //整数
+		updateField = append(updateField, t.RemindMode)
+	}
+	if req.RemindDescEn != "" { //字符串
+		updateField = append(updateField, t.RemindDescEn)
+	}
+	if req.RemindDesc != "" { //字符串
+		updateField = append(updateField, t.RemindDesc)
+	}
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}
@@ -203,6 +212,9 @@ func (s *OemAppCustomRecordSvc) UpdateAllOemAppCustomRecord(req *proto.OemAppCus
 	updateField = append(updateField, t.UpdatedBy)
 	updateField = append(updateField, t.PlistUrl)
 	updateField = append(updateField, t.LaunchMarkets)
+	updateField = append(updateField, t.RemindMode)
+	updateField = append(updateField, t.RemindDescEn)
+	updateField = append(updateField, t.RemindDesc)
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}
@@ -411,4 +423,24 @@ func (s *OemAppCustomRecordSvc) GetListOemAppCustomRecord(req *proto.OemAppCusto
 		result[i] = convert.OemAppCustomRecord_db2pb(v)
 	}
 	return result, total, nil
+}
+
+// 获取APP最新版本信息
+func (s *OemAppCustomRecordSvc) GetLastVersion(req *proto.OemAppCustomRecordFilter) ([]*proto.OemAppCustomRecord, error) {
+	if req.AppId == 0 {
+		return nil, errors.New("appId不能为空")
+	}
+	var err error
+	t := orm.Use(iotmodel.GetDB()).TOemAppCustomRecord
+	do := t.WithContext(context.Background())
+	do = do.Where(t.AppId.Eq(req.AppId), t.Status.Eq(1), t.Os.Eq(req.Os))
+	do = do.Order(field.Func.VersionOrderByZeroFill(t.Version).Desc())
+	data , err := do.First()
+	if err != nil {
+		logger.Errorf("GetLastVersion error : %s", err.Error())
+		return nil, err
+	}
+	result := make([]*proto.OemAppCustomRecord, 1)
+	result[0] = convert.OemAppCustomRecord_db2pb(data)
+	return result, nil
 }

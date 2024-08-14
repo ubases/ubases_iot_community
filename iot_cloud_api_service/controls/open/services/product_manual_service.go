@@ -1,10 +1,12 @@
 package services
 
 import (
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/open/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/ioterrs"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"time"
@@ -33,6 +35,9 @@ func (s ProductManualService) CreateProductManual(obj *entitys.OpmProductManualE
 	if err != nil {
 		return err
 	}
+	if req.FileUrl != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmProductManual, iotutil.ToString(req.Id), req.FileUrl)
+	}
 	return nil
 }
 
@@ -42,6 +47,9 @@ func (s ProductManualService) UpdateProductManual(obj *entitys.OpmProductManualE
 	_, err := rpc.ClientOpmProductManualService.Update(s.Ctx, req)
 	if err != nil {
 		return err
+	}
+	if req.FileUrl != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmProductManual, iotutil.ToString(req.Id), req.FileUrl)
 	}
 	return nil
 }

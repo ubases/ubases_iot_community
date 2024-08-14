@@ -1,7 +1,13 @@
 package config
 
 import (
+	"cloud_platform/iot_common/iotconfig"
+	"cloud_platform/iot_common/iotredis"
+	"errors"
+	"fmt"
 	"os"
+
+	"go-micro.dev/v4/config/reader"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
@@ -10,18 +16,31 @@ import (
 )
 
 type Settings struct {
-	Service  ServiceConfig  `yaml:"service"`            //服务配置
-	Database DatabaseConfig `yaml:"database,omitempty"` //数据库配置
-	Gorush   GorushCfg      `yaml:"gorush"`
-	Jpush    JpushCfg       `yaml:"jpush"`
-	SMS      SMSConfig      `yaml:"SMS"`  //SMS配置
-	SMTP     SMTPConfig     `yaml:"smtp"` //SMTP邮箱配置
-	Notice   NoticeConfig   `yaml:"notice"`
-	Redis    RedisConfig    `yaml:"redis,omitempty"` //redis配置
-	Nats     NATSConfig     `yaml:"NATS,omitempty"`  //Nats配置
-	Zipkin   Zipkin         `yaml:"zipkin"`          //ZipKin配置
-	Etcd     EtcdCfg        `yaml:"etcd"`            //Etcd配置
+	Service         ServiceConfig          `yaml:"service"`            //服务配置
+	Database        DatabaseConfig         `yaml:"database,omitempty"` //数据库配置
+	Gorush          GorushCfg              `yaml:"gorush"`
+	Jpush           JpushCfg               `yaml:"jpush"`
+	SMS             SMSConfig              `yaml:"SMS"`  //SMS配置
+	SMTP            SMTPConfig             `yaml:"smtp"` //SMTP邮箱配置
+	Notice          NoticeConfig           `yaml:"notice"`
+	Redis           iotredis.Config        `yaml:"redis,omitempty"` //redis配置
+	Nats            NATSConfig             `yaml:"NATS,omitempty"`  //Nats配置
+	Zipkin          Zipkin                 `yaml:"zipkin"`          //ZipKin配置
+	Etcd            EtcdCfg                `yaml:"etcd"`            //Etcd配置
+	ThirdPartyLogin ThirdPartyLoginTypeCfg `yaml:"thirdPartyLogin"`
 }
+
+type ThirdPartyLoginTypeCfg struct {
+	MiniProgram ThirdPartyLoginConfig `yaml:"miniProgram"`
+}
+
+type ThirdPartyLoginConfig struct {
+	AppId      string `yaml:"appId"`
+	AppSecret  string `yaml:"appSecret"`
+	TemplateId string `yaml:"templateId"`
+	Page       string `yaml:"page"`
+}
+
 type DatabaseConfig struct {
 	Database string `yaml:"database"`
 	Driver   string `yaml:"driver"`
@@ -110,6 +129,7 @@ type JpushCfg struct {
 	Xiaomi map[string]interface{} `json:"xiaomi"`
 	Vivo   map[string]interface{} `json:"vivo"`
 	Oppo   map[string]interface{} `json:"oppo"`
+	Honor  map[string]interface{} `json:"honor"`
 }
 
 type GorushCfg struct {
@@ -138,6 +158,10 @@ func Init() error {
 
 	viper.SetConfigFile(configFile)
 	err = viper.ReadInConfig()
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 	if err = viper.Unmarshal(Global); err != nil {
 		log.Error(err)
 		return err
@@ -188,4 +212,37 @@ func InitTest(path ...string) error {
 	})
 	log.Info("setting init success !")
 	return err
+}
+
+func Init2() error {
+	cnf, err := iotconfig.LoadIotConfig()
+	if err != nil {
+		return Init()
+	}
+	if cnf.Config.Location == iotconfig.Location_local {
+		return Init()
+	}
+	if cnf.Config.Location != iotconfig.Location_nacos {
+		return errors.New("location unsupported ")
+	}
+	conf, err := iotconfig.NewNacosConfig(&cnf.Nacos, fmt.Sprintf("iot_message_service-%s.yaml", cnf.Config.Env))
+	if err != nil {
+		return err
+	}
+	if err := conf.Scan(Global); err != nil {
+		return err
+	}
+	//开启监听
+	iotconfig.Watch(conf, WatchCB)
+	return nil
+}
+
+func WatchCB(v reader.Value, err error) {
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	if err = v.Scan(Global); err != nil {
+		log.Error(err)
+	}
 }

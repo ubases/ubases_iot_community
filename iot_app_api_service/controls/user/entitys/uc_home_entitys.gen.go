@@ -236,6 +236,7 @@ type HomeDevice struct {
 	TemplateId       int64  `json:"templateId"`
 	PanelId          int64  `json:"panelId,string"`
 	AppPanelType     int32  `json:"appPanelType"`
+	PanelCode     string  `json:"panelCode"`
 }
 
 type DeviceCachedData struct {

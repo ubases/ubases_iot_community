@@ -25,7 +25,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-//来源于数据表
+// 来源于数据表
 type LangCustomResources struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -831,7 +831,7 @@ func (x *LangCustomResourcesList) GetList() []*LangCustomResources {
 	return nil
 }
 
-//导入自定义子资源
+// 导入自定义子资源
 type ImportLangCustomResource struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -974,7 +974,7 @@ func (x *CustomerResourceRecord) GetOpType() int32 {
 	return 0
 }
 
-//批量新增
+// 批量新增
 type BatchCustomResourcesRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

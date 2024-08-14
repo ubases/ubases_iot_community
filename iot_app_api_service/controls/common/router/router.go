@@ -3,6 +3,8 @@ package router
 import (
 	"cloud_platform/iot_app_api_service/controls"
 	"cloud_platform/iot_app_api_service/controls/common/apis"
+	"cloud_platform/iot_common/iotgin"
+	"cloud_platform/iot_common/iotnatsjs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,10 +39,11 @@ func RegisterRouter(e *gin.Engine) {
 	//APP临时皮肤
 	r.GET("/checkSkin", apis.AssistReleasecontroller.CheckSkin)
 
-	//上传图片
-	r.POST("/uploadPic", apis.Filecontroller.UploadFile)
-
 	r.Use(controls.AuthCheck)
+	r.Use(iotgin.AppLogger(iotnatsjs.GetJsClientPub()))
+
+	//上传图片，企业版鉴权，开源版不鉴权
+	r.POST("/uploadPic", apis.Filecontroller.UploadFile)
 
 	//第三方语音
 	r.GET("/voice/config/:voiceCode", apis.Commoncontroller.VoiceService)

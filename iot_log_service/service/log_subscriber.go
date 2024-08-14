@@ -3,7 +3,7 @@ package service
 import (
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
-	"cloud_platform/iot_common/iotnats/jetstream"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_log_service/config"
 	"cloud_platform/iot_log_service/rpc/rpcclient"
 	models "cloud_platform/iot_model/ch_log/model"
@@ -15,81 +15,104 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/nats-io/nats.go"
 )
 
 type LogSubscriber struct {
-	suber      *jetstream.JSPullSubscriber
+	//suber      *jetstream.JSPullSubscriber
+	suber      *iotnatsjs.JsClient
 	concurrent int
 	ctx        context.Context
 	cancel     context.CancelFunc
 }
 
 func NewBuildSubscriber() (*LogSubscriber, error) {
-	suber, err := jetstream.NewJSPullSubscriber("iot_log_service", iotconst.NATS_STREAM_APP, iotconst.NATS_SUBJECT_RECORDS, connerrhandler, config.Global.Nats.Addrs...)
+	//suber, err := jetstream.NewJSPullSubscriber("iot_log_service", iotconst.NATS_STREAM_APP, iotconst.NATS_SUBJECT_RECORDS, connerrhandler, config.Global.Nats.Addrs...)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//ctx, cancel := context.WithCancel(context.Background())
+	suber, err := iotnatsjs.NewJsClient(config.Global.Nats.Addrs...)
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
+	err = suber.CreateOrUpdateConsumer(ctx, iotconst.NATS_STREAM_APP, []string{iotconst.NATS_SUBJECT_RECORDS}, "iot_log_service")
+	if err != nil {
+		cancel()
+		return nil, err
+	}
 	Concurrent := 1
 	return &LogSubscriber{suber, Concurrent, ctx, cancel}, nil
 }
 
-func connerrhandler(conn *nats.Conn, err error) {
-	if err != nil {
-		iotlogger.LogHelper.Errorf("nats连接错误:%s", err.Error())
-	}
-}
+//func connerrhandler(conn *nats.Conn, err error) {
+//	if err != nil {
+//		iotlogger.LogHelper.Errorf("nats连接错误:%s", err.Error())
+//	}
+//}
 
 func (bs LogSubscriber) Run() {
 	// 从nats消息队列拉取数据，将日志写入clickhouse数据库
+	jsctx, err := bs.suber.Consume(MessageHandler, ErrorHandler)
+	if err != nil {
+		return
+	}
+	defer jsctx.Stop()
 	for {
-		if bs.ctx.Err() != nil {
-			break
-		}
-		msgList, err := bs.suber.FetchMessageEx(100)
-		if err != nil {
-			if errors.Is(err, nats.ErrConnectionClosed) {
-				iotlogger.LogHelper.Errorf("拉取消息失败,原因:%s", err.Error())
-				time.Sleep(3 * time.Second)
-			} else if !errors.Is(err, nats.ErrTimeout) {
-				iotlogger.LogHelper.Errorf("拉取消息失败,原因:%s", err.Error())
-			}
-			continue
-		}
-		alr := []models.AppLogRecords{}
-		for _, v := range msgList {
-			switch v.Subject {
-			case iotconst.NATS_SUBJECT_RECORDS:
-				al := models.AppLogRecords{}
-				err = json.Unmarshal(v.Data, &al)
-				if err != nil {
-					iotlogger.LogHelper.Errorf("解析json信息失败,内容[%s],错误:%s", string(v.Data), err.Error())
-					continue
-				}
-				alr = append(alr, al)
-				// 注册接口，异步聚合用户和app数据到t_iot_log_app_user
-				if al.EventName == iotconst.APP_EVENT_REGISTER {
-					aggregationUserData(al.Account, al.AppKey, al.TenantId, al.EventName, al.RegionServerId)
-				}
-				// 登录接口异步查询是否存在用户聚合数据，没有则重新聚合用户数据到t_iot_log_app_user， 为以前注册过的用户做兼容，并更新最后登录时间
-				if al.EventName == iotconst.APP_EVENT_LOGIN {
-					aggregationUserData(al.Account, al.AppKey, al.TenantId, al.EventName, al.RegionServerId)
-				}
-				// 注销账号，删除t_iot_log_app_user和t_iot_log_app_records信息
-				if al.EventName == iotconst.APP_URI_CANCEL_ACCOUNT {
-					aggregationUserData(al.Account, al.AppKey, al.TenantId, al.EventName, al.RegionServerId)
-				}
-				iotlogger.LogHelper.Debugf("接收APP日志记录:%v", al)
-			}
-		}
-		if len(alr) != 0 {
-			if err := CreateAppLogRecords(alr); err != nil {
-				iotlogger.LogHelper.Errorf("批量插入APP日志记录失败: %v", err)
-				continue
-			}
+		select {
+		case <-bs.ctx.Done():
+			return
 		}
 	}
+	//for {
+	//	if bs.ctx.Err() != nil {
+	//		break
+	//	}
+	//	msgList, err := bs.suber.FetchMessageEx(100)
+	//	if err != nil {
+	//		if errors.Is(err, nats.ErrConnectionClosed) {
+	//			iotlogger.LogHelper.Errorf("拉取消息失败,原因:%s", err.Error())
+	//			time.Sleep(3 * time.Second)
+	//		} else if !errors.Is(err, nats.ErrTimeout) {
+	//			iotlogger.LogHelper.Errorf("拉取消息失败,原因:%s", err.Error())
+	//		}
+	//		continue
+	//	}
+	//	alr := []models.AppLogRecords{}
+	//	for _, v := range msgList {
+	//		switch v.Subject {
+	//		case iotconst.NATS_SUBJECT_RECORDS:
+	//			al := models.AppLogRecords{}
+	//			err = json.Unmarshal(v.Data, &al)
+	//			if err != nil {
+	//				iotlogger.LogHelper.Errorf("解析json信息失败,内容[%s],错误:%s", string(v.Data), err.Error())
+	//				continue
+	//			}
+	//			alr = append(alr, al)
+	//			// 注册接口，异步聚合用户和app数据到t_iot_log_app_user
+	//			if al.EventName == iotconst.APP_EVENT_REGISTER {
+	//				aggregationUserData(al.Account, al.AppKey, al.TenantId, al.EventName, al.RegionServerId)
+	//			}
+	//			// 登录接口异步查询是否存在用户聚合数据，没有则重新聚合用户数据到t_iot_log_app_user， 为以前注册过的用户做兼容，并更新最后登录时间
+	//			if al.EventName == iotconst.APP_EVENT_LOGIN {
+	//				aggregationUserData(al.Account, al.AppKey, al.TenantId, al.EventName, al.RegionServerId)
+	//			}
+	//			// 注销账号，删除t_iot_log_app_user和t_iot_log_app_records信息
+	//			if al.EventName == iotconst.APP_URI_CANCEL_ACCOUNT {
+	//				aggregationUserData(al.Account, al.AppKey, al.TenantId, al.EventName, al.RegionServerId)
+	//			}
+	//			iotlogger.LogHelper.Debugf("接收APP日志记录:%v", al)
+	//		}
+	//	}
+	//	if len(alr) != 0 {
+	//		if err := CreateAppLogRecords(alr); err != nil {
+	//			iotlogger.LogHelper.Errorf("批量插入APP日志记录失败: %v", err)
+	//			continue
+	//		}
+	//	}
+	//}
 }
 
 func aggregationUserData(account, appKey, tenanntId, eventName string, regionServerId int64) {
@@ -217,4 +240,43 @@ func newAppLogUser(account, appKey, tenanntId string, regionServerId int64) (*mo
 func (bs LogSubscriber) Close() {
 	bs.cancel()
 	bs.suber.Close()
+}
+func MessageHandler(msg jetstream.Msg) {
+	alr := []models.AppLogRecords{}
+	if msg.Subject() == iotconst.NATS_SUBJECT_RECORDS {
+		al := models.AppLogRecords{}
+		err := json.Unmarshal(msg.Data(), &al)
+		if err != nil {
+			iotlogger.LogHelper.Errorf("解析json信息失败,内容[%s],错误:%s", string(msg.Data()), err.Error())
+			return
+		}
+		alr = append(alr, al)
+		// 注册接口，异步聚合用户和app数据到t_iot_log_app_user
+		if al.EventName == iotconst.APP_EVENT_REGISTER {
+			aggregationUserData(al.Account, al.AppKey, al.TenantId, al.EventName, al.RegionServerId)
+		}
+		// 登录接口异步查询是否存在用户聚合数据，没有则重新聚合用户数据到t_iot_log_app_user， 为以前注册过的用户做兼容，并更新最后登录时间
+		if al.EventName == iotconst.APP_EVENT_LOGIN {
+			aggregationUserData(al.Account, al.AppKey, al.TenantId, al.EventName, al.RegionServerId)
+		}
+		// 注销账号，删除t_iot_log_app_user和t_iot_log_app_records信息
+		if al.EventName == iotconst.APP_URI_CANCEL_ACCOUNT {
+			aggregationUserData(al.Account, al.AppKey, al.TenantId, al.EventName, al.RegionServerId)
+		}
+		iotlogger.LogHelper.Debugf("接收APP日志记录:%v", al)
+	}
+	if len(alr) != 0 {
+		if err := CreateAppLogRecords(alr); err != nil {
+			iotlogger.LogHelper.Errorf("批量插入APP日志记录失败: %v", err)
+			return
+		}
+	}
+}
+func ErrorHandler(consumeCtx jetstream.ConsumeContext, err error) {
+	if errors.Is(err, nats.ErrConnectionClosed) {
+		iotlogger.LogHelper.Errorf("拉取消息失败,原因:%s", err.Error())
+		time.Sleep(3 * time.Second)
+	} else if !errors.Is(err, nats.ErrTimeout) {
+		iotlogger.LogHelper.Errorf("拉取消息失败,原因:%s", err.Error())
+	}
 }

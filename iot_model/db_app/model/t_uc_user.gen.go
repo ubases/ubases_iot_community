@@ -48,7 +48,10 @@ type TUcUser struct {
 	ContactCountry   string         `gorm:"column:contact_country" json:"contactCountry"`          // 联系国家
 	ContactArea      string         `gorm:"column:contact_area" json:"contactArea"`                // 联系区域
 	Birthday         time.Time      `gorm:"column:birthday" json:"birthday"`                       // 生日
-	RegionServerId   int64          `gorm:"column:region_server_id" json:"regionServerId"`         // 注册区域编号
+	RegionServerId   int64          `gorm:"column:region_server_id" json:"regionServerId"`         // 注册区域服务器编号
+	UserSalt         string         `gorm:"column:user_salt" json:"userSalt"`                      // 密码盐
+	AgreementFlag    int32          `gorm:"column:agreement_flag" json:"agreementFlag"`            // 协议标记 =1 弹框提醒  其它不弹框
+	RegisterRegionId int64          `gorm:"column:register_region_id" json:"registerRegionId"`     // 注册区域Id
 }
 
 // TableName TUcUser's table name

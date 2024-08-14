@@ -8,7 +8,7 @@ import (
 
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
-	"cloud_platform/iot_common/iotnats/jetstream"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotutil"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +41,7 @@ func (w ResponseWriterWrapper) WriteString(s string) (int, error) {
 	return w.ResponseWriter.WriteString(s)
 }
 
-func AppLogger(jspub *jetstream.JsPublisherMgr) gin.HandlerFunc {
+func AppLogger(jspub *iotnatsjs.JsClientPub) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 处理请求
 		blw := &ResponseWriterWrapper{Body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
@@ -95,7 +95,7 @@ func AppLogger(jspub *jetstream.JsPublisherMgr) gin.HandlerFunc {
 	}
 }
 
-func newAppLog(jspub *jetstream.JsPublisherMgr, account, logType, eventName, ip, sys, msg, appKey, tenanntId, regionServerId string) error {
+func newAppLog(jspub *iotnatsjs.JsClientPub, account, logType, eventName, ip, sys, msg, appKey, tenanntId, regionServerId string) error {
 	var regionId int64 = 0
 	regionId, _ = iotutil.ToInt64AndErr(regionServerId)
 	appLog := AppLog{
@@ -117,11 +117,11 @@ func newAppLog(jspub *jetstream.JsPublisherMgr, account, logType, eventName, ip,
 	if err != nil {
 		return err
 	}
-	pd := &jetstream.NatsPubData{
+	pd := &iotnatsjs.NatsPubData{
 		Subject: iotconst.NATS_SUBJECT_RECORDS,
 		Data:    string(data),
 	}
 	jspub.PushData(pd)
-	iotlogger.LogHelper.Helper.Debugf("subject: %s data: %s", pd.Subject, pd.Data)
+	iotlogger.LogHelper.Helper.Debugf("subject: %s data: %s", iotconst.NATS_SUBJECT_RECORDS, string(data))
 	return nil
 }

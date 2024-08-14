@@ -23,10 +23,7 @@ func (h *IotJobHandler) Create(ctx context.Context, req *proto.IotJob, resp *pro
 	if err != nil {
 		return goerrors.New("", err.Error(), ioterrs.ErrJobTaskCreate)
 	}
-	err = service.GetCron().CreateJob(req)
-	if err != nil {
-		return goerrors.New("", err.Error(), ioterrs.ErrJobTaskCreate)
-	}
+
 	return nil
 }
 
@@ -37,10 +34,7 @@ func (h *IotJobHandler) Delete(ctx context.Context, req *proto.IotJob, resp *pro
 	if err != nil {
 		return goerrors.New("", err.Error(), ioterrs.ErrDBJobDelete)
 	}
-	err = service.GetCron().DeleteJob(req)
-	if err != nil {
-		return goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
-	}
+
 	return nil
 }
 
@@ -50,10 +44,6 @@ func (h *IotJobHandler) DeleteById(ctx context.Context, req *proto.IotJob, resp 
 	_, err := s.DeleteByIdIotJob(req)
 	if err != nil {
 		return goerrors.New("", err.Error(), ioterrs.ErrDBJobDelete)
-	}
-	err = service.GetCron().DeleteJob(req)
-	if err != nil {
-		return goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
 	}
 	return nil
 }
@@ -65,12 +55,7 @@ func (h *IotJobHandler) DeleteByIds(ctx context.Context, req *proto.IotJobBatchD
 	if err != nil {
 		return goerrors.New("", err.Error(), ioterrs.ErrDBJobDelete)
 	}
-	for _, k := range req.Keys {
-		err = service.GetCron().DeleteJob(&proto.IotJob{Id: k.Id})
-		if err != nil {
-			return goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
-		}
-	}
+
 	return nil
 }
 
@@ -81,16 +66,7 @@ func (h *IotJobHandler) Update(ctx context.Context, req *proto.IotJob, resp *pro
 	if err != nil {
 		return goerrors.New("", err.Error(), ioterrs.ErrDBJobUpdate)
 	}
-	if req.Enabled == 1 {
-		err = service.GetCron().DeleteJob(req)
-		if err != nil {
-			return goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
-		}
-		err = service.GetCron().CreateJob(req)
-		if err != nil {
-			return goerrors.New("", err.Error(), ioterrs.ErrJobTaskCreate)
-		}
-	}
+
 	return nil
 }
 
@@ -101,14 +77,7 @@ func (h *IotJobHandler) UpdateAll(ctx context.Context, req *proto.IotJob, resp *
 	if err != nil {
 		return goerrors.New("", err.Error(), ioterrs.ErrDBJobUpdate)
 	}
-	err = service.GetCron().DeleteJob(req)
-	if err != nil {
-		return goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
-	}
-	err = service.GetCron().CreateJob(req)
-	if err != nil {
-		return goerrors.New("", err.Error(), ioterrs.ErrJobTaskCreate)
-	}
+
 	return nil
 }
 
@@ -192,10 +161,6 @@ func (h *IotJobHandler) StartJob(ctx context.Context, req *proto.JobReq, resp *p
 	if err != nil {
 		return goerrors.New("", err.Error(), ioterrs.ErrDBJobUpdate)
 	}
-	err = service.GetCron().CreateJob(jobInfo)
-	if err != nil {
-		return goerrors.New("", err.Error(), ioterrs.ErrJobTaskCreate)
-	}
 	return nil
 }
 
@@ -220,9 +185,6 @@ func (h *IotJobHandler) StopJob(ctx context.Context, req *proto.JobReq, resp *pr
 	if err != nil {
 		return goerrors.New("", err.Error(), ioterrs.ErrDBJobUpdate)
 	}
-	err = service.GetCron().DeleteJob(jobInfo)
-	if err != nil {
-		return goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
-	}
+
 	return nil
 }

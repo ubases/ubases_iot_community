@@ -86,6 +86,8 @@ func (t tOemAppAssistReleaseMarket) TableName() string {
 	return t.tOemAppAssistReleaseMarketDo.TableName()
 }
 
+func (t tOemAppAssistReleaseMarket) Alias() string { return t.tOemAppAssistReleaseMarketDo.Alias() }
+
 func (t *tOemAppAssistReleaseMarket) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

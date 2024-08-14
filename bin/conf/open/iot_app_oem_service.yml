@@ -13,7 +13,12 @@ database:
   connstr: root:iLmz8sCXjkTYuh@tcp(mysql:3306)/iot_app_build?charset=utf8mb4&parseTime=True&loc=Local
 
 appBuild:
-  AssociatedDomains: "%s.XXXXXXXX.XXXXXXXXXXXXX.com"
+  associatedDomains: "%s.cloudtest.iot-aithings.com"
+  buildNotify: "http://{cloud_api_baseurl}/api/v1/platform/web/open/oem/app/buildFinishNotify" # cloud_api_baseurl 填写可外网访问的iot_cloud_api_service API地址
+  regionServerUrl: "https://app_api_baseurl"  # app_api_baseurl 填写可外网访问的iot_app_api_service API地址
+  buildMode: 2 #固定2
+  buildKey: "XXXXXXXXXXXXXXXXXXXXXX" #应用Secret，公版平台云打包服务提供,进入https://open.iot-aithings.com平台，菜单OEM App云构建服务下获取应用Secret，填写到此处
+  buildServerUrl: "https://open.iot-aithings.com/api/v1/platform/web/open/oem/app/cloud/appBuild" #APP>构建云打包平台地址，公版平台云打包服务提供
 
 redis:
   Cluster: false

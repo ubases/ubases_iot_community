@@ -52,6 +52,9 @@ func newTIotDeviceTriad(db *gorm.DB) tIotDeviceTriad {
 	_tIotDeviceTriad.FirstActiveTime = field.NewTime(tableName, "first_active_time")
 	_tIotDeviceTriad.ExportCount = field.NewInt32(tableName, "export_count")
 	_tIotDeviceTriad.ExportTime = field.NewTime(tableName, "export_time")
+	_tIotDeviceTriad.PlatformCode = field.NewString(tableName, "platform_code")
+	_tIotDeviceTriad.IsOtherPlatform = field.NewInt32(tableName, "is_other_platform")
+	_tIotDeviceTriad.ExportTimeList = field.NewString(tableName, "export_time_list")
 
 	_tIotDeviceTriad.fillFieldMap()
 
@@ -89,6 +92,9 @@ type tIotDeviceTriad struct {
 	FirstActiveTime field.Time
 	ExportCount     field.Int32
 	ExportTime      field.Time
+	PlatformCode    field.String
+	IsOtherPlatform field.Int32
+	ExportTimeList    field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -132,6 +138,9 @@ func (t *tIotDeviceTriad) updateTableName(table string) *tIotDeviceTriad {
 	t.FirstActiveTime = field.NewTime(table, "first_active_time")
 	t.ExportCount = field.NewInt32(table, "export_count")
 	t.ExportTime = field.NewTime(table, "export_time")
+	t.PlatformCode = field.NewString(table, "platform_code")
+	t.IsOtherPlatform = field.NewInt32(table, "is_other_platform")
+	t.ExportTimeList = field.NewString(table, "export_time_list")
 
 	t.fillFieldMap()
 
@@ -156,7 +165,7 @@ func (t *tIotDeviceTriad) GetFieldByName(fieldName string) (field.OrderExpr, boo
 }
 
 func (t *tIotDeviceTriad) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 27)
+	t.fieldMap = make(map[string]field.Expr, 29)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["tenant_id"] = t.TenantId
 	t.fieldMap["serial_number"] = t.SerialNumber
@@ -184,6 +193,9 @@ func (t *tIotDeviceTriad) fillFieldMap() {
 	t.fieldMap["first_active_time"] = t.FirstActiveTime
 	t.fieldMap["export_count"] = t.ExportCount
 	t.fieldMap["export_time"] = t.ExportTime
+	t.fieldMap["platform_code"] = t.PlatformCode
+	t.fieldMap["is_other_platform"] = t.IsOtherPlatform
+	t.fieldMap["export_time_list"] = t.ExportTimeList
 }
 
 func (t tIotDeviceTriad) clone(db *gorm.DB) tIotDeviceTriad {

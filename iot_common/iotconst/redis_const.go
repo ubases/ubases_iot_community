@@ -31,8 +31,9 @@ const (
 	APP_INVITE_CODE          string = "app_invite_code_"   //加入家庭邀请码 ，key规则： app_invite_code_{code}
 	HKEY_APPPUSH_DATA_PREFIX string = "app_push_data_"     //APPPush参数数据,key规则:app_push_data_{deviceKey}
 	HKEY_GROUP_DATA          string = "group_data_"        //群组物模型缓存，key规则： group_data_{groupId}
-
+	APP_DEVICE_SHARE_CODE    string = "app_share_code_"    //设备分享邀请码 ，key规则： app_invite_code_{code}
 	HKEY_DFAULT_DATA = "app_default" //APP默认数据  { zh_default_home_name:"我的家庭",en_default_home_name:"my family" }
+	HKEY_REGION_DATA string = "region_data_" //区域数据，key规则： region_data_{regionId}
 )
 
 var (
@@ -50,6 +51,7 @@ var (
 	CONTROL_PANEL_IS_UPDATE     string = "control_panel_is_update_%d"     //控制面板更新
 	PRODUCT_TYPE_ID_DATA        string = "product_type_id_data_%s"        //产品分类id
 	PRODUCT_TYPE_DATA           string = "product_type_data_%s"           //产品类型
+	PRODUCT_TYPE_ALL_DATA       string = "product_type_data_all"          //产品类型
 	APP_HOME_DETAIL_DATA        string = "app_home_detail_data_%v_%v"     //app家庭数据  _家庭Id_用户Id
 	REGION_LIST_DATA            string = "region_list_data"               //区域服务列表数据
 	APP_HOME_LIST_DATA          string = "app_home_list_data_%v"          //家庭列表数据
@@ -85,14 +87,14 @@ var (
 	USERLASTLOGIN   string = "openLastLogin" //开放平台用户最近登录信息前缀,固定值
 )
 
-var (
-	HKEY_REPORT_DATA_PUB_PREFIX    string = "report"   //设备数据发布到redis的前缀
-	HKEY_ONLINE_DATA_PUB_PREFIX    string = "online"   //设备数据发布到redis的前缀
-	HKEY_UPDATE_DATA_PUB_PREFIX    string = "update"   //设备数据发布到redis的前缀
-	HKEY_ACK_DATA_PUB_PREFIX       string = "ack"      //设备数据发布到redis的前缀
-	HKEY_QUERY_ACK_DATA_PUB_PREFIX string = "queryAck" //设备数据发布到redis的前缀
-)
+//var (
+//	HKEY_REPORT_DATA_PUB_PREFIX    string = "report"   //设备数据发布到redis的前缀
+//	HKEY_ONLINE_DATA_PUB_PREFIX    string = "online"   //设备数据发布到redis的前缀
+//	HKEY_UPDATE_DATA_PUB_PREFIX    string = "update"   //设备数据发布到redis的前缀
+//	HKEY_ACK_DATA_PUB_PREFIX       string = "ack"      //设备数据发布到redis的前缀
+//	HKEY_QUERY_ACK_DATA_PUB_PREFIX string = "queryAck" //设备数据发布到redis的前缀
+//)
 
-var (
-	HKEY_CACHED_CLEAR_PUB_PREFIX string = "clearCached" //清理缓存
-)
+//var (
+//	HKEY_CACHED_CLEAR_PUB_PREFIX string = "clearCached" //OK 清理缓存
+//)

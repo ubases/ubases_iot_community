@@ -69,6 +69,7 @@ type SceneTemplateFilter struct {
 	ConditionMode int32  `json:"conditionMode,omitempty"`
 	Icon          string `json:"icon,omitempty"`
 	UseCount      string `json:"useCount,omitempty"`
+	AppKey string `json:"appKey"`
 }
 
 // 场景模板详情

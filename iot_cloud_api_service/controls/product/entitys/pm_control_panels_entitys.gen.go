@@ -15,6 +15,7 @@ import (
 type PmControlPanelsEntitys struct {
 	Id            string    `json:"id"`
 	Name          string    `json:"name"`
+	Code 		  string 	`json:"code"`
 	NameEn        string    `json:"nameEn"`
 	Lang          string    `json:"lang"`
 	Desc          string    `json:"desc"`
@@ -99,29 +100,30 @@ func PmControlPanels_e2pb(src *PmControlPanelsEntitys) *proto.PmControlPanels {
 }
 
 type PmControlPanelsDetailsEntitys struct {
-	Id                  string    `json:"id,omitempty"`
-	Name                string    `json:"name,omitempty"`
-	NameEn              string    `json:"nameEn,omitempty"`
-	Lang                string    `json:"lang,omitempty"`
-	Desc                string    `json:"desc,omitempty"`
-	Url                 string    `json:"url,omitempty"`
-	UrlName             string    `json:"urlName,omitempty"`
-	PanelSize           int32     `json:"panelSize,omitempty"`
-	PreviewName         string    `json:"previewName,omitempty"`
-	PreviewUrl          string    `json:"previewUrl,omitempty"`
-	PreviewSize         int32     `json:"previewSize,omitempty"`
-	ProductTypeId       string    `json:"productTypeId,omitempty"`
-	ProductId           string    `json:"productId,omitempty"`
-	Status              int32     `json:"status,omitempty"`
+	Id                  string    `json:"id"`
+	Name                string    `json:"name"`
+	NameEn              string    `json:"nameEn"`
+	Lang                string    `json:"lang"`
+	Desc                string    `json:"desc"`
+	Url                 string    `json:"url"`
+	UrlName             string    `json:"urlName"`
+	PanelSize           int32     `json:"panelSize"`
+	PreviewName         string    `json:"previewName"`
+	PreviewUrl          string    `json:"previewUrl"`
+	PreviewSize         int32     `json:"previewSize"`
+	ProductTypeId       string    `json:"productTypeId"`
+	ProductId           string    `json:"productId"`
+	Status              int32     `json:"status"`
 	CreatedBy           int64     `json:"createdBy,omitempty"`
 	UpdatedBy           int64     `json:"updatedBy,omitempty"`
 	CreatedAt           time.Time `json:"createdAt,omitempty"`
 	UpdatedAt           time.Time `json:"updatedAt,omitempty"`
-	ProductTypeName     string    `json:"productTypeName,omitempty"`
-	ProductTypeFullName string    `json:"productTypeFullName,omitempty"`
-	ProductName         string    `json:"productName,omitempty"`
-	ProductStatus       int32     `json:"productStatus,omitempty"`
-	LangFileName        string    `json:"langFileName,omitempty"`
+	ProductTypeName     string    `json:"productTypeName"`
+	ProductTypeFullName string    `json:"productTypeFullName"`
+	ProductName         string    `json:"productName"`
+	ProductStatus       int32     `json:"productStatus"`
+	LangFileName        string    `json:"langFileName"`
+	Code        string    `json:"code"`
 }
 
 // pb对象转实体
@@ -160,6 +162,7 @@ func PmControlPanelsDetails_pb2e(src *proto.PmControlPanelsDetails) *PmControlPa
 		ProductTypeFullName: src.ProductTypeFullName,
 		ProductName:         src.ProductName,
 		LangFileName:        src.LangFileName,
+		Code: src.Code,
 	}
 	if src.ProductStatus != "" {
 		entitysObj.ProductStatus = iotutil.ToInt32(src.ProductStatus)
@@ -175,6 +178,14 @@ func PmControlPanelsVo_pb2e(src *proto.PmControlPanelsVo) *PmControlPanelsEntity
 	if src == nil {
 		return nil
 	}
+	var ProductTypeId string
+	var ProductId string
+	if src.ProductTypeId > 0 {
+		ProductTypeId = strconv.Itoa(int(src.ProductTypeId))
+	}
+	if src.ProductId > 0 {
+		ProductId = strconv.Itoa(int(src.ProductId))
+	}
 	entitysObj := PmControlPanelsEntitys{
 		Id:            strconv.Itoa(int(src.Id)),
 		Name:          src.Name,
@@ -187,8 +198,8 @@ func PmControlPanelsVo_pb2e(src *proto.PmControlPanelsVo) *PmControlPanelsEntity
 		PreviewName:   src.PreviewName,
 		PreviewUrl:    src.PreviewUrl,
 		PreviewSize:   src.PreviewSize,
-		ProductTypeId: strconv.Itoa(int(src.ProductTypeId)),
-		ProductId:     strconv.Itoa(int(src.ProductId)),
+		ProductTypeId: ProductTypeId,
+		ProductId:     ProductId,
 		Status:        src.Status,
 		CreatedBy:     src.CreatedBy,
 		UpdatedBy:     src.UpdatedBy,

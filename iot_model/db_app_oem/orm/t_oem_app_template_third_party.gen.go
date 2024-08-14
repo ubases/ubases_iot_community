@@ -101,6 +101,8 @@ func (t tOemAppTemplateThirdParty) TableName() string {
 	return t.tOemAppTemplateThirdPartyDo.TableName()
 }
 
+func (t tOemAppTemplateThirdParty) Alias() string { return t.tOemAppTemplateThirdPartyDo.Alias() }
+
 func (t *tOemAppTemplateThirdParty) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

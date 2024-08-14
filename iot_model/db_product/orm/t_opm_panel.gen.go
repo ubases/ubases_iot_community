@@ -51,9 +51,12 @@ func newTOpmPanel(db *gorm.DB) tOpmPanel {
 	_tOpmPanel.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_tOpmPanel.UpdatedBy = field.NewInt64(tableName, "updated_by")
 	_tOpmPanel.SourceZip = field.NewString(tableName, "source_zip")
-	_tOpmPanel.BaseProductId = field.NewInt64(tableName, "baseProductId")
-	_tOpmPanel.ProductId = field.NewInt64(tableName, "productId")
+	_tOpmPanel.BaseProductId = field.NewInt64(tableName, "base_product_id")
+	_tOpmPanel.ProductId = field.NewInt64(tableName, "product_id")
 	_tOpmPanel.ThemeJson = field.NewString(tableName, "theme_json")
+	_tOpmPanel.LangFileName = field.NewString(tableName, "lang_file_name")
+	_tOpmPanel.Remark = field.NewString(tableName, "remark")
+	_tOpmPanel.Code = field.NewString(tableName, "code")
 
 	_tOpmPanel.fillFieldMap()
 
@@ -93,6 +96,9 @@ type tOpmPanel struct {
 	BaseProductId  field.Int64
 	ProductId      field.Int64
 	ThemeJson      field.String
+	LangFileName   field.String
+	Remark         field.String
+	Code         field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -135,9 +141,12 @@ func (t *tOpmPanel) updateTableName(table string) *tOpmPanel {
 	t.UpdatedAt = field.NewTime(table, "updated_at")
 	t.UpdatedBy = field.NewInt64(table, "updated_by")
 	t.SourceZip = field.NewString(table, "source_zip")
-	t.BaseProductId = field.NewInt64(table, "baseProductId")
-	t.ProductId = field.NewInt64(table, "productId")
+	t.BaseProductId = field.NewInt64(table, "base_product_id")
+	t.ProductId = field.NewInt64(table, "product_id")
 	t.ThemeJson = field.NewString(table, "theme_json")
+	t.LangFileName = field.NewString(table, "lang_file_name")
+	t.Remark = field.NewString(table, "remark")
+	t.Code = field.NewString(table, "code")
 
 	t.fillFieldMap()
 
@@ -162,7 +171,7 @@ func (t *tOpmPanel) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (t *tOpmPanel) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 29)
+	t.fieldMap = make(map[string]field.Expr, 31)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["tenant_id"] = t.TenantId
 	t.fieldMap["panel_name"] = t.PanelName
@@ -189,9 +198,12 @@ func (t *tOpmPanel) fillFieldMap() {
 	t.fieldMap["updated_at"] = t.UpdatedAt
 	t.fieldMap["updated_by"] = t.UpdatedBy
 	t.fieldMap["source_zip"] = t.SourceZip
-	t.fieldMap["baseProductId"] = t.BaseProductId
-	t.fieldMap["productId"] = t.ProductId
+	t.fieldMap["base_product_id"] = t.BaseProductId
+	t.fieldMap["product_id"] = t.ProductId
 	t.fieldMap["theme_json"] = t.ThemeJson
+	t.fieldMap["lang_file_name"] = t.LangFileName
+	t.fieldMap["remark"] = t.Remark
+	t.fieldMap["code"] = t.Code
 }
 
 func (t tOpmPanel) clone(db *gorm.DB) tOpmPanel {

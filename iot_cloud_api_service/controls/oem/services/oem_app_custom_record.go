@@ -30,7 +30,8 @@ func (s OemAppCustomRecordService) SetContext(ctx context.Context) OemAppCustomR
 	return s
 }
 
-func (s OemAppCustomRecordService) CreateOemAppCustomRecord(obj *entitys.OemAppCustomRecordEntitys) error {
+// CreateOemAppCustomRecord的参数 isCheckVersion 是否检查版本大小
+func (s OemAppCustomRecordService) CreateOemAppCustomRecord(obj *entitys.OemAppCustomRecordEntitys, isCheckVersion bool) error {
 	// 添加版本号必须要高于最新版本号
 	respApp, err := rpc.ClientOemAppService.FindById(s.Ctx, &protosService.OemAppFilter{
 		Id: obj.AppId,
@@ -38,22 +39,24 @@ func (s OemAppCustomRecordService) CreateOemAppCustomRecord(obj *entitys.OemAppC
 	if err != nil {
 		return err
 	}
-	var checkVersion string
-	switch obj.Os {
-	case 1:
-		checkVersion = respApp.Data[0].IosVersion
-	case 2:
-		checkVersion = respApp.Data[0].AndroidInterVersion
-	case 3:
-		checkVersion = respApp.Data[0].AndroidOuterVersion
-	}
-	if checkVersion != "" {
-		comInt, err := iotutil.VerCompare(obj.Version, checkVersion)
-		if err != nil {
-			return goerrors.New("", "版本号比较错误, 请确认版本号格式", ioterrs.ErrCloudRequestParam)
+	if isCheckVersion {
+		var checkVersion string
+		switch obj.Os {
+		case 1:
+			checkVersion = respApp.Data[0].IosVersion
+		case 2:
+			checkVersion = respApp.Data[0].AndroidInterVersion
+		case 3:
+			checkVersion = respApp.Data[0].AndroidOuterVersion
 		}
-		if checkVersion != "" && comInt != 1 {
-			return goerrors.New("", "当前版本号必须大于最新版本号", ioterrs.ErrCloudVersionTooLow)
+		if checkVersion != "" {
+			comInt, err := iotutil.VerCompare(obj.Version, checkVersion)
+			if err != nil {
+				return goerrors.New("", "版本号比较错误, 请确认版本号格式", ioterrs.ErrCloudRequestParam)
+			}
+			if checkVersion != "" && comInt != 1 {
+				return goerrors.New("", "当前版本号必须大于最新版本号", ioterrs.ErrCloudVersionTooLow)
+			}
 		}
 	}
 	// 通过模板生成plist文件
@@ -61,22 +64,25 @@ func (s OemAppCustomRecordService) CreateOemAppCustomRecord(obj *entitys.OemAppC
 	if obj.Os == 1 {
 		respUi, err := rpc.ClientOemAppUiConfigService.Find(s.Ctx, &protosService.OemAppUiConfigFilter{
 			AppId:   obj.AppId,
-			Version: "1.0.0",
+			Version: obj.Version,
 		})
 		if err != nil {
 			return err
 		}
-		m := map[string]string{}
-		err = json.Unmarshal([]byte(respUi.Data[0].IosLaunchScreen), &m)
-		if err != nil {
-			return goerrors.New("", err.Error(), ioterrs.ErrShouldBindJSON)
+
+		m := map[string]interface{}{}
+		if len(respUi.Data) > 0 {
+			err = json.Unmarshal([]byte(respUi.Data[0].IosLaunchScreen), &m)
+			if err != nil {
+				return goerrors.New("", err.Error(), ioterrs.ErrShouldBindJSON)
+			}
 		}
 		plist := entitys.TemplatePlistEntitys{
 			Title:            respApp.Data[0].Name,
 			Version:          obj.Version,
 			BundleIdentifier: respApp.Data[0].IosPkgName,
-			DisplayImage:     m["displayImage"],
-			FullSizeImage:    m["fullSizeImage"],
+			DisplayImage:     iotutil.MapGetStringVal(m["displayImage"], respApp.Data[0].AppIconUrl),
+			FullSizeImage:    iotutil.MapGetStringVal(m["fullSizeImage"], respApp.Data[0].AppIconUrl),
 			SoftwarePackage:  obj.PkgUrl,
 		}
 		plistUrl, err = genPlistFile(plist)
@@ -149,7 +155,7 @@ func (s OemAppCustomRecordService) UpdateOemAppCustomRecord(obj *entitys.OemAppC
 	if obj.Os == 1 {
 		respUi, err := rpc.ClientOemAppUiConfigService.Find(s.Ctx, &protosService.OemAppUiConfigFilter{
 			AppId:   obj.AppId,
-			Version: "1.0.0",
+			Version: obj.Version,
 		})
 		if err != nil {
 			return err
@@ -256,6 +262,24 @@ func (s OemAppCustomRecordService) SetRemark(obj *entitys.OemAppCustomRecordEnti
 	return nil
 }
 
+// 更新描述
+func (s OemAppCustomRecordService) SetRemindMode(obj *entitys.OemAppCustomRecordEntitys) error {
+	req := &protosService.OemAppCustomRecordUpdateFieldsRequest{
+		Fields: []string{"remind_mode", "remind_desc", "remind_desc_en"},
+		Data: &protosService.OemAppCustomRecord{
+			Id:           iotutil.ToInt64(obj.Id),
+			RemindMode:   obj.RemindMode,
+			RemindDesc:   obj.RemindDesc,
+			RemindDescEn: obj.RemindDescEn,
+		},
+	}
+	_, err := rpc.ClientOemAppCustomRecordService.UpdateFields(s.Ctx, req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s OemAppCustomRecordService) DeleteOemAppCustomRecord(obj *entitys.OemAppCustomRecordEntitys) error {
 	_, err := rpc.ClientOemAppCustomRecordService.DeleteById(s.Ctx, &protosService.OemAppCustomRecord{
 		Id: obj.Id,
@@ -284,9 +308,10 @@ func (s OemAppCustomRecordService) GetOemAppCustomRecord(id string) (*entitys.Oe
 func (s OemAppCustomRecordService) GetOemAppCustomRecordList(req *entitys.OemAppCustomRecordQuery) ([]*entitys.OemAppCustomRecordEntitys, int64, error) {
 	reqV := &protosService.OemAppCustomRecordListRequest{
 		Query: &protosService.OemAppCustomRecord{
-			AppId:  iotutil.ToInt64(req.Query.AppId),
-			Os:     req.Query.Os,
-			Status: req.Query.Status,
+			AppId:   iotutil.ToInt64(req.Query.AppId),
+			Os:      req.Query.Os,
+			Status:  req.Query.Status,
+			Version: req.Query.Version,
 		},
 		OrderKey:  req.SortField,
 		OrderDesc: req.Sort,

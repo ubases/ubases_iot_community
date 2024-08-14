@@ -72,6 +72,9 @@ func (s *OemAppPushCertSvc) DeleteOemAppPushCert(req *proto.OemAppPushCert) (*pr
 	if req.Oppo != "" { //字符串
 		do = do.Where(t.Oppo.Eq(req.Oppo))
 	}
+	if req.Honor != "" { //字符串
+		do = do.Where(t.Honor.Eq(req.Honor))
+	}
 	_, err := do.Delete()
 	if err != nil {
 		logger.Errorf("DeleteOemAppPushCert error : %s", err.Error())
@@ -150,6 +153,9 @@ func (s *OemAppPushCertSvc) UpdateOemAppPushCert(req *proto.OemAppPushCert) (*pr
 	if req.Oppo != "" { //字符串
 		updateField = append(updateField, t.Oppo)
 	}
+	if req.Honor != "" { //字符串
+		updateField = append(updateField, t.Honor)
+	}
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}
@@ -192,6 +198,7 @@ func (s *OemAppPushCertSvc) UpdateAllOemAppPushCert(req *proto.OemAppPushCert) (
 	updateField = append(updateField, t.Xiaomi)
 	updateField = append(updateField, t.Vivo)
 	updateField = append(updateField, t.Oppo)
+	updateField = append(updateField, t.Honor)
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}
@@ -287,6 +294,9 @@ func (s *OemAppPushCertSvc) FindOemAppPushCert(req *proto.OemAppPushCertFilter) 
 	if req.Oppo != "" { //字符串
 		do = do.Where(t.Oppo.Eq(req.Oppo))
 	}
+	if req.Honor != "" { //字符串
+		do = do.Where(t.Honor.Eq(req.Honor))
+	}
 	dbObj, err := do.First()
 	if err != nil {
 		logger.Errorf("FindOemAppPushCert error : %s", err.Error())
@@ -352,6 +362,9 @@ func (s *OemAppPushCertSvc) GetListOemAppPushCert(req *proto.OemAppPushCertListR
 		}
 		if query.Oppo != "" { //字符串
 			do = do.Where(t.Oppo.Like("%" + query.Oppo + "%"))
+		}
+		if query.Honor != "" { //字符串
+			do = do.Where(t.Honor.Like("%" + query.Honor + "%"))
 		}
 	}
 	orderCol, ok := t.GetFieldByName(req.OrderKey)

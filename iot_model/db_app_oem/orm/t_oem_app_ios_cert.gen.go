@@ -84,6 +84,8 @@ func (t *tOemAppIosCert) WithContext(ctx context.Context) *tOemAppIosCertDo {
 
 func (t tOemAppIosCert) TableName() string { return t.tOemAppIosCertDo.TableName() }
 
+func (t tOemAppIosCert) Alias() string { return t.tOemAppIosCertDo.Alias() }
+
 func (t *tOemAppIosCert) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

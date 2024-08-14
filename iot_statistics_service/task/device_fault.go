@@ -28,8 +28,13 @@ type FaultTypeData struct {
 }
 
 func MonthFault(ctx context.Context, param *xxl.RunReq) (msg string) {
-	end := iotutil.GetTodaySartTime(time.Now())
-	start := end.Add(-24 * time.Hour)
+	t := time.Now()
+	if t.Hour() == 0 && iotutil.New(t).Day() == 1 {
+		//每月1日0点，统计上个月的
+		t = t.Add(-1 * time.Hour)
+	}
+	start := iotutil.New(t).BeginningOfMonth()
+	end := iotutil.New(t).EndOfDay()
 	if err := MonFaultStatistics(ctx, start, end); err != nil {
 		iotlogger.LogHelper.Helper.Error("get device month fault error: ", err)
 		return err.Error()
@@ -167,4 +172,49 @@ func HistoryHourFault(start, end time.Time) error {
 		start = start.Add(24 * time.Hour)
 	}
 	return nil
+}
+
+// 获取设备故障数
+func GetDeviceFaultCount(start time.Time, flag int) (int64, error) {
+	if start.Minute() != 0 || start.Second() != 0 {
+		return 0, errors.New("start时间必须是整点时间")
+	}
+	end := getEndTime(start, flag)
+	deviceDB, ok := config.DBMap["iot_device"]
+	if !ok {
+		return 0, errors.New("iot_device数据库未初始化")
+	}
+	var total int64
+	t := deviceOrm.Use(deviceDB).TIotDeviceFault
+	err := t.WithContext(context.Background()).Select(t.CreatedAt.Count().As("total")).
+		Where(t.CreatedAt.Gte(start), t.CreatedAt.Lt(end)).Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+// 每小时设备故障
+func GetDeviceFaultStatistics(start time.Time, flag int) (map[string]int64, error) {
+	if start.Minute() != 0 || start.Second() != 0 {
+		return nil, errors.New("start时间必须是整点时间")
+	}
+	end := getEndTime(start, flag)
+	deviceDB, ok := config.DBMap["iot_device"]
+	if !ok {
+		return nil, errors.New("iot_device数据库未初始化")
+	}
+	var datas []TenantIdData
+	t := deviceOrm.Use(deviceDB).TIotDeviceFault
+	err := t.WithContext(context.Background()).Select(t.TenantId, t.TenantId.Count().As("total")).
+		Where(t.CreatedAt.Gte(start), t.CreatedAt.Lt(end), t.TenantId.IsNotNull()).
+		Group(t.TenantId).Scan(&datas)
+	if err != nil {
+		return nil, err
+	}
+	mapTenantIdData := make(map[string]int64, len(datas))
+	for _, v := range datas {
+		mapTenantIdData[v.TenantId] = v.Total
+	}
+	return mapTenantIdData, nil
 }

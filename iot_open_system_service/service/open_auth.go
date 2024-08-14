@@ -79,6 +79,10 @@ func (s *OpenAuthSvc) PasswordLogin(request *proto.PasswordLoginRequest) (*proto
 	for _, comp := range respCompanys {
 		if comp.UserId == userinfo.UserID && comp.UserType == iotconst.OPEN_USER_MAIN_ACCOUNT {
 			userinfo.TenantId = comp.TenantId
+			ocs := OpenCompanySvc{Ctx: s.Ctx}
+			if oc, err := ocs.FindOpenCompanyNoCtx(&proto.OpenCompanyFilter{TenantId: userinfo.TenantId}); err == nil && oc != nil {
+				userinfo.Company = oc.Name
+			}
 			break
 		}
 	}
@@ -109,6 +113,7 @@ func (s *OpenAuthSvc) VerifyToken(request *proto.VerifyTokenRequest) (*proto.Clo
 			UserId:   openClaims.UserID,
 			NickName: openClaims.Nickname,
 			Avatar:   openClaims.Avatar,
+			Company:  openClaims.Company,
 		}
 	}
 	return &ret, nil
@@ -159,11 +164,11 @@ func OpenUserInfo2pb(src *OpenUserInfo) *proto.CloudUserInfo {
 		return nil
 	}
 	pbObj := proto.CloudUserInfo{
-		UserId:      src.UserID,
-		NickName:    src.Nickname,
-		Avatar:      src.Avatar,
-		TenantId:    src.TenantId,
-		AccountType: src.AccountType,
+		UserId:   src.UserID,
+		NickName: src.Nickname,
+		Avatar:   src.Avatar,
+		TenantId: src.TenantId,
+		Company:  src.Company,
 	}
 	return &pbObj
 }

@@ -2,6 +2,7 @@ package services
 
 import (
 	"cloud_platform/iot_cloud_api_service/config"
+	"cloud_platform/iot_cloud_api_service/controls/device/services/extract"
 	"cloud_platform/iot_cloud_api_service/controls/oem/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotconst"
@@ -390,22 +391,44 @@ func (s OemAppUiConfigService) GetFunctionConfigThird(req entitys.OemAppCommonRe
 }
 
 // 保存功能配置三方服务
-func (s OemAppUiConfigService) SaveFunctionConfigThird(req entitys.OemAppThirdServiceReq) (string, error) {
+func (s OemAppUiConfigService) SaveFunctionConfigThird(req entitys.OemAppThirdServiceReq) (string, int, error) {
+	ifCheckTeamId := false
+	for _, third := range req.ThirdList {
+		if third.ThirdCode == "wechat" {
+			ifCheckTeamId = true
+		}
+	}
+	idInt := iotutil.ToInt64(req.Id)
+	appFunConfig, err := rpc.ClientOemAppFunctionConfigService.FindById(s.Ctx, &protosService.OemAppFunctionConfigFilter{Id: idInt})
+	if err != nil {
+		return "", 0, err
+	}
+	//检查是否配置了teamId
+	if ifCheckTeamId {
+		appInfo, err := extract.GetAppInfoById(s.Ctx, appFunConfig.Data[0].AppId)
+		if err != nil {
+			return "", 0, err
+		}
+		if appInfo.IosTeamId == "" {
+			return "", 3, errors.New("未配置团队ID")
+		}
+	}
+
 	thirds := iotutil.ToString(req.ThirdList)
 	res, err := rpc.ClientOemAppFunctionConfigService.UpdateFields(s.Ctx, &protosService.OemAppFunctionConfigUpdateFieldsRequest{
 		Fields: []string{"thirds"},
 		Data: &protosService.OemAppFunctionConfig{
-			Id:     iotutil.ToInt64(req.Id),
+			Id:     idInt,
 			Thirds: thirds,
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	if res.Code != 200 {
-		return "", errors.New(res.Message)
+		return "", 0, errors.New(res.Message)
 	}
-	return "success", err
+	return "success", 0, err
 }
 
 // 获取APP自动更新功能配置
@@ -564,7 +587,7 @@ func (s OemAppUiConfigService) SaveFunctionConfigVoice(req entitys.OemAppFunctio
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
 	}
-	// 将clientId, clientSecret, domain同步到iot_smart_speaker_service
+	// 将clientId, clientSecret, domain同步到iot_voice_service
 	reqInfos := &protosService.ClientInfoReq{}
 	for i := range req.VoiceList {
 		reqInfo := &protosService.ClientInfo{

@@ -7,6 +7,7 @@ package service
 import (
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
@@ -374,22 +375,30 @@ func (s *IotDeviceTriadSvc) FindByIdIotDeviceTriad(req *proto.IotDeviceTriadFilt
 // 根据分页条件查找IotDeviceTriad,请确保req.Query的结构字段与数据表model结构体字段保持一致，否则会有编译问题
 func (s *IotDeviceTriadSvc) GetListIotDeviceTriad(req *proto.IotDeviceTriadListRequest) ([]*proto.IotDeviceTriad, int64, error) {
 	var err error
-	tenantId, err := CheckTenantId(s.Ctx)
-	//if err != nil {
-	//	return nil, 0, err
-	//}
+	tenantId, _ := CheckTenantId(s.Ctx)
 	q := orm.Use(iotmodel.GetDB())
 	t := q.TIotDeviceTriad
 	tInfo := q.TIotDeviceInfo
 	do := t.WithContext(context.Background()).LeftJoin(tInfo, tInfo.Did.EqCol(t.Did), tInfo.DeletedAt.IsNull())
-	//
-	if req.Query != nil && req.Query.TenantId != "" {
+	if req.Query == nil {
+		return nil, 0, errors.New("query参数不能为空")
+	}
+	currTenantId := ""
+	if req.Query.TenantId != "" {
+		currTenantId = req.Query.TenantId
 		do = do.Where(t.TenantId.Eq(req.Query.TenantId))
 	} else {
 		if tenantId != "" {
+			currTenantId = tenantId
 			do = do.Where(t.TenantId.Eq(tenantId))
 		}
 	}
+
+	//非平台查询，tenantId不能为空
+	if !req.Query.IsPlatform && currTenantId == "" {
+		return nil, 0, errors.New("非平台查询，tenantId不能为空")
+	}
+
 	query := req.Query
 	if req.SearchKey != "" { //字符串
 		w := t.WithContext(context.Background()).Where(tInfo.DeviceName.Like("%" + req.SearchKey + "%")).
@@ -405,6 +414,9 @@ func (s *IotDeviceTriadSvc) GetListIotDeviceTriad(req *proto.IotDeviceTriadListR
 		do = do.Where(w)
 	}
 	if query != nil {
+		if query.PlatformCode != "" { //字符串
+			do = do.Where(t.PlatformCode.Eq(query.PlatformCode), t.IsOtherPlatform.Eq(1))
+		}
 		if query.DeviceInfo != nil {
 			if query.DeviceInfo.Did != "" { //字符串
 				do = do.Where(t.Did.Like("%" + query.DeviceInfo.Did + "%"))
@@ -421,13 +433,6 @@ func (s *IotDeviceTriadSvc) GetListIotDeviceTriad(req *proto.IotDeviceTriadListR
 			}
 			if query.DeviceInfo.DeviceName != "" { //字符串
 				//通过设备名称查询，设备不一定激活了，用户也不一定修改了名称
-				//if query.QueryProductIds != nil && len(query.QueryProductIds) > 0 {
-				//	deviceNameDo := t.WithContext(context.Background())
-				//	w := deviceNameDo.Where(t.ProductId.In(query.QueryProductIds...)).Or(tInfo.DeviceName.Like("%" + query.DeviceInfo.DeviceName + "%"))
-				//	do = do.Where(w)
-				//} else {
-				//	do = do.Where(tInfo.DeviceName.Like("%" + query.DeviceInfo.DeviceName + "%"))
-				//}
 				w := t.WithContext(context.Background()).
 					Where(tInfo.DeviceName.Like("%" + query.DeviceInfo.DeviceName + "%")).
 					Or(tInfo.ProductKey.Like("%" + query.DeviceInfo.DeviceName + "%"))
@@ -477,6 +482,13 @@ func (s *IotDeviceTriadSvc) GetListIotDeviceTriad(req *proto.IotDeviceTriadListR
 		//查询设备数据
 		if !query.IsQueryTriadData {
 			do = do.Where(t.FirstActiveTime.IsNotNull(), t.FirstActiveTime.Neq(time.Time{}))
+		}
+		if query.IsQueryExport != 0 {
+			if query.IsQueryExport  == 1 {
+				do = do.Where(t.ExportCount.Gte(1)) //大于等于1
+			} else {
+				do = do.Where(t.ExportCount.Eq(0))
+			}
 		}
 		//通过用户的租户查询
 		if query.DeveloperTenantIds != nil && len(query.DeveloperTenantIds) > 0 {
@@ -529,6 +541,9 @@ func (s *IotDeviceTriadSvc) GetListIotDeviceTriad(req *proto.IotDeviceTriadListR
 		}
 		if query.SerialNumber != "" {
 			do = do.Where(t.SerialNumber.Eq(query.SerialNumber))
+		}
+		if query.UserAccount != "" {
+			do = do.Where(t.UserAccount.Eq(query.UserAccount))
 		}
 		if query.Status != -1 {
 			if query.Status == 2 || query.Status == 0 {
@@ -592,7 +607,10 @@ func (s *IotDeviceTriadSvc) GetListIotDeviceTriad(req *proto.IotDeviceTriadListR
 	dids := make([]string, 0)
 	for i, v := range list {
 		result[i] = convert.IotDeviceTriad_db2pb(v.TIotDeviceTriad)
-		result[i].DeviceInfo = convert.IotDeviceInfo_db2pb(v.TIotDeviceInfo)
+		if v.TIotDeviceInfo != nil {
+			result[i].RegionServerId = v.TIotDeviceInfo.RegionServerId
+			result[i].DeviceInfo = convert.IotDeviceInfo_db2pb(v.TIotDeviceInfo)
+		}
 		if v.TIotDeviceTriad.FirstActiveTime != (time.Time{}) {
 			result[i].DeviceInfo.ActivatedTime = timestamppb.New(v.TIotDeviceTriad.FirstActiveTime)
 		}
@@ -621,7 +639,14 @@ func (s *IotDeviceTriadSvc) GetListIotDeviceTriad(req *proto.IotDeviceTriadListR
 				}
 				// 输出当前页的数据
 				addInt := field.NewInt(t.TableName(), t.ExportCount.ColumnName().String())
-				t.WithContext(context.Background()).Where(t.Did.In(pageDids...)).Update(t.ExportCount, addInt.Add(1))
+				addString := field.NewString(t.TableName(), t.ExportTimeList.ColumnName().String())
+				addExportTime := field.NewTime(t.TableName(), t.ExportTime.ColumnName().String())
+
+				(t.WithContext(context.Background()).Where(t.Did.In(pageDids...)).Select(t.ExportCount, t.ExportTimeList).
+					UpdateSimple(
+						addInt.Add(1),
+						addString.ConcatExtract("", time.Now().Format("2006-01-02 15:04:05")+","),
+						addExportTime.Value(time.Now())))
 			}
 		}()
 	}
@@ -804,7 +829,10 @@ func (s *IotDeviceTriadSvc) GeneratorDeviceTriad(req *proto.IotDeviceTriadGenera
 	}
 	tenantId, err := CheckTenantId(s.Ctx)
 	if err != nil {
-		return errors.New("未获取登录用户租户信息")
+		//如果没有tenantId，则必须要有platformCode
+		if req.PlatformCode == "" {
+			return errors.New("未获取登录用户租户信息")
+		}
 	}
 	var batchId int32 = 0
 	if req.Batch != "" {
@@ -874,7 +902,7 @@ func (s *IotDeviceTriadSvc) GeneratorDeviceTriad(req *proto.IotDeviceTriadGenera
 	//发生错误可以忽略，延迟到设备登录时通过grpc接口获取三元组
 	str, err := json.Marshal(triadsList)
 	if err == nil {
-		GetJsPublisherMgr().PushData(&NatsPubData{Subject: iotconst.NATS_SUBJECT_AUTH, Data: string(str)})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{Subject: iotconst.NATS_SUBJECT_AUTH, Data: string(str)})
 	}
 	return nil
 }
@@ -911,6 +939,10 @@ func (s *IotDeviceTriadSvc) genBySerialNumbers(tx *orm.Query, snMap map[string]i
 			Salt:            newDevIds[i].GetSalt(), // iotutil.GetSecret(8),
 			DeviceSecret:    iotutil.GetSecret(8),
 			CreatedBy:       iotutil.ToInt64(userId),
+		}
+		if req.PlatformCode != "" {
+			deviceTriad.PlatformCode = req.PlatformCode
+			deviceTriad.IsOtherPlatform = 1
 		}
 		saveObjs = append(saveObjs, &deviceTriad)
 		triadsList = append(triadsList, iotstruct.MqttToNatsDeviceTriadData{
@@ -960,6 +992,7 @@ func (s *IotDeviceTriadSvc) newVirtualDevIds() (newDevIds []*proto.Triad, err er
 	}
 	return rsp.Data, nil
 }
+
 func VerifyKey(devices []*proto.GenDeviceTriadData) error {
 	req := proto.VerifyTriadRequest{}
 	for _, d := range devices {
@@ -1012,6 +1045,10 @@ func (s *IotDeviceTriadSvc) genByDeviceIds(tx *orm.Query, devMap map[string]int,
 			DeviceSecret:    iotutil.GetSecret(8),
 			CreatedBy:       iotutil.ToInt64(userId),
 		}
+		if req.PlatformCode != "" {
+			deviceTriad.PlatformCode = req.PlatformCode
+			deviceTriad.IsOtherPlatform = 1
+		}
 		saveObjs = append(saveObjs, &deviceTriad)
 		triadsList = append(triadsList, iotstruct.MqttToNatsDeviceTriadData{
 			ProductKey: deviceTriad.ProductKey,
@@ -1043,6 +1080,9 @@ func (s *IotDeviceTriadSvc) GetDeviceTriadCountByTenantId(req *proto.IotDeviceTr
 	}
 	if req.ProductKey != "" {
 		do = do.Where(t.ProductKey.Eq(req.ProductKey))
+	}
+	if req.AppKey != "" {
+		do = do.Where(t.AppKey.Eq(req.AppKey))
 	}
 	return do.Select(t.Id).Count()
 }
@@ -1274,6 +1314,7 @@ func (s *IotDeviceTriadSvc) DeviceBindHome(deviceInfo *model.TIotDeviceTriad, re
 		"productId":               req.ProductId,
 		"did":                     deviceInfo.Did,
 		"productName":             req.ProductName,
+		"deviceName":              req.ProductName,
 		"userId":                  req.UserId,
 		"homeId":                  req.HomeId,
 		"appKey":                  req.AppKey,
@@ -1380,7 +1421,37 @@ func (s *IotDeviceTriadSvc) CreateAndBindDeviceTriad(req *proto.IotDeviceTriadGe
 	//发生错误可以忽略，延迟到设备登录时通过grpc接口获取三元组
 	str, err := json.Marshal(triadsList)
 	if err == nil {
-		GetJsPublisherMgr().PushData(&NatsPubData{Subject: iotconst.NATS_SUBJECT_AUTH, Data: string(str)})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{Subject: iotconst.NATS_SUBJECT_AUTH, Data: string(str)})
 	}
 	return nil
+}
+
+func (s *IotDeviceTriadSvc) GetDeviceTriadCount(req *proto.IotDeviceTriadCountRequest) ([]*proto.IotDeviceTriadCount, error) {
+	q := orm.Use(iotmodel.GetDB())
+	t := q.TIotDeviceTriad
+	do := t.WithContext(context.Background())
+
+	if req.TenantId != "" {
+		do = do.Where(t.TenantId.Eq(req.TenantId))
+	}
+	if req.ProductId != 0 {
+		do = do.Where(t.ProductId.Eq(req.ProductId))
+	}
+	if req.PlatformCode != "" {
+		do = do.Where(t.PlatformCode.Eq(req.PlatformCode))
+	}
+	if req.IsExport != 0 {
+		if req.IsExport == 1 {
+			do = do.Where(t.ExportCount.Gt(0))
+		} else if req.IsExport == 2 {
+			do = do.Where(t.ExportCount.Eq(0))
+		}
+	}
+	var deviceCounts []*proto.IotDeviceTriadCount
+ 	err := do.Where(t.PlatformCode.IsNotNull()).Group(t.PlatformCode).Select(t.PlatformCode.As("key"), t.Id.Count().As("value")).Scan(&deviceCounts)
+	if err != nil {
+		logger.Errorf("GetDeviceTriadCount error : %s", err.Error())
+		return nil, err
+	}
+	return deviceCounts, nil
 }

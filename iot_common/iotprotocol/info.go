@@ -12,7 +12,7 @@ type PackInfo struct {
 
 func (o *PackInfo) Encode(gid string) ([]byte, error) {
 	obj := PackInfo{
-		Header: EncodeHeader(INFO_HEAD_NS, INFO_HEAD_NAME, gid)}
+		Header: EncodeHeader(INFO_HEAD_NS, INFO_HEAD_NAME, gid, "")}
 	*o = obj
 	return json.Marshal(obj)
 }
@@ -32,10 +32,17 @@ type InfoReport struct {
 	FwVer      string `json:"fwVer"`
 	McuVer     string `json:"mcuVer"`
 	HwVer      string `json:"hwVer"`
+	BtVer      string       `json:"btVer"`
+	ZigbeeVer  string       `json:"zigbeeVer"`
+	Extends    []ExtendItem `json:"extends"`
 	MemFree    int    `json:"memFree"`
 	Mac        string `json:"mac"`
 	Ap         Ap     `json:"ap"`
 	Netif      Netif  `json:"netif"`
+}
+type ExtendItem struct {
+	Key string `json:"key"`
+	Ver string `json:"ver"`
 }
 
 type Ap struct {
@@ -50,11 +57,16 @@ type Netif struct {
 	Gw      string `json:"gw"`
 }
 
-//fixme 这个用于测试，请勿在正式产品中使用
-func (o *PackInfoReport) Encode(gid, DeviceId, ProductKey string) ([]byte, error) {
+type SysInfo struct {
+	FwVer  string
+	McuVer string
+	HwVer  string
+}
+// fixme 这个用于模拟器，请勿在正式产品中使用
+func (o *PackInfoReport) Encode(gid, DeviceId, ProductKey string, sysInfo SysInfo) ([]byte, error) {
 	obj := PackInfoReport{
-		Header:  EncodeHeader(INFO_HEAD_NS, INFO_HEAD_NAME, gid),
-		Payload: InfoReport{DeviceId: DeviceId, ProductKey: ProductKey},
+		Header:  EncodeHeader(INFO_HEAD_NS, INFO_HEAD_NAME, gid, ""),
+		Payload: InfoReport{DeviceId: DeviceId, ProductKey: ProductKey, FwVer: sysInfo.HwVer, McuVer: sysInfo.McuVer, HwVer: sysInfo.HwVer},
 	}
 	*o = obj
 	return json.Marshal(obj)

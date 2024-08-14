@@ -43,11 +43,13 @@ func (s OpmFirmwareService) QueryOpmFirmwareList(filter entitys.OpmFirmwareQuery
 	if err := filter.QueryCheck(); err != nil {
 		return nil, 0, err
 	}
+	queryParams := entitys.OpmFirmwareFilter_e2pb(filter.Query)
+	queryParams.IsQueryValidVersion = true //只获取最新启用的的版本
 	rep, err := rpc.ClientFirmwareService.Lists(s.Ctx, &protosService.OpmFirmwareListRequest{
 		Page:      filter.Page,
 		PageSize:  filter.Limit,
 		SearchKey: filter.SearchKey,
-		Query:     entitys.OpmFirmwareFilter_e2pb(filter.Query),
+		Query:     queryParams,
 	})
 	if err != nil {
 		return nil, 0, err
@@ -57,7 +59,11 @@ func (s OpmFirmwareService) QueryOpmFirmwareList(filter entitys.OpmFirmwareQuery
 	}
 	resultList := make([]*entitys.OpmFirmwareEntitys, 0)
 	for _, item := range rep.Data {
+		//if item.Version == "" {
+		//	continue
+		//}
 		resultList = append(resultList, entitys.OpmFirmware_pb2e(item))
+
 	}
 	return resultList, rep.Total, err
 }

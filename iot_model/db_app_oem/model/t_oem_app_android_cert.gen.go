@@ -9,19 +9,19 @@ const TableNameTOemAppAndroidCert = "t_oem_app_android_cert"
 // TOemAppAndroidCert mapped from table <t_oem_app_android_cert>
 type TOemAppAndroidCert struct {
 	Id             int64  `gorm:"column:id;primaryKey" json:"id"`
-	AppId          int64  `gorm:"column:app_id" json:"app_id"`                     // t_opm_app主键id
-	Version        string `gorm:"column:version" json:"version"`                   // 版本
-	Resign         int32  `gorm:"column:resign" json:"resign"`                     // 重签名，1支持，2不支持
-	CertSha256     string `gorm:"column:cert_sha256" json:"cert_sha256"`           // 用户输入的SHA256，多组逗号分隔
-	Keypass        string `gorm:"column:keypass" json:"keypass"`                   // 后台keytool生成
-	Storepass      string `gorm:"column:storepass" json:"storepass"`               // 后台keytool生成
-	AliasKeytool   string `gorm:"column:alias_keytool" json:"alias_keytool"`       // 后台keytool生成
-	Keystore       string `gorm:"column:keystore" json:"keystore"`                 // 后台keytool生成
-	KsMd5          string `gorm:"column:ks_md5" json:"ks_md5"`                     // keytool工具获取的keystore文件的md5
-	KsSha1         string `gorm:"column:ks_sha1" json:"ks_sha1"`                   // keytool工具获取的keystore文件的sha1
-	KsSha256       string `gorm:"column:ks_sha256" json:"ks_sha256"`               // keytool工具获取的keystore文件的sha256
-	HwSignCert     string `gorm:"column:hw_sign_cert" json:"hw_sign_cert"`         // 华为签名证书
-	GoogleSignCert string `gorm:"column:google_sign_cert" json:"google_sign_cert"` // Google签名证书
+	AppId          int64  `gorm:"column:app_id" json:"appId"`                    // t_opm_app主键id
+	Version        string `gorm:"column:version" json:"version"`                 // 版本
+	Resign         int32  `gorm:"column:resign" json:"resign"`                   // 重签名，1支持，2不支持
+	CertSha256     string `gorm:"column:cert_sha256" json:"certSha256"`          // 用户输入的SHA256，多组逗号分隔
+	Keypass        string `gorm:"column:keypass" json:"keypass"`                 // 后台keytool生成
+	Storepass      string `gorm:"column:storepass" json:"storepass"`             // 后台keytool生成
+	AliasKeytool   string `gorm:"column:alias_keytool" json:"aliasKeytool"`      // 后台keytool生成
+	Keystore       string `gorm:"column:keystore" json:"keystore"`               // 后台keytool生成
+	KsMd5          string `gorm:"column:ks_md5" json:"ksMd5"`                    // keytool工具获取的keystore文件的md5
+	KsSha1         string `gorm:"column:ks_sha1" json:"ksSha1"`                  // keytool工具获取的keystore文件的sha1
+	KsSha256       string `gorm:"column:ks_sha256" json:"ksSha256"`              // keytool工具获取的keystore文件的sha256
+	HwSignCert     string `gorm:"column:hw_sign_cert" json:"hwSignCert"`         // 华为签名证书
+	GoogleSignCert string `gorm:"column:google_sign_cert" json:"googleSignCert"` // Google签名证书
 }
 
 // TableName TOemAppAndroidCert's table name

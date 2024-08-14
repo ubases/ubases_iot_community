@@ -7,6 +7,7 @@ package convert
 import (
 	"cloud_platform/iot_model/db_device/model"
 	proto "cloud_platform/iot_proto/protos/protosService"
+
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -15,16 +16,19 @@ func IotDeviceFault_pb2db(src *proto.IotDeviceFault) *model.TIotDeviceFault {
 		return nil
 	}
 	dbObj := model.TIotDeviceFault{
-		Id:          src.Id,
-		DeviceId:    src.DeviceId,
-		DeviceKey:   src.DeviceKey,
-		DeviceName:  src.DeviceName,
-		ProductId:   src.ProductId,
-		ProductKey:  src.ProductKey,
-		ProductName: src.ProductName,
-		FaultCode:   src.FaultCode,
-		FaultName:   src.FaultName,
-		CreatedAt:   src.CreatedAt.AsTime(),
+		Id:              src.Id,
+		DeviceId:        src.DeviceId,
+		DeviceKey:       src.DeviceKey,
+		DeviceName:      src.DeviceName,
+		BaseProductId:   src.BaseProductId,
+		ProductId:       src.ProductId,
+		ProductKey:      src.ProductKey,
+		ProductName:     src.ProductName,
+		FaultIdentifier: src.FaultIdentifier,
+		FaultDpid:       src.FaultDpid,
+		FaultCode:       src.FaultCode,
+		FaultName:       src.FaultName,
+		CreatedAt:       src.CreatedAt.AsTime(),
 	}
 	return &dbObj
 }
@@ -34,16 +38,19 @@ func IotDeviceFault_db2pb(src *model.TIotDeviceFault) *proto.IotDeviceFault {
 		return nil
 	}
 	pbObj := proto.IotDeviceFault{
-		Id:          src.Id,
-		DeviceId:    src.DeviceId,
-		DeviceKey:   src.DeviceKey,
-		DeviceName:  src.DeviceName,
-		ProductId:   src.ProductId,
-		ProductKey:  src.ProductKey,
-		ProductName: src.ProductName,
-		FaultCode:   src.FaultCode,
-		FaultName:   src.FaultName,
-		CreatedAt:   timestamppb.New(src.CreatedAt),
+		Id:              src.Id,
+		DeviceId:        src.DeviceId,
+		DeviceKey:       src.DeviceKey,
+		DeviceName:      src.DeviceName,
+		BaseProductId:   src.BaseProductId,
+		ProductId:       src.ProductId,
+		ProductKey:      src.ProductKey,
+		ProductName:     src.ProductName,
+		FaultIdentifier: src.FaultIdentifier,
+		FaultDpid:       src.FaultDpid,
+		FaultCode:       src.FaultCode,
+		FaultName:       src.FaultName,
+		CreatedAt:       timestamppb.New(src.CreatedAt),
 	}
 	return &pbObj
 }

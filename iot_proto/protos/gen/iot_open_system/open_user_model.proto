@@ -104,6 +104,8 @@ message OpenUser {
     // @inject_tag: json:"deletedAt" gorm:"default:删除时间;comment:删除时间;"
     google.protobuf.Timestamp deletedAt = 122; 
 
+    //是否已经引导
+    int32 hasGuided = 123;
 }
 
 message OpenUserFilter {
@@ -249,6 +251,7 @@ message OpenUserRegisterResponse {
     int32 code = 101;
     string message = 102;
     int64 data = 103;//注册用户Id
+    string tenantId = 104;
 }
 
 //设置登录安全模式

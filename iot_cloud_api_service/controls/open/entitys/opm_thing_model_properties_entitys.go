@@ -59,6 +59,30 @@ type OpmThingModelPropertiesEntitys struct {
 }
 
 // 增、删、改及查询返回
+type OpmThingModelPropertiesSimpleData struct {
+	Id               int64                               `json:"id,string"`
+	ProductId        string                              `json:"productId"`
+	Identifier       string                              `json:"identifier"`
+	DataType         string                              `json:"dataType"`
+	DataTypeDesc     string                              `json:"dataTypeDesc"`
+	Name             string                              `json:"name"`
+	RwFlag           string                              `json:"rwFlag"`
+	RwFlagDesc       string                              `json:"rwFlagDesc"`
+	DataSpecs         interface{}                              `json:"dataSpecs"`
+	DataSpecsDesc    string                              `json:"dataSpecsDesc"` //功能点属性
+	DataSpecsList    interface{}                              `json:"dataSpecsList"`
+	Required         int32                               `json:"required"` //是否必填
+	Custom           int32                               `json:"custom"`   //是否自定义
+	Extension        string                              `json:"extension"`
+	Desc             string                              `json:"desc"`     //功能描述
+	Unit             string                              `json:"unit"`     //单位
+	Step             int32                               `json:"step"`     //步长
+	Multiple         int32                               `json:"multiple"` //倍数
+	Dpid             int32                               `json:"dpid"`
+	DefaultVal       string                              `json:"defaultVal"` //物模型默认值
+}
+
+// 增、删、改及查询返回
 type OpmThingModelPropertiesEnum struct {
 	Name    string                              `json:"name"`
 	LangKey string                              `json:"langKey"`
@@ -204,6 +228,31 @@ func OpmThingModelProperties_pb2e(src *proto.OpmThingModelProperties) *OpmThingM
 	return &entitysObj
 }
 
+
+// pb对象转实体
+func OpmThingModelPropertiesSimple_pb2e(src *proto.OpmThingModelProperties) *OpmThingModelPropertiesSimpleData{
+	if src == nil {
+		return nil
+	}
+	entitysObj := OpmThingModelPropertiesSimpleData{
+		Id:               src.Id,
+		ProductId:        src.ProductId,
+		Identifier:       src.Identifier,
+		DataType:         src.DataType,
+		Name:             src.Name,
+		RwFlag:           src.RwFlag,
+		DataSpecs:        src.DataSpecs,
+		DataSpecsList:    src.DataSpecsList,
+		Required:         src.Required,
+		Custom:           src.Custom,
+		Desc:             src.Desc,
+		Extension:        src.Extension,
+		Dpid:             src.Dpid,
+		DefaultVal:       src.DefaultVal,
+	}
+	return &entitysObj
+}
+
 // 转换属性描述
 func transformPropertyAttributeDesc(dataType string, space string, spaceLists string) (string, error) {
 	var (
@@ -243,14 +292,16 @@ func transformPropertyAttributeDesc(dataType string, space string, spaceLists st
 			rets = append(rets, fmt.Sprintf("默认值: %v", data.DefaultValue))
 		}
 		ret = strings.Join(rets, ", ")
-	case "ENUM", "BOOL":
+	case "ENUM", "BOOL", "FAULT":
 		var (
 			buff bytes.Buffer
 		)
 		if dataType == "ENUM" {
 			buff.WriteString("枚举值：")
-		} else {
+		} else if dataType == "BOOL" {
 			buff.WriteString("布尔值：")
+		} else if dataType == "FAULT" {
+			buff.WriteString("故障码：")
 		}
 
 		var slice []map[string]interface{}

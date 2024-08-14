@@ -39,8 +39,11 @@ type TIotDeviceTriad struct {
 	BatchId         int32          `gorm:"column:batch_id" json:"batchId"`                        // 批次号
 	AppKey          string         `gorm:"column:app_key" json:"appKey"`                          // 冗余APPKey
 	FirstActiveTime time.Time      `gorm:"column:first_active_time" json:"firstActiveTime"`       // 首次激活时间
-	ExportCount     int32          `gorm:"column:export_count" json:"exportCount"`                // 导出次数
+	ExportCount     int32          `gorm:"column:export_count;default:0" json:"exportCount"`      // 导出次数
 	ExportTime      time.Time      `gorm:"column:export_time" json:"exportTime"`                  // 最后导出时间
+	PlatformCode    string         `gorm:"column:platform_code" json:"platformCode"`              // 归属平台编码
+	IsOtherPlatform int32          `gorm:"column:is_other_platform" json:"isOtherPlatform"`       // 是否其它私有化部署平台
+	ExportTimeList  string         `gorm:"column:export_time_list" json:"exportTimeList"`       // 导出时间列表
 }
 
 // TableName TIotDeviceTriad's table name

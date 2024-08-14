@@ -76,12 +76,13 @@ func (s FeedbackService) QueryUcFeedbackList(filter entitys.UcUserFeedbackQuery,
 	if err := filter.QueryCheck(); err != nil {
 		return nil, 0, err
 	}
+	typeId, _ := iotutil.ToInt64AndErr(filter.Query.TypeId)
 	rep, err := rpc.UcFeedbackService.Lists(s.Ctx, &protosService.UcUserFeedbackListRequest{
 		Page:     filter.Page,
 		PageSize: filter.Limit,
 		Query: &protosService.UcUserFeedback{
 			ProductKey:     filter.Query.ProductKey,
-			QuestionTypeId: filter.Query.TypeId, //产品类型
+			QuestionTypeId: typeId, //产品类型
 			AppKey:         filter.Query.AppKey,
 			TenantId:       tenantId,
 			Status:         filter.Query.Status,

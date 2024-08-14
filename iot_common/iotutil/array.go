@@ -90,3 +90,27 @@ func MoveDown(objList ArraySortList, index int) {
 	objList[index].Sort, objList[index+1].Sort = objList[index+1].Sort, objList[index].Sort
 	sort.Sort(objList)
 }
+
+// 数组并集
+func Union(a, b []string) []string {
+	m := make(map[string]bool)
+	var result []string
+
+	for _, item := range a {
+		m[item] = true
+	}
+
+	for _, item := range b {
+		if _, found := m[item]; !found {
+			m[item] = true
+			result = append(result, item)
+		}
+	}
+
+	// 转换map的键到切片
+	for key := range m {
+		result = append(result, key)
+	}
+
+	return result
+}

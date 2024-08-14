@@ -49,7 +49,9 @@ func (CountdownController) AddCountdown(c *gin.Context) {
 	req.UserId = iotutil.ToInt64(userId)
 	req.CreatedBy = iotutil.ToInt64(userId)
 	req.Timezone = controls.GetTimezone(c)
-	req.RegionServerId = controls.GetRegionInt(c)
+	//区域Id转区域服务器Id
+	req.RegionServerId, _ = controls.RegionIdToServerId(iotutil.ToString(controls.GetRegionInt(c)))
+
 	err := countdownService.AddCountdown(req)
 	if err != nil {
 		ioterrs.Response(c, cached.RedisStore, goerrors.FromError(err).GetCode(), nil)
@@ -79,6 +81,10 @@ func (CountdownController) CountdownInfo(c *gin.Context) {
 		iotlogger.LogHelper.Helper.Error("get count down info error: ", err.Error())
 		return
 	}
+
+	//获取设备的开关状态
+	data.FuncKey = "1" //默认为powerstate
+
 	var surplusTime int64
 	if data != nil {
 		surplusTime = data.ExecutionTime.Unix() - time.Now().Unix()
@@ -88,6 +94,16 @@ func (CountdownController) CountdownInfo(c *gin.Context) {
 			surplusTime = surplusTime * 1000
 		}
 		data.SurplusTime = surplusTime
+		//数据修复，当剩余时间为0，将倒计时的状态修复为0
+		if data.SurplusTime == 0 {
+			data.Enabled = 2
+		}
+	}
+
+	if data.Enabled == 1 {
+	} else {
+		data.FuncValue = controls.GetDevicePowerstate(id)                            //获取当前设备的开关状态
+		data.FuncValue = iotutil.IfString(data.FuncValue == "true", "false", "true") //转换取反值
 	}
 
 	ioterrs.Response(c, cached.RedisStore, ioterrs.Success, data)

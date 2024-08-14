@@ -10,7 +10,7 @@ import (
 
 // 增、删、改及查询返回
 type SysRegionServerEntitys struct {
-	Id           int64   `json:"id,omitempty"`
+	Id           int64   `json:"id,string,omitempty"`
 	Sid          string  `json:"sid,omitempty"`
 	LimitedCount int32   `json:"limitedCount,omitempty"`
 	BindedCount  int32   `json:"bindedCount,omitempty"`
@@ -20,6 +20,7 @@ type SysRegionServerEntitys struct {
 	Lat          float64 `json:"lat,omitempty"`
 	Lng          float64 `json:"lng,omitempty"`
 	Country      string  `json:"country,omitempty"`
+	Describe      string  `json:"describe,omitempty"`
 	Province     string  `json:"province,omitempty"`
 	City         string  `json:"city,omitempty"`
 	District     string  `json:"district,omitempty"`
@@ -109,6 +110,7 @@ func SysRegionServer_pb2e(src *proto.SysRegionServer) *SysRegionServerEntitys {
 		Lat:          src.Lat,
 		Lng:          src.Lng,
 		Country:      src.Country,
+		Describe: src.Describe,
 		//Province:     src.Province,
 		City:      src.City,
 		District:  src.District,

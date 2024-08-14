@@ -9,11 +9,11 @@ const TableNameTOemAppTemplateDeveloper = "t_oem_app_template_developer"
 // TOemAppTemplateDeveloper mapped from table <t_oem_app_template_developer>
 type TOemAppTemplateDeveloper struct {
 	Id            int64  `gorm:"column:id;primaryKey" json:"id"`
-	AppTemplateId int64  `gorm:"column:app_template_id;not null" json:"app_template_id"` // app模板编号
-	DeveloperId   int64  `gorm:"column:developer_id;not null" json:"developer_id"`       // 开发这边编号
-	TenantId      string `gorm:"column:tenant_id" json:"tenant_id"`                      // 租户编号
-	Account       string `gorm:"column:account" json:"account"`                          // 开发者账号
-	CompanyName   string `gorm:"column:company_name" json:"company_name"`                // 公司名称
+	AppTemplateId int64  `gorm:"column:app_template_id;not null" json:"appTemplateId"` // app模板编号
+	DeveloperId   int64  `gorm:"column:developer_id;not null" json:"developerId"`      // 开发这边编号
+	TenantId      string `gorm:"column:tenant_id" json:"tenantId"`                     // 租户编号
+	Account       string `gorm:"column:account" json:"account"`                        // 开发者账号
+	CompanyName   string `gorm:"column:company_name" json:"companyName"`               // 公司名称
 }
 
 // TableName TOemAppTemplateDeveloper's table name

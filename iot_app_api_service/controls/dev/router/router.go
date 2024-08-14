@@ -6,7 +6,7 @@ import (
 	apis2 "cloud_platform/iot_app_api_service/controls/intelligence/apis"
 	productService "cloud_platform/iot_app_api_service/controls/product/services"
 	"cloud_platform/iot_common/iotgin"
-	"cloud_platform/iot_common/iotnats/jetstream"
+	"cloud_platform/iot_common/iotnatsjs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,13 +18,15 @@ func RegisterRouter(e *gin.Engine) {
 	//设备操作失败日志上报1.0.5
 	r.POST("/dev/operation/failLog", apis.FailLogcontroller.ReportOperationFailLog)
 	r.Use(controls.AuthCheck)
+	r.Use(controls.SetParams)
+	r.Use(iotgin.AppLogger(iotnatsjs.GetJsClientPub()))
 	r.POST("/dev/operation/failLogEx", apis.FailLogcontroller.ReportOperationFailLogEx)
 
 	r.GET("/dev/deviceInfo/:devId", apis.Devcontroller.DeviceInfo)
-	r.POST("/dev/removeDev", iotgin.AppLogger(jetstream.GetJsPublisherMgr()), apis.Devcontroller.RemoveDev)
+	r.POST("/dev/removeDev", apis.Devcontroller.RemoveDev)
 	r.POST("/dev/removeRoomDev", apis.Devcontroller.RemoveRoomDev)
 	r.POST("/dev/update/:devId", apis.Devcontroller.UpdateDev)
-	r.POST("/dev/addDev", iotgin.AppLogger(jetstream.GetJsPublisherMgr()), apis.Devcontroller.AddDev)
+	r.POST("/dev/addDev", apis.Devcontroller.AddDev)
 	r.GET("/dev/functions/:devId", apis2.SceneIntelligencecontroller.GetProductFunctions)
 	r.GET("/dev/functionsV2/:devId", apis2.SceneIntelligencecontroller.GetAppointmentFunctions)
 
@@ -71,6 +73,7 @@ func RegisterRouter(e *gin.Engine) {
 	r.GET("dev/runRecord/daysGroupCount", apis.DeviceReportsapis.GetDaysHourCount)
 	r.GET("dev/runRecord/clearDetail", apis.DeviceReportsapis.ClearDetail)
 	r.GET("/dev/ota/checkVersion", apis.Otacontroller.CheckOtaVersion)
+	r.GET("/dev/ota/checkUpgradeList", apis.Otacontroller.CheckOtaUpgradeList)
 
 	r.GET("/dev/shareDeviceList/:homeId", apis.ShareDevicecontroller.ShareDeviceList)
 	r.GET("/dev/shareUserList/:devId", apis.ShareDevicecontroller.ShareUserList)
@@ -79,6 +82,10 @@ func RegisterRouter(e *gin.Engine) {
 	r.POST("/dev/cancelShare", apis.ShareDevicecontroller.CancelShare)
 	r.POST("/dev/cancelReceiveShared", apis.ShareDevicecontroller.CancelReceiveShared)
 	r.POST("/dev/receiveShare/:id", apis.ShareDevicecontroller.ReceiveShare)
+
+	//小程序生成分享码
+	r.POST("/dev/miniProgram/genShareCode", apis.ShareDevicecontroller.GenShareCode)
+	r.POST("/dev/miniProgram/receiveShare", apis.ShareDevicecontroller.ReceiveShareByCode)
 
 	r.GET("/dev/group/info/:groupId", apis.DeviceGroupcontroller.DevGroupInfo)
 	r.GET("/dev/group/devListByProductKey", apis.DeviceGroupcontroller.DevListByProductKey)

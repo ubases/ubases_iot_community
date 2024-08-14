@@ -131,6 +131,12 @@ func (s ProductTypeService) GetProductTree(filter entitys.AppQueryProductTypeFor
 		return nil, 0, errors.New(productRet.Msg)
 	}
 
+	proSvc := ProductService{s.Ctx}
+	proMap, err := proSvc.GetOpmProductMap()
+	if err != nil {
+		return nil, 0, err
+	}
+
 	//查询翻译
 	typeLangMap, err := iotredis.GetClient().HGetAll(context.Background(), iotconst.HKEY_LANGUAGE_DATA_PREFIX+iotconst.LANG_T_PM_PRODUCT_TYPE).Result()
 	if typeLangMap == nil {
@@ -181,7 +187,7 @@ func (s ProductTypeService) GetProductTree(filter entitys.AppQueryProductTypeFor
 		}
 	}
 	//获取产品分类链表树
-	tree := s.convertTreeData(lang, "0", ret.List, pVos)
+	tree := s.convertTreeData(lang, "0", ret.List, pVos, proMap)
 	return tree, total, err
 }
 
@@ -207,6 +213,13 @@ func (s ProductTypeService) GetProductTreeV3(filter entitys.AppQueryProductTypeF
 	if productRet.Code != 200 {
 		return nil, 0, errors.New(productRet.Msg)
 	}
+
+	proSvc := ProductService{s.Ctx}
+	proMap, err := proSvc.GetOpmProductMap()
+	if err != nil {
+		return nil, 0, err
+	}
+
 	//查询翻译
 	typeLangMap, err := iotredis.GetClient().HGetAll(context.Background(), iotconst.HKEY_LANGUAGE_DATA_PREFIX+iotconst.LANG_T_PM_PRODUCT_TYPE).Result()
 	if typeLangMap == nil {
@@ -255,11 +268,12 @@ func (s ProductTypeService) GetProductTreeV3(filter entitys.AppQueryProductTypeF
 		}
 	}
 	//获取产品分类链表树
-	tree := s.convertTreeData(lang, "0", ret.List, pVos)
+	tree := s.convertTreeData(lang, "0", ret.List, pVos, proMap)
 	return tree, total, err
 }
 
-func (s ProductTypeService) convertTreeData(lang string, pid string, areaList []*protosService.TPmProductTypeRequest, pVos map[int64][]*entitys.TPmProductVo) []*entitys.TPmProductTypeVo {
+func (s ProductTypeService) convertTreeData(lang string, pid string, areaList []*protosService.TPmProductTypeRequest,
+	pVos map[int64][]*entitys.TPmProductVo, proMap map[int64][]*protosService.OpmProduct) []*entitys.TPmProductTypeVo {
 
 	treeList := func() []*entitys.TPmProductTypeVo {
 		treeList := []*entitys.TPmProductTypeVo{}
@@ -299,9 +313,23 @@ func (s ProductTypeService) convertTreeData(lang string, pid string, areaList []
 						if c.Products == nil || len(c.Products) == 0 {
 							continue
 						}
-						newChildren = append(newChildren, c)
+						//proMap 检查品类下面是否有产品
+						newPmPros := []*entitys.TPmProductVo{}
+						for _, p := range c.Products {
+							if v, ok := proMap[iotutil.ToInt64(p.Id)]; ok {
+								if len(v) == 0 {
+									continue
+								}
+								newPmPros = append(newPmPros, p)
+							}
+						}
+						if len(newPmPros) > 0 {
+							newChildren = append(newChildren, c)
+						}
 					}
-					treeList = append(treeList, newChildren...)
+					if len(newChildren) > 0 {
+						treeList = append(treeList, newChildren...)
+					}
 				}
 			}
 		}

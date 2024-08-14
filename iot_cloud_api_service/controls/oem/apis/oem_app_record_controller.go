@@ -6,17 +6,18 @@ import (
 	"cloud_platform/iot_cloud_api_service/controls"
 	"cloud_platform/iot_cloud_api_service/controls/common/apis"
 	"cloud_platform/iot_cloud_api_service/controls/oem/entitys"
-	"cloud_platform/iot_cloud_api_service/controls/oem/services"
 	apiservice "cloud_platform/iot_cloud_api_service/controls/oem/services"
 	"cloud_platform/iot_common/iotgin"
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotutil"
+	"context"
 	"errors"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"path"
-
-	"github.com/gin-gonic/gin"
 )
+
+var OSS_OEMAPP_PLIST_DIR = "plist"
 
 var OemAppBuildRecordcontroller OemAppBuildRecordController
 
@@ -81,6 +82,7 @@ func (OemAppBuildRecordController) BuildFinishNotify(c *gin.Context) {
 	if form != nil {
 		if errForm != nil {
 			iotgin.ResErrCli(c, errForm)
+			return
 		}
 		files := form.File["pkgFile"]
 		if len(files) > 0 {
@@ -105,10 +107,26 @@ func (OemAppBuildRecordController) BuildFinishNotify(c *gin.Context) {
 				} else {
 					pkgAabOrPlistUrl = f2.FullPath
 				}
-			} else if ext == ".plist" {
-
+			} else if ext == ".ipa" {
+				f2, err := apis.SaveFileToQiniuStaticOSS(c, files2[0], "oemapp_package", "apk", "zip", "ipa", "aab", "plist")
+				if err != nil {
+					iotgin.ResErrCli(c, err)
+					return
+				} else {
+					pkgUrl = f2.FullPath
+				}
+			} else {
+				iotgin.ResErrCli(c, errors.New("收到未知的文件"))
+				return
+			}
+		}
+		plist := form.File["manifestFile"]
+		if len(plist) > 0 {
+			//获取上传文件的后缀名
+			ext := path.Ext(plist[0].Filename)
+			if ext == ".plist" {
 				//创建文件夹
-				errMkDir := iotutil.MkDir(services.DirTempBuildPlistRecord)
+				errMkDir := iotutil.MkDir(apiservice.DirTempBuildPlistRecord)
 				if errMkDir != nil {
 					iotgin.ResErrCli(c, errMkDir)
 					return
@@ -116,14 +134,14 @@ func (OemAppBuildRecordController) BuildFinishNotify(c *gin.Context) {
 
 				//组合文件路径[上传的plist文件保存到服务器的路径(带文件名)]
 				fileId := buildId + "_" + iotutil.GetRandomString(6)
-				plistPathName := services.DirTempBuildPlistRecord + "/" + fileId + ext
+				plistPathName := apiservice.DirTempBuildPlistRecord + "/" + fileId + ext
 				//生成新的plist文件名
 				plistNewName := fileId + "_new" + ext
 				//生成新的plist文件路径(带文件名)
-				plistNewPathName := services.DirTempBuildPlistRecord + "/" + plistNewName
+				plistNewPathName := apiservice.DirTempBuildPlistRecord + "/" + plistNewName
 
 				//保存原始上传文件
-				errUpload := c.SaveUploadedFile(files2[0], plistPathName)
+				errUpload := c.SaveUploadedFile(plist[0], plistPathName)
 				if errUpload != nil {
 					iotgin.ResErrCli(c, errUpload)
 					return
@@ -146,6 +164,7 @@ func (OemAppBuildRecordController) BuildFinishNotify(c *gin.Context) {
 				//保存替换后的内容
 				bby := bytes.NewBufferString(plistConent)
 				iotutil.FileCreate(*bby, plistNewPathName)
+
 				//把替换后的内容上传到oss
 				urlPlist, errOss := apis.UploadStatic(config.Global.Oss.UseOss, plistNewName, plistNewPathName)
 				if errOss != nil {
@@ -154,7 +173,6 @@ func (OemAppBuildRecordController) BuildFinishNotify(c *gin.Context) {
 				}
 				//赋值pkgAabOrPlistUrl 变量
 				pkgAabOrPlistUrl = urlPlist
-
 			} else {
 				iotgin.ResErrCli(c, errors.New("收到未知的文件"))
 				return
@@ -194,6 +212,14 @@ func (OemAppBuildRecordController) BuildFinishNotify(c *gin.Context) {
 		return
 	}
 	iotgin.ResSuccess(c, id)
+}
+
+func GetiOSAppIconUrl(buildId string) string {
+	ret, err := serviceBuild.SetContext(context.Background()).GetIconUrl(buildId)
+	if err != nil {
+		return ""
+	}
+	return ret
 }
 
 // 打开二维码链接内容

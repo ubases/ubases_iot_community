@@ -52,6 +52,12 @@ func RegisterHandler(s micro.Service) error {
 		iotlogger.LogHelper.Errorf("RegisterEmailServiceHandler 错误:%s", err.Error())
 		return err
 	}
+	err = protosService.RegisterContractUsServiceHandler(s.Server(), new(ContractUsServiceHandler))
+	if err != nil {
+		iotlogger.LogHelper.Errorf("RegisterContractUsServiceHandler 错误:%s", err.Error())
+		return err
+	}
+
 	err = protosService.RegisterMsNoticeTemplateServiceHandler(s.Server(), new(MsNoticeTemplateHandler))
 	if err != nil {
 		iotlogger.LogHelper.Errorf("RegisterMsNoticeTemplateServiceHandler 错误:%s", err.Error())
@@ -61,6 +67,12 @@ func RegisterHandler(s micro.Service) error {
 	err = protosService.RegisterSmsServiceHandler(s.Server(), new(SmsServiceHandler))
 	if err != nil {
 		iotlogger.LogHelper.Errorf("RegisterSmsServiceHandler 错误:%s", err.Error())
+		return err
+	}
+
+	err = protosService.RegisterMsNoticeRecordServiceHandler(s.Server(), new(MsNoticeRecordHandler))
+	if err != nil {
+		iotlogger.LogHelper.Errorf("RegisterMsNoticeRecordServiceHandler 错误:%s", err.Error())
 		return err
 	}
 

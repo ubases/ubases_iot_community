@@ -10,7 +10,7 @@ COPY ./conf/device.blacklist /opt/bat/conf/
 COPY ./conf/device.specified /opt/bat/conf/
 COPY ./conf/product.blacklist /opt/bat/conf/
 COPY ./conf/product.specified /opt/bat/conf/
-COPY ./conf/dev/iot-device-simulator.yml /opt/bat/conf/dev/
+COPY ./conf/dev/iot_device_simulator.yml /opt/bat/conf/dev/
 COPY ./iot_device_simulator /opt/bat/
 RUN chmod ugo+x ./iot_device_simulator
 

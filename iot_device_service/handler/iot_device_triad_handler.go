@@ -159,6 +159,22 @@ func (h *IotDeviceTriadHandler) SetExportCount(ctx context.Context, req *proto.I
 	return nil
 }
 
+// 设备导出数据统计
+func (h *IotDeviceTriadHandler) GetDeviceTriadCount(ctx context.Context, req *proto.IotDeviceTriadCountRequest, resp *proto.IotDeviceTriadCountResponse) error {
+	s := service.IotDeviceTriadSvc{Ctx: ctx}
+	res, err := s.GetDeviceTriadCount(req)
+	if err != nil {
+		resp.Code = ERROR
+		resp.Message = err.Error()
+	} else {
+		resp.Code = SUCCESS
+		resp.Message = "success"
+		resp.Data = res
+	}
+	return nil
+}
+
+
 func (h *IotDeviceTriadHandler) SetResponse(resp *proto.IotDeviceTriadResponse, data *proto.IotDeviceTriad, err error) {
 	if err != nil {
 		resp.Code = ERROR

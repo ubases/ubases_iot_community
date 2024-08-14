@@ -84,15 +84,9 @@ type QueryUser struct {
 
 // 用户返回数据结构
 type UserInfoDto struct {
-	//Id            bson.ObjectId    `json:"_id" bson:"_id"` //用户唯一编号
-	//Appleid       AppleIdLoginInfo `json:"appleid"`
-	//Wechat        WechatLoginInfo  `json:"wechat"`
-	City string `json:"city"`
-	//Defaulthomeid bson.ObjectId    `json:"defaulthomeid"`
-	Email  string `json:"email"`
-	Gender string `json:"gender"`
-	//Homelist      []bson.ObjectId  `json:"homelist"`
-	//Ip string `json:"ip"`
+	City            string  `json:"city"`
+	Email           string  `json:"email"`
+	Gender          string  `json:"gender"`
 	Nickname        string  `json:"nickname"`
 	Phone           string  `json:"phone"`
 	Photo           string  `json:"photo"`
@@ -109,21 +103,17 @@ type UserInfoDto struct {
 
 // 用户信息响应数据结构
 type LoginUserRes struct {
-	//User         AppUserInfo `json:"user"`
-	UserId   string `json:"userId,omitempty"`
-	NickName string `json:"nickname,omitempty"`
-	Phone    string `json:"phone,omitempty"`
-	Photo    string `json:"photo,omitempty"`
-	//Status   int32  `json:"status"`
-	//City          string `json:"city"`
-	Gender        int32  `json:"gender"`
-	Email         string `json:"email,omitempty"`
-	DefaultHomeId string `json:"defaultHomeId,omitempty"`
-	//RegisterRegion   string                   `json:"registerRegion"`
-	UserName         string                 `json:"userName,omitempty"`
+	UserId           string                 `json:"userId"`
+	NickName         string                 `json:"nickname"`
+	Phone            string                 `json:"phone"`
+	Photo            string                 `json:"photo"`
+	Gender           int32                  `json:"gender"`
+	Email            string                 `json:"email"`
+	DefaultHomeId    string                 `json:"defaultHomeId"`
+	UserName         string                 `json:"userName"`
 	SubmitCancelTime int64                  `json:"submitCancelTime,omitempty"` // 原注销提交时间，前端提示使用
 	AccountCasser    bool                   `json:"accountCasser,omitempty"`
-	ThirdPartyLogin  AppUserThirdPartyLogin `json:"thirdPartyLogin,omitempty"` //第三方登录
+	ThirdPartyLogin  AppUserThirdPartyLogin `json:"thirdPartyLogin"` //第三方登录
 	Token            string                 `json:"token,omitempty"`
 	RefreshToken     string                 `json:"refreshToken,omitempty"`
 	ExpiresAt        int64                  `json:"expiresAt,omitempty"`
@@ -137,10 +127,9 @@ type LoginUserRes struct {
 	CountryName      string                 `json:"countryName"`           //国家名称
 	ProvinceName     string                 `json:"provinceName"`          //省份名称
 	CityName         string                 `json:"cityName"`              //城市名称
-	//ChannelId        string                 `json:"channelId"`             //第三方渠道Id
-	PasswordNotSet bool `json:"passwordNotSet"` //密码未设置
-	ShowVconsole   bool `json:"showVconsole"`   //显示调试
-	IsGuest        bool `json:"isGuest"`        //是否游客
+	PasswordNotSet   bool                   `json:"passwordNotSet"`        //密码未设置
+	ShowVconsole     bool                   `json:"showVconsole"`          //显示调试
+	IsGuest          bool                   `json:"isGuest"`               //是否游客
 }
 
 func (s *LoginUserRes) SetShowVconsole(showVconsole bool) *LoginUserRes {
@@ -154,16 +143,12 @@ func (s *LoginUserRes) SetIsGuest(isGuest bool) *LoginUserRes {
 }
 
 type AppUserInfo struct {
-	UserId   string `json:"userId"`
-	NickName string `json:"nickname"`
-	Phone    string `json:"phone"`
-	Photo    string `json:"photo"`
-	//Status   int32  `json:"status"`
-	//City          string `json:"city"`
-	//Gender        int32  `json:"gender"`
-	Email         string `json:"email"`
-	DefaultHomeId string `json:"defaultHomeId"`
-	//RegisterRegion   string                   `json:"registerRegion"`
+	UserId           string                 `json:"userId"`
+	NickName         string                 `json:"nickname"`
+	Phone            string                 `json:"phone"`
+	Photo            string                 `json:"photo"`
+	Email            string                 `json:"email"`
+	DefaultHomeId    string                 `json:"defaultHomeId"`
 	UserName         string                 `json:"userName"`
 	SubmitCancelTime int64                  `json:"submitCancelTime"` // 原注销提交时间，前端提示使用
 	AccountCasser    bool                   `json:"accountCasser"`
@@ -171,9 +156,10 @@ type AppUserInfo struct {
 }
 
 type AppUserThirdPartyLogin struct {
-	AppleId AppUserThirdPartyLoginInfo `json:"appleId,omitempty"`
-	Wechat  AppUserThirdPartyLoginInfo `json:"wechat,omitempty"`
-	Guest   AppUserThirdPartyLoginInfo `json:"guest,omitempty"`
+	AppleId     AppUserThirdPartyLoginInfo `json:"appleId,omitempty"`
+	Wechat      AppUserThirdPartyLoginInfo `json:"wechat,omitempty"`
+	Guest       AppUserThirdPartyLoginInfo `json:"guest,omitempty"`
+	MiniProgram AppUserThirdPartyLoginInfo `json:"miniProgram,omitempty"`
 }
 
 func (s *AppUserThirdPartyLoginInfo) Set(third *protosService.UcUserThird) AppUserThirdPartyLoginInfo {

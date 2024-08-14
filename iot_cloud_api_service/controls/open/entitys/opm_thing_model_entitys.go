@@ -157,11 +157,19 @@ type StringDataSpecs struct {
 }
 
 // 枚举型DataSpaceList（ENUM）
+//type EnumDataSpaces struct {
+//	DataType string `json:"dataType,omitempty"` // 数据类型
+//	Name     string `json:"name,omitempty"`     // 名称
+//	Value    int64  `json:"value,omitempty"`    // 数值
+//	Custom   int32  `json:"custom,omitempty"`   // 是否是自定义功能。1：是 0：否
+//}
+
 type EnumDataSpaces struct {
 	DataType string `json:"dataType,omitempty"` // 数据类型
 	Name     string `json:"name,omitempty"`     // 名称
 	Value    int64  `json:"value,omitempty"`    // 数值
 	Custom   int32  `json:"custom,omitempty"`   // 是否是自定义功能。1：是 0：否
+	Desc     string `json:"desc,omitempty"`     // 描述
 }
 
 // 布尔型BoolDataSpaces（BOOL）

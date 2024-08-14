@@ -150,6 +150,10 @@ message OpmProduct {
     int32 isShowImg = 139;
     string styleLinkage = 140;
 
+    int32 IsDemoProduct = 141;
+
+    //是否APP查詢
+    bool isAppQuery = 142;
 }
 
 message OpmProductFilter {
@@ -260,6 +264,8 @@ message OpmProductFilter {
 
     //APP面板类型（=1 公版面板 =2 Studio面板 =3 自定义面板）
     int32 appPanelType = 126;
+
+    int32 IsDemoProduct = 127;
 }
 
 message OpmProductListRequest {
@@ -359,6 +365,8 @@ message PmModuleVo {
     string versionId = 116; //版本号编号
 
     string firmwareKey = 117;
+
+    string firmwareNameEn = 118;
 }
 
 message PmModuleVoResponse {
@@ -499,6 +507,15 @@ message AppOpmProduct {
     int64 baseProductId = 105;
 
     bool IsCheckTestAccount = 106;
+
+    //是否APP查詢
+    bool isAppQuery = 107;
+
+    //APP KEy
+    string appKey = 108;
+
+    //租户Id
+    string tenantId = 109;
 }
 
 message OpmProductAllDetails {
@@ -547,3 +564,34 @@ message ListsByProductIdsRequest {
     repeated int64 productIds = 101;
     repeated string productKeys = 102;
 }
+
+message CreateDemoProductRequest {
+    int64 BaseProductId = 101; //产品类型
+    int64 userId = 102;//用户Id
+    int64 controlPanelId = 103;
+    string tenantId = 104;
+}
+
+message CreateDemoProductResponse {
+    int32 code = 101;
+    string message = 102;
+    int64 total = 103;
+    OpmProduct data = 104;
+}
+
+message ProductPanelInfoResponse {
+    int32 code = 101;
+    string message = 102;
+    int64 total = 103;
+    repeated ProductPanelInfoItem data = 104;
+}
+message ProductPanelInfoItem {
+    int64 productId = 101;
+    string productKey = 102;
+    string panelId = 103;
+    int32 panelType = 104;
+    string panelCode = 105;
+    string panelKey = 106;
+}
+
+

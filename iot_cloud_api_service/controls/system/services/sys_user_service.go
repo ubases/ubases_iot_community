@@ -523,24 +523,12 @@ func (s SysUserService) UpdateUser(req entitys.UserCreateReq) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return iotutil.ToString(userid), err
-}
 
-func (s SysUserService) UpdateStatus(req entitys.UserStatusReq) (string, error) {
-	userid := iotutil.ToInt64(req.Id)
-
-	res, err := rpc.ClientSysUserService.UpdateFields(context.Background(), &protosService.SysUserUpdateFieldsRequest{
-		Fields: []string{"user_status"},
-		Data: &protosService.SysUser{
-			UserStatus: req.UserStatus,
-			Id:         req.Id,
-		},
-	})
-	if err != nil {
-		return "", err
-	}
-	if res.Code != 200 {
-		return "", errors.New(res.Message)
+	//如果用户是禁用，则删除用户所有token
+	//清除用户token
+	//如果为禁用用户
+	if req.UserStatus == 2 {
+		controls.ClearTokenByUserId(userid)
 	}
 	return iotutil.ToString(userid), err
 }
@@ -676,6 +664,8 @@ func (s SysUserService) DeleteUser(req entitys.DeleteCommonQuery) error {
 				err = errPost
 				break
 			}
+			//清除用户token
+			controls.ClearTokenByUserId(id)
 		}
 
 	}
@@ -805,7 +795,7 @@ func (s SysUserService) ForgetPassword(req entitys.UserResetPasswordNoTokenReq) 
 }
 
 // 发送验证码(会验证用户名是否存在) 忘记密码和登录的时候使用.
-func (s SysUserService) SendVerificationCodeForExists(userName, lang string, codeType int32) (string, error) {
+func (s SysUserService) SendVerificationCodeForExists(userName, tenantId, lang string, codeType int32) (string, error) {
 	res, err := rpc.ClientSysUserService.Find(context.Background(), &protosService.SysUserFilter{
 		UserName:   userName,
 		UserStatus: 1,
@@ -823,11 +813,11 @@ func (s SysUserService) SendVerificationCodeForExists(userName, lang string, cod
 	if len(res.Data) == 0 {
 		return "", errors.New("用户名不存在")
 	}
-	return s.SendVerificationCode(userName, lang, codeType)
+	return s.SendVerificationCode(userName, tenantId, lang, codeType)
 }
 
 // 发送验证码
-func (s SysUserService) SendVerificationCode(userName, lang string, codeType int32) (string, error) {
+func (s SysUserService) SendVerificationCode(userName, tenantId, lang string, codeType int32) (string, error) {
 	index := strings.Index(userName, "@")
 	code := iotutil.GetRandomNumber(6) //租户Id
 	if index > 0 {
@@ -837,6 +827,7 @@ func (s SysUserService) SendVerificationCode(userName, lang string, codeType int
 			Code:     code,
 			Lang:     lang,
 			TplType:  codeType,
+			TenantId: tenantId,
 		})
 		if err != nil {
 			return "", err
@@ -852,6 +843,7 @@ func (s SysUserService) SendVerificationCode(userName, lang string, codeType int
 			Lang:        lang,
 			TplType:     codeType,
 			PhoneType:   1,
+			TenantId:    tenantId,
 		})
 		if err != nil {
 			return "", err

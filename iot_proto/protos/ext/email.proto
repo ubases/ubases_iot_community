@@ -20,6 +20,8 @@ message SendEmailUserCodeRequest {
   string code = 103;
   string lang = 104;
   int32 tplType = 105;
+  string tenantId = 106;
+  string appKey = 107;
 }
 
 message SendEmailUserLoggedInRequest {
@@ -27,12 +29,16 @@ message SendEmailUserLoggedInRequest {
   string userName = 102;
   string ip = 103;
   string lang = 104;
+  string tenantId = 105;
+  string appKey = 106;
 }
 
 message SendEmailUserRegisterRequest {
   string email = 101;
   string userName = 102;
   string lang = 103;
+  string tenantId = 104;
+  string appKey = 105;
 }
 
 message SendEmailResponse {

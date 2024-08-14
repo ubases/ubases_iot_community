@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"cloud_platform/iot_system_service/service"
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_proto/protos/protosService"
+	"cloud_platform/iot_system_service/service"
 	"context"
 	"errors"
 
@@ -92,7 +92,6 @@ func (CasbinRuleExtHandler) AddUserRole(ctx context.Context, request *protosServ
 	if !b {
 		return errors.New("add user role error")
 	}
-
 	return nil
 }
 

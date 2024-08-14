@@ -96,6 +96,8 @@ func (t *tOemAppFunctionConfig) WithContext(ctx context.Context) *tOemAppFunctio
 
 func (t tOemAppFunctionConfig) TableName() string { return t.tOemAppFunctionConfigDo.TableName() }
 
+func (t tOemAppFunctionConfig) Alias() string { return t.tOemAppFunctionConfigDo.Alias() }
+
 func (t *tOemAppFunctionConfig) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

@@ -2,6 +2,7 @@ package router
 
 import (
 	"cloud_platform/iot_cloud_api_service/controls"
+	apisOemApp "cloud_platform/iot_cloud_api_service/controls/oem/apis"
 	"cloud_platform/iot_cloud_api_service/controls/open/apis"
 	apis2 "cloud_platform/iot_cloud_api_service/controls/product/apis"
 
@@ -12,6 +13,7 @@ func RegisterRouter(e *gin.Engine) {
 	webApiPrefix := "/v1/platform/web/open"
 	admin := e.Group(webApiPrefix)
 
+	admin.GET("/test", apis.OpenUsercontroller.GetTest)
 	admin.POST("/register", apis.OpenUsercontroller.Register)
 	admin.POST("/forgetPassword", apis.OpenUsercontroller.ForgetPassword)
 	admin.POST("/login", apis.OpenUsercontroller.Login)
@@ -111,6 +113,9 @@ func RegisterRouter(e *gin.Engine) {
 
 	//我的产品列表
 	admin.POST("/product/list", apis.Productcontroller.QueryList)
+	admin.POST("/product/platformList", apis.Productcontroller.QueryListToPlatform)
+	admin.POST("/product/guideCheck", apis.OpenUsercontroller.GuideCheck)
+	admin.POST("/product/setHasGuided", apis.OpenUsercontroller.SetHasGuided)
 	admin.GET("/product/langList", apis.Productcontroller.QueryLangList)
 	//产品详情
 	admin.GET("/product/baseDetail/:id", apis.Productcontroller.QueryDetail)
@@ -141,6 +146,7 @@ func RegisterRouter(e *gin.Engine) {
 	//第二步：
 	//	查询标准功能/自定义功能
 	admin.GET("/product/funcList", apis.Productcontroller.QueryProductThingModel)
+	admin.GET("/product/faultFuncList", apis.Productcontroller.QueryProductFaultThingModel)
 	admin.GET("/product/langFuncList", apis.Productcontroller.QueryProductThingModelAndLang)
 	//admin.GET("/product/controlPanelLang", apis.Productcontroller.QueryControlPanelLang)
 	admin.GET("/controlPanel/langList", apis.Productcontroller.ControlPanelCustomResource)
@@ -175,6 +181,8 @@ func RegisterRouter(e *gin.Engine) {
 	admin.POST("/product/selectModule", apis.Productcontroller.SaveProductModule)
 	admin.POST("/product/selectCustomerFirmware", apis.Productcontroller.SaveProductFirmware)
 	admin.POST("/product/removeCustomerFirmware", apis.Productcontroller.RemoveProductFirmware)
+	admin.POST("/product/removeCloudFirmware", apis.Productcontroller.RemoveProductFirmware)
+
 	// 获取固件类型
 	admin.GET("/product/firmwareTypeList", apis.Productcontroller.QueryProductFirmwareType)
 	// 更换固件版本
@@ -186,6 +194,8 @@ func RegisterRouter(e *gin.Engine) {
 	admin.GET("/product/controlPanelList", apis.Productcontroller.QueryControlPanelList)
 	// 选择面板
 	admin.POST("/product/selectControlPanel", apis.Productcontroller.SaveProductControlPanel)
+	// 取消面板更新提醒
+	admin.POST("/product/cancelReminder", apis.Productcontroller.CancelReminder)
 	//第五步：
 	//开发完成查询
 	admin.GET("/product/completeDevelopDetailed", apis.Productcontroller.QueryCompleteDevelopDetail)
@@ -201,6 +211,8 @@ func RegisterRouter(e *gin.Engine) {
 	admin.POST("/product/uploadTestReport", apis.Productcontroller.UploadTestReport)
 	admin.GET("/product/getTestReportFile", apis.Productcontroller.GetTestReport)
 	//测试用例模板下载
+	//v1/platform/web/template/testCaseTpl/download
+	//admin.GET("/template/testCaseTpl/download", apis.TestcaseTemplatecontroller.GetTestReportTemplate)
 
 	admin.GET("/firmware/changeVersionList", apis2.FirmwareVersioncontroller.QueryChangeVersionList)
 	admin.GET("/firmware/changeCustomVersionList", apis.FirmwareVersioncontroller.QueryCustomEnableList)
@@ -276,6 +288,9 @@ func RegisterRouter(e *gin.Engine) {
 	admin.POST("/sceneTemplate/delete/:id", apis.SceneTemplatecontroller.Delete)
 	admin.POST("/sceneTemplate/setStatus", apis.SceneTemplatecontroller.SetStatus)
 
+	// 开放平台oem app模板列表
+	admin.POST("/oem/app/template/list", apisOemApp.OemAppTemplatecontroller.List)
+
 	//产品说明书
 	admin.POST("/manual/add", apis.ProductManualControl.CreateProductManual)
 	admin.POST("/manual/edit", apis.ProductManualControl.UpdateProductManual)
@@ -294,6 +309,10 @@ func RegisterRouter(e *gin.Engine) {
 	admin.POST("/panel/delete/:id", apis.Panelcontroller.Delete)
 	admin.GET("/panel/detail/:id", apis.Panelcontroller.QueryDetail)
 	admin.POST("/panel/list", apis.Panelcontroller.QueryList)
+
+	admin.POST("/panel/addCustom", apis.Panelcontroller.AddCustom)
+	admin.POST("/panel/editCustom", apis.Panelcontroller.EditCustom)
+
 	//社区产品
 	admin.POST("/community/product/add", apis.CommunityProductcontroller.Add)
 	admin.POST("/community/product/edit", apis.CommunityProductcontroller.Edit)
@@ -322,4 +341,11 @@ func RegisterRouter(e *gin.Engine) {
 	admin.POST("/productTestAccount/add", apis.ProductTestAccountcontroller.Add)
 	admin.POST("/productTestAccount/list", apis.ProductTestAccountcontroller.QueryList)
 	admin.POST("/productTestAccount/delete/:id", apis.ProductTestAccountcontroller.Delete)
+
+	//APP绑定产品
+	//product绑定APP
+	admin.GET("/product/bindAppList", apis.ProductAppRelationcontroller.BindAppList)
+	admin.POST("/product/productBindApp", apis.ProductAppRelationcontroller.ProductBindApp)
+	//admin.GET("/product/bindAppList", apis.ProductAppRelationcontroller.BindAppList)
+	admin.POST("/product/appBindProduct", apis.ProductAppRelationcontroller.ProductBindApp)
 }

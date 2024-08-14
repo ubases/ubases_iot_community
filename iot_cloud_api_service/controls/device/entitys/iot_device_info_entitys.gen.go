@@ -52,6 +52,9 @@ type IotDeviceInfoEntitys struct {
 	Account     string `json:"account"`
 
 	ExportCount int32 `json:"exportCount"` //导出次数
+	PlatformCode string `json:"platformCode"` //平台编码
+	PlatformName string `json:"platformName"` //平台名称
+	ExportList []string `json:"exportList"` //导出历史时间列表
 }
 
 // 查询条件
@@ -85,7 +88,9 @@ type IotDeviceInfoQueryObj struct {
 	Developer        string      `json:"developer"`        //开发者账号
 	IsQueryTriadData bool        `json:"isQueryTriadData"` //是否查询三元组数据
 	IsExport         bool        `json:"isExport"`         //是否导出数据
+	IsQueryExport         int32        `json:"isQueryExport"`         //是否导出数据
 	ExportCount      int32       `json:"exportCount"`      // 导出数量
+	PlatformCode      string       `json:"platformCode"`      // 平台编码
 }
 
 // IotDeviceInfoFilter，查询条件，字段请根据需要自行增减
@@ -101,6 +106,15 @@ type IotDeviceInfoDetails struct {
 	DeviceInfo   *IotDeviceInfoBasicInfo  `json:"deviceInfo"`   // 设备基础信息
 	ActiveInfo   *IotDeviceInfoActiveInfo `json:"activeInfo"`   // 设备激活信息
 	DeviceStatus []*IotDeviceInfoStatus   `json:"deviceStatus"` // 设备状态信息
+	FirmwareList []*DeviceFirmwares `json:"firmwareList"`
+}
+
+// 设备固件列表
+type DeviceFirmwares struct {
+	Name string `json:"name"`//固件名称
+	Type int32 `json:"type"`//固件类型
+	Key string `json:"key"`//固件Key
+	Version string `json:"version"`//固件版本
 }
 
 type IotDeviceInfoBasicInfo struct {

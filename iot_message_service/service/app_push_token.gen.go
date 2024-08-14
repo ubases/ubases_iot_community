@@ -51,6 +51,18 @@ func (s *AppPushTokenSvc) CreateAppPushToken(req *proto.AppPushToken) (*proto.Ap
 		logger.Errorf("CreateAppPushToken error : %s", err.Error())
 		return nil, err
 	}
+
+	if req.UserId != 0 {
+		//如果有用户ID，则token于用户的关系
+		userSvc := AppPushTokenUserSvc{Ctx: s.Ctx}
+		userSvc.CreateAppPushTokenUser(&proto.AppPushTokenUser{
+			UserId:    req.UserId,
+			AppPushId: req.AppPushId,
+			AppKey:    req.AppKey,
+			TenantId:  req.TenantId,
+			RegionId:  req.RegionId,
+		})
+	}
 	return req, err
 }
 

@@ -6,7 +6,6 @@ package entitys
 
 import (
 	proto "cloud_platform/iot_proto/protos/protosService"
-	"errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
 )
@@ -26,12 +25,6 @@ type OpmProductTestAccountEntitys struct {
 
 // 新增参数非空检查
 func (s *OpmProductTestAccountEntitys) AddCheck() error {
-	if s.Account == "" {
-		return errors.New("account not found")
-	}
-	if s.ProductId == 0 {
-		return errors.New("productId  not found")
-	}
 	return nil
 }
 
@@ -64,8 +57,8 @@ type OpmProductTestAccountFilter struct {
 	TenantId       string    `json:"tenantId"`
 	Account        string    `json:"account,omitempty"`
 	UserId         int64     `json:"userId,string,omitempty"`
-	CreatedBy  int64     `json:"createdBy,string,omitempty"`
-	CreatedAt  time.Time `json:"createdAt,omitempty"`
+	CreatedBy      int64     `json:"createdBy,string,omitempty"`
+	CreatedAt      time.Time `json:"createdAt,omitempty"`
 }
 
 // 实体转pb对象

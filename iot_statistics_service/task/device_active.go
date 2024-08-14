@@ -121,7 +121,7 @@ func hourActiveStatistics(cxt context.Context, start time.Time) error {
 	var datas []ActiveData
 	t := deviceOrm.Use(deviceDB).TIotDeviceInfo
 	if err := t.WithContext(cxt).Select(t.TenantId, t.ProductKey, t.TenantId.Count().As("total")).
-		Where(t.LastActivatedTime.Gte(start), t.LastActivatedTime.Lt(start.Add(time.Hour)), t.UseType.Eq(0), t.TenantId.IsNotNull()).
+		Where(t.LastActivatedTime.Gte(start), t.LastActivatedTime.Lt(start.Add(time.Hour)) /*t.UseType.Eq(0), */, t.TenantId.IsNotNull()).
 		Group(t.TenantId, t.ProductKey).Scan(&datas); err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func DayActiveStatistics(cxt context.Context, start time.Time) error {
 	var datas []ActiveData
 	t := deviceOrm.Use(deviceDB).TIotDeviceInfo
 	if err := t.WithContext(cxt).Select(t.TenantId, t.ProductKey, t.TenantId.Count().As("total")).
-		Where(t.LastActivatedTime.Gte(start), t.LastActivatedTime.Lt(start.AddDate(0, 0, 1)), t.UseType.Eq(0), t.TenantId.IsNotNull()).
+		Where(t.LastActivatedTime.Gte(start), t.LastActivatedTime.Lt(start.AddDate(0, 0, 1)) /*t.UseType.Eq(0),*/, t.TenantId.IsNotNull()).
 		Group(t.TenantId, t.ProductKey).Scan(&datas); err != nil {
 		return err
 	}
@@ -211,7 +211,7 @@ func MonthActiveStatistics(cxt context.Context, start time.Time) error {
 	var datas []ActiveData
 	t := deviceOrm.Use(deviceDB).TIotDeviceInfo
 	if err := t.WithContext(cxt).Select(t.TenantId, t.ProductKey, t.TenantId.Count().As("total")).
-		Where(t.LastActivatedTime.Gte(start), t.LastActivatedTime.Lt(start.AddDate(0, 1, 0)), t.UseType.Eq(0), t.TenantId.IsNotNull()).
+		Where(t.LastActivatedTime.Gte(start), t.LastActivatedTime.Lt(start.AddDate(0, 1, 0)) /*t.UseType.Eq(0),*/, t.TenantId.IsNotNull()).
 		Group(t.TenantId, t.ProductKey).Scan(&datas); err != nil {
 		return err
 	}
@@ -251,17 +251,33 @@ func DeviceDataSum() error {
 	}
 	var datas []ActiveData
 	t := deviceOrm.Use(deviceDB).TIotDeviceInfo
-	if err := t.WithContext(context.Background()).Select(t.TenantId, t.ProductKey, t.TenantId.Count().As("total")).
-		Where(t.UseType.Eq(0), t.TenantId.IsNotNull()).
+	if err := t.WithContext(context.Background()).Select(t.TenantId, t.ProductKey, t.Id.Count().As("total")).
+		Where( /*t.UseType.Eq(0),*/ t.TenantId.IsNotNull()).
 		Group(t.TenantId, t.ProductKey).Scan(&datas); err != nil {
 		return err
+	}
+
+	var faultData []ActiveData
+	tf := deviceOrm.Use(deviceDB).TIotDeviceFault
+	if err := tf.WithContext(context.Background()).Select(tf.TenantId, tf.ProductKey, tf.Id.Count().As("total")).
+		Where(tf.TenantId.IsNotNull()).
+		Group(tf.TenantId, tf.ProductKey).Scan(&faultData); err != nil {
+		return err
+	}
+	mapFaultData := make(map[string]int64)
+	for _, v := range faultData {
+		mapFaultData[v.TenantId+v.ProductKey] = v.Total
 	}
 	//fixme 统计设备故障数据
 	if len(datas) > 0 {
 		now := time.Now()
 		list := make([]*statisticsModel.TDeviceDataSum, 0, len(datas))
 		for _, v := range datas {
-			obj := statisticsModel.TDeviceDataSum{TenantId: v.TenantId, ProductKey: v.ProductKey, ActiveSum: v.Total, UpdatedAt: now}
+			var faultTotal int64
+			if count, ok := mapFaultData[v.TenantId+v.ProductKey]; ok {
+				faultTotal = count
+			}
+			obj := statisticsModel.TDeviceDataSum{TenantId: v.TenantId, ProductKey: v.ProductKey, ActiveSum: v.Total, FaultSum: faultTotal, UpdatedAt: now}
 			list = append(list, &obj)
 		}
 		var err error

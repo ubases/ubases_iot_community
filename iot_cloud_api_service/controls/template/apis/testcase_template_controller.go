@@ -3,11 +3,13 @@ package apis
 import (
 	"cloud_platform/iot_cloud_api_service/controls"
 	"cloud_platform/iot_cloud_api_service/controls/common/apis"
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/template/entitys"
 	apiservice "cloud_platform/iot_cloud_api_service/controls/template/services"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"errors"
 	"fmt"
 	"net/url"
@@ -135,6 +137,9 @@ func (TplTestcaseTemplateController) Edit(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
+	if req.TplFile != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTTplTestcaseTemplate, iotutil.ToString(req.Id), req.TplFile)
+	}
 	iotgin.ResSuccess(c, id)
 }
 
@@ -177,6 +182,9 @@ func (ct *TplTestcaseTemplateController) Add(c *gin.Context) {
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
+	}
+	if req.TplFile != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTTplTestcaseTemplate, iotutil.ToString(req.Id), req.TplFile)
 	}
 	iotgin.ResSuccess(c, id)
 }

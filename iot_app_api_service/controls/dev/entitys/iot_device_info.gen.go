@@ -64,12 +64,16 @@ type CurrentIotDeviceInfo struct {
 	Props            map[string]TslInfo     `json:"tsl"`                                                          //
 	DeviceVersion    string                 `json:"version"`                                                      //
 	DeviceMcuVersion string                 `json:"mcuVersion"`                                                   //
+	DeviceBtVersion    string                 `json:"btVersion"`                                                      //
+	DeviceZigbeeVersion string                 `json:"zigbeeVersion"`                                                   //
+	Extends []map[string]interface{} `json:"extends"`
 	DeviceType       int32                  `json:"devType" 													//1-用户设备，2-共享设备 `
 	BelongUserName   string                 `json:"belongUserName"` //用户昵称
 	ReceiveShareId   string                 `json:"receiveShareId"` //接受共享id
 	IsShowImg        bool                   `json:"isShowImg"`      //显示图片
 	PanelProImg      string                 `json:"panelProImg"`    //面板产品图片
 	StyleLinkage     map[string]interface{} `json:"styleLinkage"`   //面板交互样式
+	PanelCode string `json:"panelCode"`
 }
 
 type TslInfo struct {
@@ -239,6 +243,17 @@ func CurrentDeviceInfo_pb2db(src *proto.CurrentIotDeviceInfo) *CurrentIotDeviceI
 		IsShowImg:        iotutil.IntToBoolean(src.IsShowImg),
 		PanelProImg:      src.PanelProImg,
 	}
+	if newDeviceStatus != nil {
+		if v, ok := newDeviceStatus["extands"]; ok {
+			iotutil.JsonToStruct(iotutil.ToString(v), dbObj.Extends)
+		}
+		if v, ok := newDeviceStatus["zigbeeVer"]; ok {
+			dbObj.DeviceZigbeeVersion = iotutil.ToString(v)
+		}
+		if v, ok := newDeviceStatus["btVer"]; ok {
+			dbObj.DeviceBtVersion = iotutil.ToString(v)
+		}
+	}
 	if src.StyleLinkage != "" {
 		dbObj.StyleLinkage, _ = iotutil.JsonToMapErr(src.StyleLinkage)
 	}
@@ -328,6 +343,21 @@ type Addshared struct {
 	Account    string `json:"account"`    //用户信息
 	Type       int32  `json:"type"`       //用户类型 1-手机,2-邮箱
 }
+
+type ReceiveShareRequest struct {
+	Code     string `json:"code"`     //共享邀请码
+}
+
+type GenSharedCode struct {
+	HomeId     int64 `json:"homeId,string"`     //家庭id
+	DevId      string `json:"devId"`      //设备id
+	RoomId     int64 `json:"roomId,string"`     //房间id
+	ProductKey string `json:"productKey"` //设备productKey
+	DevName    string `json:"devName"`    //设备名称
+	UserId int64 `json:"userId,string"` //用户Id
+	UserName string `json:"userName"` //用户Id
+}
+
 
 // 设备共享接收数据表
 type ReceiveShared struct {

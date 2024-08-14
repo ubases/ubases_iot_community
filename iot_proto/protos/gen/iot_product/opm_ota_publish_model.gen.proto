@@ -227,6 +227,13 @@ message CheckOtaVersionResponse {
     UpgradePublishInfo upgradePublish = 105;
 }
 
+message CheckOtaListResponse {
+    int32 code = 101;
+    string message = 102;
+    string batch = 103;
+    repeated CheckOtaVersionResponse upgradeList = 104; //升级对象列表，根据固件类型分组
+}
+
 message OtaPkgInfo {
     bool custom = 104;
     bool isDiff = 105;
@@ -243,6 +250,8 @@ message OtaPkgInfo {
     string mcuVersion = 119;
     string otaState = 120;
     int32 progress = 121;
+    string firmwareKey = 122;//固件Key
+    string firmwareNameEn = 123;
 }
 
 message UpgradePublishInfo {
@@ -262,4 +271,5 @@ message UpgradePublishInfo {
     // 升级时间模式 =1 全天 =2 指定时间
     int32 upgradeTimeMode = 127;
     int64 pubId = 128;
+    string oriVersion = 129;
 }

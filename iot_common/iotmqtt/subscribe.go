@@ -30,6 +30,9 @@ func (m *Message) Retained() bool {
 	return m.message.Retained()
 }
 
+func (m *Message) MessageID() uint16 {
+	return m.message.MessageID()
+}
 func (m *Message) IsDuplicate() bool {
 	return m.message.Duplicate()
 }

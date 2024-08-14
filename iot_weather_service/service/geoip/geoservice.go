@@ -1,8 +1,8 @@
 package geoip
 
 import (
-	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_weather_service/config"
+	"cloud_platform/iot_common/iotlogger"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -100,7 +100,7 @@ func (server *GeoServer) lookupDB(ip string) (*geoip2.City, error) {
 
 func (server *GeoServer) keepDbCurrent(lastModified time.Time) {
 	for {
-		time.Sleep(48 * time.Hour)
+		time.Sleep(1 * time.Hour)
 		db, modifiedTime, err := readDbFromWeb(server.dbURL, lastModified)
 		if err == errNotModified {
 			continue

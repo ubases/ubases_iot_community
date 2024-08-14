@@ -15,13 +15,13 @@ const TableNameTOemApp = "t_oem_app"
 // TOemApp mapped from table <t_oem_app>
 type TOemApp struct {
 	Id             int64  `gorm:"column:id;primaryKey" json:"id"`
-	AppKey         string `gorm:"column:app_key" json:"app_key"`                   // appKey,后台生成
-	AppSecret      string `gorm:"column:app_secret" json:"app_secret"`             // appSecret，后台生成
-	Name           string `gorm:"column:name" json:"name"`                         // app名称
-	Version        string `gorm:"column:version" json:"version"`                   // app当前版本
-	IosPkgName     string `gorm:"column:ios_pkg_name" json:"ios_pkg_name"`         // ios包名
-	AndroidPkgName string `gorm:"column:android_pkg_name" json:"android_pkg_name"` // android包名
-	Channel        string `gorm:"column:channel" json:"channel"`                   // 渠道名
+	AppKey         string `gorm:"column:app_key" json:"appKey"`                  // appKey,后台生成
+	AppSecret      string `gorm:"column:app_secret" json:"appSecret"`            // appSecret，后台生成
+	Name           string `gorm:"column:name" json:"name"`                       // app名称
+	Version        string `gorm:"column:version" json:"version"`                 // app当前版本
+	IosPkgName     string `gorm:"column:ios_pkg_name" json:"iosPkgName"`         // ios包名
+	AndroidPkgName string `gorm:"column:android_pkg_name" json:"androidPkgName"` // android包名
+	Channel        string `gorm:"column:channel" json:"channel"`                 // 渠道名
 	/*
 		状态，要定义数据字典
 		1.配置中:        跳转到第一步
@@ -31,35 +31,35 @@ type TOemApp struct {
 		5.已上架:       跳转到第五步(已经上架页面)
 	*/
 	Status                    int32          `gorm:"column:status" json:"status"`
-	AmapKey                   string         `gorm:"column:amap_key" json:"amap_key"`           // 高德地图key
-	GooglemapKey              string         `gorm:"column:googlemap_key" json:"googlemap_key"` // google地图key
-	Region                    int32          `gorm:"column:region" json:"region"`               // 区域，要定义数据字典
-	CurrentStep               int32          `gorm:"column:current_step" json:"current_step"`   // app当前操作步骤
-	TenantId                  string         `gorm:"column:tenant_id" json:"tenant_id"`         // 租户ID
-	CreatedBy                 int64          `gorm:"column:created_by" json:"created_by"`
-	UpdatedBy                 int64          `gorm:"column:updated_by" json:"updated_by"`
-	CreatedAt                 time.Time      `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt                 time.Time      `gorm:"column:updated_at" json:"updated_at"`
-	DeletedAt                 gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
-	IsListed                  int32          `gorm:"column:is_listed;default:1" json:"is_listed"`                               // 1 未上架过, 2 已上架过(用户删除逻辑判断)
-	NameEn                    string         `gorm:"column:name_en" json:"name_en"`                                             // APP 英文名称
-	AppTemplateId             int64          `gorm:"column:app_template_id" json:"app_template_id"`                             // APP模板编号
-	AppTemplateVersion        string         `gorm:"column:app_template_version" json:"app_template_version"`                   // APP模板版本号
-	AppType                   int32          `gorm:"column:app_type" json:"app_type"`                                           // APP类型（智能生活、智能出行、。。。。字典配置）
-	AppDevType                int32          `gorm:"column:app_dev_type;default:1" json:"app_dev_type"`                         // app开发类型(1 oem, 2 自定义, 3 sdk)
-	AppIconUrl                string         `gorm:"column:app_icon_url" json:"app_icon_url"`                                   // app图标链接
-	IosVersion                string         `gorm:"column:ios_version" json:"ios_version"`                                     // ios最新版本
-	AndroidInterVersion       string         `gorm:"column:android_inter_version" json:"android_inter_version"`                 // android国内最新版本
-	AndroidOuterVersion       string         `gorm:"column:android_outer_version" json:"android_outer_version"`                 // android国外最新版本
-	AppBuildVersion           int32          `gorm:"column:app_build_version" json:"app_build_version"`                         // 构建版本
-	LastBuildTime             time.Time      `gorm:"column:last_build_time" json:"last_build_time"`                             // 最后构建时间
-	LastCertUpdateTime        time.Time      `gorm:"column:last_cert_update_time" json:"last_cert_update_time"`                 // 最后证书配置时间
-	LastAndroidCertUpdateTime time.Time      `gorm:"column:last_android_cert_update_time" json:"last_android_cert_update_time"` // 最后证书配置时间
-	ThemeJson                 string         `gorm:"column:theme_json" json:"theme_json"`                                       // 面板主题设置
-	LastIosCertUpdateTime     time.Time      `gorm:"column:last_ios_cert_update_time" json:"last_ios_cert_update_time"`         // ios证书更新时间
-	IsDefault                 int32          `gorm:"column:is_default" json:"is_default"`                                       // 是否默认数据 影响前端删除按钮的显示
-	LastUiUpdateTime          time.Time      `gorm:"column:last_ui_update_time" json:"last_ui_update_time"`                     // UI更新时间
-	IosTeamId                 string         `gorm:"column:ios_team_id" json:"ios_team_id"`                                     // IOS开发者组织Id
+	AmapKey                   string         `gorm:"column:amap_key" json:"amapKey"`           // 高德地图key
+	GooglemapKey              string         `gorm:"column:googlemap_key" json:"googlemapKey"` // google地图key
+	Region                    int32          `gorm:"column:region" json:"region"`              // 区域，要定义数据字典
+	CurrentStep               int32          `gorm:"column:current_step" json:"currentStep"`   // app当前操作步骤
+	TenantId                  string         `gorm:"column:tenant_id" json:"tenantId"`         // 租户ID
+	CreatedBy                 int64          `gorm:"column:created_by" json:"createdBy"`
+	UpdatedBy                 int64          `gorm:"column:updated_by" json:"updatedBy"`
+	CreatedAt                 time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt                 time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt                 gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"`
+	IsListed                  int32          `gorm:"column:is_listed;default:1" json:"isListed"`                            // 1 未上架过, 2 已上架过(用户删除逻辑判断)
+	NameEn                    string         `gorm:"column:name_en" json:"nameEn"`                                          // APP 英文名称
+	AppTemplateId             int64          `gorm:"column:app_template_id" json:"appTemplateId"`                           // APP模板编号
+	AppTemplateVersion        string         `gorm:"column:app_template_version" json:"appTemplateVersion"`                 // APP模板版本号
+	AppType                   int32          `gorm:"column:app_type" json:"appType"`                                        // APP类型（智能生活、智能出行、。。。。字典配置）
+	AppDevType                int32          `gorm:"column:app_dev_type;default:1" json:"appDevType"`                       // app开发类型(1 oem, 2 自定义, 3 sdk)
+	AppIconUrl                string         `gorm:"column:app_icon_url" json:"appIconUrl"`                                 // app图标链接
+	IosVersion                string         `gorm:"column:ios_version" json:"iosVersion"`                                  // ios最新版本
+	AndroidInterVersion       string         `gorm:"column:android_inter_version" json:"androidInterVersion"`               // android国内最新版本
+	AndroidOuterVersion       string         `gorm:"column:android_outer_version" json:"androidOuterVersion"`               // android国外最新版本
+	AppBuildVersion           int32          `gorm:"column:app_build_version" json:"appBuildVersion"`                       // 构建版本
+	LastBuildTime             time.Time      `gorm:"column:last_build_time" json:"lastBuildTime"`                           // 最后构建时间
+	LastCertUpdateTime        time.Time      `gorm:"column:last_cert_update_time" json:"lastCertUpdateTime"`                // 最后证书配置时间
+	LastAndroidCertUpdateTime time.Time      `gorm:"column:last_android_cert_update_time" json:"lastAndroidCertUpdateTime"` // 最后证书配置时间
+	ThemeJson                 string         `gorm:"column:theme_json" json:"themeJson"`                                    // 面板主题设置
+	LastIosCertUpdateTime     time.Time      `gorm:"column:last_ios_cert_update_time" json:"lastIosCertUpdateTime"`         // ios证书更新时间
+	IsDefault                 int32          `gorm:"column:is_default" json:"isDefault"`                                    // 是否默认数据 影响前端删除按钮的显示
+	LastUiUpdateTime          time.Time      `gorm:"column:last_ui_update_time" json:"lastUiUpdateTime"`                    // UI更新时间
+	IosTeamId                 string         `gorm:"column:ios_team_id" json:"iosTeamId"`                                   // IOS Team ID
 }
 
 // TableName TOemApp's table name

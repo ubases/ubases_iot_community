@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go-micro.dev/v4/logger"
 	"gorm.io/gen/field"
@@ -141,12 +142,11 @@ func (s *OpmProductPanelRelationSvc) BatchCreateOpmProductPanelRelation(req *pro
 		} else {
 			iotlogger.LogHelper.Errorf("获取产品信息失败，ProductId:%v", productId)
 		}
-
-		_, err = tProduct.WithContext(context.Background()).Select(tProduct.StyleLinkage, tProduct.PanelProImg, tProduct.IsShowImg, tProduct.ControlPanelId, tProduct.AppPanelType).
+		_, err = tProduct.WithContext(context.Background()).Select(tProduct.StyleLinkage, tProduct.AppPanelType, tProduct.PanelProImg, tProduct.IsShowImg, tProduct.ControlPanelId).
 			Where(tProduct.Id.Eq(productId)).Updates(model.TOpmProduct{
 			ControlPanelId: panelId,
-			IsShowImg:      isShowImg,
 			AppPanelType:   appPanelType,
+			IsShowImg:      isShowImg,
 			PanelProImg:    panelProImg,
 			StyleLinkage:   styleLinkage,
 		})
@@ -228,11 +228,16 @@ func (s *OpmProductPanelRelationSvc) UpdateOpmProductPanelRelation(req *proto.Op
 	//要更新的字段,不包括主键
 	var updateField []field.Expr
 
+	dbObj := convert.OpmProductPanelRelation_pb2db(req)
 	if req.ProductId != 0 { //整数
 		updateField = append(updateField, t.ProductId)
 	}
 	if req.ControlPanelId != 0 { //整数
 		updateField = append(updateField, t.ControlPanelId)
+	}
+	if req.EditCreatedAt {
+		dbObj.CreatedAt = time.Now()
+		updateField = append(updateField, t.CreatedAt)
 	}
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
@@ -250,7 +255,6 @@ func (s *OpmProductPanelRelationSvc) UpdateOpmProductPanelRelation(req *proto.Op
 		return nil, errors.New("Missing condition")
 	}
 
-	dbObj := convert.OpmProductPanelRelation_pb2db(req)
 	_, err := do.Updates(dbObj)
 	if err != nil {
 		logger.Errorf("UpdateOpmProductPanelRelation error : %s", err.Error())
@@ -374,11 +378,12 @@ func (s *OpmProductPanelRelationSvc) FindByIdOpmProductPanelRelation(req *proto.
 func (s *OpmProductPanelRelationSvc) GetListOpmProductPanelRelation(req *proto.OpmProductPanelRelationListRequest) ([]*proto.OpmProductPanelRelation, int64, error) {
 	// fixme 请检查条件和校验参数
 	var err error
-	t := orm.Use(iotmodel.GetDB()).TOpmProductPanelRelation
-	do := t.WithContext(context.Background())
+	p := orm.Use(iotmodel.GetDB())
+	t := p.TOpmProductPanelRelation
+	tPro := p.TOpmProduct
+	do := t.WithContext(context.Background()).LeftJoin(tPro, tPro.Id.EqCol(t.ProductId))
 	query := req.Query
 	if query != nil {
-
 		if query.Id != 0 { //整数
 			do = do.Where(t.Id.Eq(query.Id))
 		}
@@ -399,7 +404,12 @@ func (s *OpmProductPanelRelationSvc) GetListOpmProductPanelRelation(req *proto.O
 		do = do.Order(orderCol)
 	}
 
-	var list []*model.TOpmProductPanelRelation
+	do = do.Select(t.ALL, tPro.ProductKey)
+
+	var list []struct{
+		model.TOpmProductPanelRelation
+		ProductKey    string `gorm:"column:product_key" json:"productKey"`
+	}
 	var total int64
 	if req.PageSize > 0 {
 		limit := req.PageSize
@@ -407,9 +417,9 @@ func (s *OpmProductPanelRelationSvc) GetListOpmProductPanelRelation(req *proto.O
 			req.Page = 1
 		}
 		offset := req.PageSize * (req.Page - 1)
-		list, total, err = do.FindByPage(int(offset), int(limit))
+		total, err = do.ScanByPage(&list, int(offset), int(limit))
 	} else {
-		list, err = do.Find()
+		err = do.Scan(&list)
 		total = int64(len(list))
 	}
 	if err != nil {
@@ -421,7 +431,8 @@ func (s *OpmProductPanelRelationSvc) GetListOpmProductPanelRelation(req *proto.O
 	}
 	result := make([]*proto.OpmProductPanelRelation, len(list))
 	for i, v := range list {
-		result[i] = convert.OpmProductPanelRelation_db2pb(v)
+		result[i] = convert.OpmProductPanelRelation_db2pb(&v.TOpmProductPanelRelation)
+		result[i].ProductKey = v.ProductKey
 	}
 	return result, total, nil
 }

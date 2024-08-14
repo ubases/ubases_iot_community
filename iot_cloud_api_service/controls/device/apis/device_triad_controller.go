@@ -3,10 +3,10 @@ package apis
 import (
 	"cloud_platform/iot_cloud_api_service/config"
 	"cloud_platform/iot_cloud_api_service/controls"
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/device/entitys"
-	apiservice "cloud_platform/iot_cloud_api_service/controls/device/services"
+	apiservice "cloud_platform/iot_cloud_api_service/controls/device/services/deviceTriad"
 	entitys2 "cloud_platform/iot_cloud_api_service/controls/oem/entitys"
-	"cloud_platform/iot_cloud_api_service/controls/oem/services"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotgin"
@@ -15,12 +15,12 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
+	"github.com/xuri/excelize/v2"
 	"io"
 	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xuri/excelize/v2"
 )
 
 var DeviceTriadcontroller IotDeviceTriadController
@@ -52,9 +52,11 @@ func (IotDeviceTriadController) QueryVirtualDeviceList(c *gin.Context) {
 		return
 	}
 	if filter.ProductId == 0 {
-		iotgin.ResBadRequest(c, "productKey")
+		//默认返回空数据
+		iotgin.ResPageSuccess(c, []interface{}{}, 0, int(filter.Page))
 		return
 	}
+	filter.TenantId = controls.GetTenantId(c)
 	res, total, err := deviceTriadServices.SetContext(controls.WithUserContext(c)).QueryVirtualDeviceTriadList(filter)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
@@ -154,7 +156,7 @@ func (IotDeviceTriadController) Generator(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
-	err = deviceTriadServices.SetContext(controls.WithUserContext(c)).GeneratorIotDeviceTriad(req)
+	err = deviceTriadServices.SetContext(controls.WithUserContext(c)).GeneratorIotDeviceTriad(req, false)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
@@ -171,6 +173,22 @@ func (ct *IotDeviceTriadController) ImportDeviceTriad(c *gin.Context) {
 	ct.generatorOrImportDeviceTriad(c, true)
 }
 
+// @Summary 平台导出设备三元组
+// @Description
+// @Tags intelligence
+// @Accept application/json
+// @Param platform form string true "平台编码"
+// @Success 200 {object} iotgin.ResponseModel 成功返回值
+// @Router /deviceTriad/platformImport [post]
+func (ct *IotDeviceTriadController) PlatformImportDeviceTriad(c *gin.Context) {
+	platformCode := c.PostForm("platformCode")
+	if iotutil.IsEmpty(platformCode) {
+		iotgin.ResBadRequest(c, "platformCode")
+		return
+	}
+	ct.generatorOrImportDeviceTriad(c, false)
+}
+
 // 生成或者导入三元组
 func (ct *IotDeviceTriadController) generatorOrImportDeviceTriad(c *gin.Context, isImport bool) {
 	//参数解析和验证
@@ -182,6 +200,7 @@ func (ct *IotDeviceTriadController) generatorOrImportDeviceTriad(c *gin.Context,
 		return
 	}
 	batchId := c.PostForm("batchId")
+	platformCode := c.PostForm("platformCode")
 	ctx := controls.WithUserContext(c)
 	var (
 		productKey            = ""
@@ -208,7 +227,7 @@ func (ct *IotDeviceTriadController) generatorOrImportDeviceTriad(c *gin.Context,
 		ProductId:       productId,
 		Batch:           batchId,
 		DeviceNatureKey: deviceNatureKey,
-		AccountType:     controls.GetAccountType(c),
+		PlatformCode:    platformCode,
 	}
 	if err := req.CheckGenerateParams(); err != nil {
 		iotgin.ResBadRequest(c, err.Error())
@@ -243,14 +262,13 @@ func (ct *IotDeviceTriadController) generatorOrImportDeviceTriad(c *gin.Context,
 			return
 		}
 
-		sheetName := f.GetSheetList()[0]
+		sheetName := "Sheet1"
 		rows, err = f.GetRows(sheetName)
-		if err != nil {
-			iotgin.ResBadRequest(c, err.Error())
-			return
+		if err != nil || len(rows) <= 1 {
+			rows, _ = f.GetRows("三元组")
 		}
 		if len(rows) <= 1 {
-			iotgin.ResBadRequest(c, "导入的Excel无任何数据")
+			iotgin.ResBadRequest(c, "导入的Excel无任何数据或者工作表名称不为“Sheet1”")
 			return
 		}
 	}
@@ -263,8 +281,8 @@ func (ct *IotDeviceTriadController) generatorOrImportDeviceTriad(c *gin.Context,
 			startRow++
 			devId := rows[startRow][0]    // f.GetCellValue(sheetName, fmt.Sprintf("A%d", startRow))
 			userName := rows[startRow][1] // f.GetCellValue(sheetName, fmt.Sprintf("B%d", startRow))
-			password := rows[startRow][2] // f.GetCellValue(sheetName, fmt.Sprintf("C%d", startRow))
-			sn := rows[startRow][3]       // f.GetCellValue(sheetName, fmt.Sprintf("D%d", startRow))
+			password := rows[startRow][2] //  f.GetCellValue(sheetName, fmt.Sprintf("C%d", startRow))
+			sn := rows[startRow][3]       //  f.GetCellValue(sheetName, fmt.Sprintf("D%d", startRow))
 			if _, ok := exportData[devId]; !ok {
 				exportData[devId] = devId
 				importData = append(importData, entitys.DeviceImportData{Sn: sn, DeviceId: devId, UserName: userName, Password: password})
@@ -277,7 +295,7 @@ func (ct *IotDeviceTriadController) generatorOrImportDeviceTriad(c *gin.Context,
 			return
 		}
 		if len(importData) != int(req.Number) {
-			iotgin.ResBadRequest(c, "导入数量与填写数量不一致")
+			iotgin.ResBadRequest(c, "导入序列号与填写数量不一致")
 			return
 		}
 		req.Devices = importData
@@ -306,7 +324,7 @@ func (ct *IotDeviceTriadController) generatorOrImportDeviceTriad(c *gin.Context,
 	}
 
 	//调用微服务
-	err = deviceTriadServices.SetContext(ctx).GeneratorIotDeviceTriad(req)
+	err = deviceTriadServices.SetContext(ctx).GeneratorIotDeviceTriad(req, isImport)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
@@ -386,8 +404,23 @@ func (ct *IotDeviceTriadController) CreateVirtualDeviceTriad(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
-	if req.RegionServerId == 0 {
-		req.RegionServerId = 1 //默认是中国地区服务器
+	if req.RegionId == 0 {
+		req.RegionId = 1 //默认是中国地区
+	}
+	//获取区域的服务器编码
+	serverRes, err := rpc.SysRegionServerService.Find(context.Background(), &protosService.SysRegionServerFilter{Id: req.RegionId})
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	if len(serverRes.Data) == 0 || serverRes.Data[0].Sid == "" {
+		iotgin.ResErrCli(c, errors.New("服务器编码异常"))
+		return
+	}
+	req.RegionServerId, err = iotutil.ToInt64AndErr(serverRes.Data[0].Sid)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
 	}
 	//调用微服务
 	tenantId, _ := c.Get("tenantId")
@@ -399,6 +432,13 @@ func (ct *IotDeviceTriadController) CreateVirtualDeviceTriad(c *gin.Context) {
 	req.AddMode = 3 //新增模式
 	req.IsTest = 1  //测试新增
 	req.UseType = iotconst.Use_Type_Device_Real_Test
+
+	//区域Id转区域服务器Id
+	req.RegionServerId, err = commonGlobal.RegionIdToServerId(iotutil.ToString(req.RegionId))
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
 	err = deviceTriadServices.SetContext(controls.WithUserContext(c)).GeneratorTestIotDeviceTriad(req)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
@@ -415,9 +455,16 @@ func (ct *IotDeviceTriadController) AddAppAccount(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
-	if req.RegionServerId == 0 {
-		req.RegionServerId = 1 //默认是中国地区服务器
+	if req.RegionId == 0 {
+		req.RegionId = 1 //默认是中国地区服务器
 	}
+
+	req.RegionServerId, err = commonGlobal.RegionIdToServerId(iotutil.ToString(req.RegionId))
+	if err != nil {
+		iotgin.ResBadRequest(c, err.Error())
+		return
+	}
+
 	req.TenantId = c.GetString("tenantId")
 	err = deviceTriadServices.SetContext(controls.WithUserContext(c)).AddAppAccount(req, nil)
 	if err != nil {
@@ -435,18 +482,13 @@ func (ct *IotDeviceTriadController) GetDefaultApp(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
-
-	mp := services.GetBaseDataValue("oem_app_default_download_url", context.Background())
-	if mp == nil {
-		iotgin.ResErrCli(c, errors.New("参数配置异常"))
-		return
-	}
-	url := iotutil.ToString(mp[services.GetOemAppEnv()])
-
-	if err != nil {
-		iotgin.ResErrCli(c, err)
-		return
-	}
+	//mp := services.GetBaseDataValue("oem_app_default_download_url", context.Background())
+	//if mp == nil {
+	//	iotgin.ResErrCli(c, errors.New("参数配置异常"))
+	//	return
+	//}
+	//url := iotutil.ToString(mp[services.GetOemAppEnv()])
+	url := config.Global.DefaultApp.DownloadUrl
 	iotgin.ResSuccess(c, map[string]string{
 		"url":      url,
 		"name":     config.Global.DefaultApp.AppName,

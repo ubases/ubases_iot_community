@@ -52,6 +52,10 @@ message LangResources {
 
     //APP模板Id
     int64 appTemplateId = 110;
+
+    //包名称
+    int64 packageId = 111;
+
 }
 
 message LangResourcesFilter {

@@ -4,7 +4,6 @@
 package protosService
 
 import (
-	
 	fmt "fmt"
 	proto "google.golang.org/protobuf/proto"
 	math "math"

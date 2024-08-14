@@ -22,3 +22,19 @@ func GetAppInfo(ctx context.Context, appKey string) (*protosService.OemApp, erro
 	}
 	return res.Data[0], nil
 }
+
+func GetAppInfoById(ctx context.Context, appId int64) (*protosService.OemApp, error) {
+	res, err := rpc.ClientOemAppService.FindById(ctx, &protosService.OemAppFilter{
+		Id: appId,
+	})
+	if err != nil && err.Error() != "record not found" {
+		return nil, err
+	}
+	if res.Code != 200 {
+		return nil, errors.New(res.Message)
+	}
+	if res.Data == nil || len(res.Data) <= 0 {
+		return nil, errors.New("参数错误,未找到记录")
+	}
+	return res.Data[0], nil
+}

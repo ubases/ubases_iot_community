@@ -41,6 +41,22 @@ func (OpmProductController) QueryProductThingModel(c *gin.Context) {
 	iotgin.ResSuccess(c, res)
 }
 
+// QueryProductFaultThingModel 故障物模型数据
+func (OpmProductController) QueryProductFaultThingModel(c *gin.Context) {
+	productId := c.Query("productId")
+	if productId == "" {
+		iotgin.ResBadRequest(c, "productId")
+		return
+	}
+	var isCustom int32 = -1
+	res, err := productServices.SetContext(controls.WithUserContext(c)).QueryProductFaultThingModel(productId, isCustom)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, res)
+}
+
 // QueryProductThingModelAndLang 基础物模型数据
 func (s OpmProductController) QueryProductThingModelAndLang(c *gin.Context) {
 	productId := c.Query("productId")

@@ -140,6 +140,11 @@ func RegisterHandler(s micro.Service) error {
 		return err
 	}
 
+	err = protosService.RegisterSysAttachmentServiceHandler(s.Server(), new(SysAttachmentHandler))
+	if err != nil {
+		iotlogger.LogHelper.Errorf("RegisterSysAttachmentServiceHandler:%s", err.Error())
+		return err
+	}
 	RegisterCasbinRuleExtHandler(s)
 	return nil
 }

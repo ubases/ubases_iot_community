@@ -1,0 +1,29 @@
+################### 微服务业务配置 ####################
+service:
+  httpAddr: 0.0.0.0:8089
+  httpqps: 10000  #支持运行时动态调整
+  IPLimitRequest: 50
+  readTimeout: 3600
+  writeTimeout: 3600
+  logfile: "/logs/iot_my_api_service.log"
+  loglevel: "debug"
+
+redis:
+  Cluster: false
+  Addrs: ["redis:6379"]
+  Username:
+  Password: "iLmz8sCXjkTYuh"
+  Database: 0
+  MinIdleConns: 5
+  IdleTimeout: 600
+  PoolSize: 10
+  MaxConnAge: 3600
+
+################### 以下是微服务治理配置 ####################
+zipkin:
+  url: http://zipkin:9411/api/v2/spans
+
+etcd:
+  address: ["etcd0:2379"]
+  username: ""
+  password: ""

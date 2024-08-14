@@ -9,6 +9,7 @@ var (
 		"ENUM":   "ENUM",
 		"DOUBLE": "VALUE",
 		"FLOAT":  "VALUE",
+		"FAULT":  "ENUM",
 	}
 
 	VarValueType = map[string]string{
@@ -18,6 +19,7 @@ var (
 		"ENUM":   "unsigned char",
 		"DOUBLE": "unsigned long long",
 		"FLOAT":  "unsigned long",
+		"FAULT":  "unsigned long",
 	}
 
 	VarDefaultValue = map[string]string{
@@ -27,5 +29,6 @@ var (
 		"ENUM":   "0",
 		"DOUBLE": "0",
 		"FLOAT":  "0",
+		"FAULT":  "0",
 	}
 )

@@ -39,6 +39,9 @@ func newTOemAppCustomRecord(db *gorm.DB) tOemAppCustomRecord {
 	_tOemAppCustomRecord.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_tOemAppCustomRecord.PlistUrl = field.NewString(tableName, "plist_url")
 	_tOemAppCustomRecord.LaunchMarkets = field.NewString(tableName, "launch_markets")
+	_tOemAppCustomRecord.RemindMode = field.NewInt32(tableName, "remind_mode")
+	_tOemAppCustomRecord.RemindDesc = field.NewString(tableName, "remind_desc")
+	_tOemAppCustomRecord.RemindDescEn = field.NewString(tableName, "remind_desc_en")
 
 	_tOemAppCustomRecord.fillFieldMap()
 
@@ -63,6 +66,9 @@ type tOemAppCustomRecord struct {
 	UpdatedAt     field.Time
 	PlistUrl      field.String
 	LaunchMarkets field.String
+	RemindMode    field.Int32
+	RemindDesc    field.String
+	RemindDescEn  field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -93,6 +99,9 @@ func (t *tOemAppCustomRecord) updateTableName(table string) *tOemAppCustomRecord
 	t.UpdatedAt = field.NewTime(table, "updated_at")
 	t.PlistUrl = field.NewString(table, "plist_url")
 	t.LaunchMarkets = field.NewString(table, "launch_markets")
+	t.RemindMode = field.NewInt32(table, "remind_mode")
+	t.RemindDesc = field.NewString(table, "remind_desc")
+	t.RemindDescEn = field.NewString(table, "remind_desc_en")
 
 	t.fillFieldMap()
 
@@ -105,6 +114,8 @@ func (t *tOemAppCustomRecord) WithContext(ctx context.Context) *tOemAppCustomRec
 
 func (t tOemAppCustomRecord) TableName() string { return t.tOemAppCustomRecordDo.TableName() }
 
+func (t tOemAppCustomRecord) Alias() string { return t.tOemAppCustomRecordDo.Alias() }
+
 func (t *tOemAppCustomRecord) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {
@@ -115,7 +126,7 @@ func (t *tOemAppCustomRecord) GetFieldByName(fieldName string) (field.OrderExpr,
 }
 
 func (t *tOemAppCustomRecord) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 14)
+	t.fieldMap = make(map[string]field.Expr, 17)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["app_id"] = t.AppId
 	t.fieldMap["version"] = t.Version
@@ -130,6 +141,9 @@ func (t *tOemAppCustomRecord) fillFieldMap() {
 	t.fieldMap["updated_at"] = t.UpdatedAt
 	t.fieldMap["plist_url"] = t.PlistUrl
 	t.fieldMap["launch_markets"] = t.LaunchMarkets
+	t.fieldMap["remind_mode"] = t.RemindMode
+	t.fieldMap["remind_desc"] = t.RemindDesc
+	t.fieldMap["remind_desc_en"] = t.RemindDescEn
 }
 
 func (t tOemAppCustomRecord) clone(db *gorm.DB) tOemAppCustomRecord {

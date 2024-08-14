@@ -22,6 +22,7 @@ func Use(db *gorm.DB) *Query {
 		TMpMessageTemplate: newTMpMessageTemplate(db),
 		TMpMessageUserIn:   newTMpMessageUserIn(db),
 		TMpMessageUserOut:  newTMpMessageUserOut(db),
+		TMsNoticeRecord:    newTMsNoticeRecord(db),
 		TMsNoticeTemplate:  newTMsNoticeTemplate(db),
 	}
 }
@@ -37,6 +38,7 @@ type Query struct {
 	TMpMessageTemplate tMpMessageTemplate
 	TMpMessageUserIn   tMpMessageUserIn
 	TMpMessageUserOut  tMpMessageUserOut
+	TMsNoticeRecord    tMsNoticeRecord
 	TMsNoticeTemplate  tMsNoticeTemplate
 }
 
@@ -53,6 +55,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		TMpMessageTemplate: q.TMpMessageTemplate.clone(db),
 		TMpMessageUserIn:   q.TMpMessageUserIn.clone(db),
 		TMpMessageUserOut:  q.TMpMessageUserOut.clone(db),
+		TMsNoticeRecord:    q.TMsNoticeRecord.clone(db),
 		TMsNoticeTemplate:  q.TMsNoticeTemplate.clone(db),
 	}
 }
@@ -66,6 +69,7 @@ type queryCtx struct {
 	TMpMessageTemplate tMpMessageTemplateDo
 	TMpMessageUserIn   tMpMessageUserInDo
 	TMpMessageUserOut  tMpMessageUserOutDo
+	TMsNoticeRecord    tMsNoticeRecordDo
 	TMsNoticeTemplate  tMsNoticeTemplateDo
 }
 
@@ -79,6 +83,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		TMpMessageTemplate: *q.TMpMessageTemplate.WithContext(ctx),
 		TMpMessageUserIn:   *q.TMpMessageUserIn.WithContext(ctx),
 		TMpMessageUserOut:  *q.TMpMessageUserOut.WithContext(ctx),
+		TMsNoticeRecord:    *q.TMsNoticeRecord.WithContext(ctx),
 		TMsNoticeTemplate:  *q.TMsNoticeTemplate.WithContext(ctx),
 	}
 }

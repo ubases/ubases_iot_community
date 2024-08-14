@@ -1,3 +1,8 @@
+/**
+ * @Author: hogan
+ * @Date: 2021/11/17 16:28
+ */
+
 package push
 
 import (
@@ -148,6 +153,7 @@ func getJsPushConfig(appKey string) (*config.JpushCfg, error) {
 		jpush["xiaomi"] = oemAppPushCert.Data[0].Xiaomi
 		jpush["vivo"] = oemAppPushCert.Data[0].Vivo
 		jpush["oppo"] = oemAppPushCert.Data[0].Oppo
+		jpush["honor"] = oemAppPushCert.Data[0].Honor
 
 		appCachedCmd := iotredis.GetClient().HMSet(context.Background(), iotconst.HKEY_APPPUSH_DATA_PREFIX+appKey, jpush)
 		if appCachedCmd.Err() != nil {
@@ -173,6 +179,7 @@ func getJsPushConfig(appKey string) (*config.JpushCfg, error) {
 		Xiaomi:         iotutil.ToMap(jpush["xiaomi"]),
 		Vivo:           iotutil.ToMap(jpush["vivo"]),
 		Oppo:           iotutil.ToMap(jpush["oppo"]),
+		Honor:          iotutil.ToMap(jpush["honor"]),
 	}, nil
 }
 

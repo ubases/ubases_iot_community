@@ -59,6 +59,9 @@ func (s AppUserService) GetUserById(userid int64) (*protosService.UcUser, error)
 
 // GetUser 获取用户信息
 func (s AppUserService) GetUser(userid string) (*entitys.LoginUserRes, int, error) {
+	if userid == "" {
+		return nil, 0, errors.New("userid not found")
+	}
 	result := entitys.LoginUserRes{}
 	res, err := rpc.TUcUserService.FindById(s.Ctx, &protosService.UcUserFilter{
 		Id: iotutil.ToInt64(userid),
@@ -87,7 +90,9 @@ func (s AppUserService) GetUser(userid string) (*entitys.LoginUserRes, int, erro
 		case iotconst.Wechat: //微信登录
 			thirdPartyLogin.Wechat.Set(thirdPartys)
 		case iotconst.Appleid: //苹果Id登录
-			thirdPartyLogin.Wechat.Set(thirdPartys)
+			thirdPartyLogin.AppleId.Set(thirdPartys)
+		case iotconst.WechatMiniProgram: //苹果Id登录
+			thirdPartyLogin.MiniProgram.Set(thirdPartys)
 		case iotconst.Guest: //游客（不会同时存在）
 			thirdPartyLogin.Guest.Set(thirdPartys)
 			isGuest = true
@@ -344,7 +349,7 @@ func AppUserInfo_pb2eModel(account string, src *protosService.AppUser) *controls
 }
 
 // AppUserLogin App用户登录获取登录信息
-func (s AppUserService) AppUserLogin(accountType int32, account string, password string, appKey string, tenantId string, regionServerId int64, registerRegion string, loginType int32, ip string) (*entitys.LoginUserRes, int, string) {
+func (s AppUserService) AppUserLogin(accountType int32, account string, password string, appKey string, tenantId string, regionId int64, registerRegion string, loginType int32, ip string) (*entitys.LoginUserRes, int, string) {
 	if accountType == 0 {
 		return nil, -1, "账号类型不能为空"
 	}
@@ -354,8 +359,13 @@ func (s AppUserService) AppUserLogin(accountType int32, account string, password
 	if password == "" {
 		return nil, -1, "密码不能为空"
 	}
+
+	//区域Id转区域服务器Id
+	regionServerId, err := controls.RegionIdToServerId(iotutil.ToString(regionId))
+	if err != nil {
+		return nil, -1, err.Error()
+	}
 	var AppLoginResponse *protosService.AppLoginResponse
-	var err error
 	if loginType == 0 {
 		AppLoginResponse, err = rpc.AppAuthService.PasswordLogin(s.Ctx, &protosService.PasswordLoginRequest{
 			LoginName:      account,
@@ -366,8 +376,9 @@ func (s AppUserService) AppUserLogin(accountType int32, account string, password
 			RegionServerId: regionServerId,
 		})
 	} else {
+		smsCachedKey := cached.APP + "_" + appKey + "_" + account + "_7"
 		//1、验证码登录，先校验验证码,此时password为验证码
-		verificationCode, _ := iotredis.GetClient().Get(s.Ctx, cached.APP+"_"+appKey+"_"+account+"_7").Result()
+		verificationCode, _ := iotredis.GetClient().Get(s.Ctx, smsCachedKey).Result()
 		if verificationCode != password {
 			return nil, -1, "验证码不对"
 		}
@@ -428,6 +439,10 @@ func (s AppUserService) AppUserLogin(accountType int32, account string, password
 			RegionServerId: regionServerId,
 			VerifyCode:     verificationCode, //传验证码，用于auth服务忽略密码验证
 		})
+		//如果登录成功，则清理验证码
+		if err == nil {
+			iotredis.GetClient().Del(s.Ctx, smsCachedKey)
+		}
 	}
 
 	if err != nil {
@@ -460,6 +475,7 @@ func getShowVconsole(userId int64) bool {
 
 func (s AppUserService) Register(params entitys.UserRegister) (code int, userId int64, msg string) {
 	lang, _ := metadata.Get(s.Ctx, "lang")
+	region, _ := metadata.Get(s.Ctx, "region")
 	smsCodeValue := iotredis.GetClient().Get(s.Ctx, cached.APP+"_"+params.AppKey+"_"+params.Account+"_1")
 
 	if smsCodeValue.Val() != params.Smscode {
@@ -481,19 +497,26 @@ func (s AppUserService) Register(params entitys.UserRegister) (code int, userId 
 	}
 	defaultHomeName := iotutil.MapGetStringVal(langMap[fmt.Sprintf("%s_default_home_name", lang)], _const.DefaultHomeName)
 
+	//区域Id转区域服务器Id
+	regionServerId, err := controls.RegionIdToServerId(iotutil.ToString(region))
+	if err != nil {
+		return -1, 0, err.Error()
+	}
+
 	//区域服务器Id
 	ret, err := rpc.TUcUserService.Register(s.Ctx, &protosService.UcUserRegisterRequest{
-		Phone:           phone,
-		Password:        iotutil.EncodeMD5(params.Password),
-		Email:           email,
-		Code:            "",
-		RegisterRegion:  params.RegisterRegion,
-		Ip:              params.Ip,
-		AppKey:          params.AppKey,
-		TenantId:        params.TenantId,
-		DefaultHomeName: defaultHomeName,
-		Lang:            lang,
-		RegionServerId:  params.RegisterRegionId,
+		Phone:            phone,
+		Password:         iotutil.EncodeMD5(params.Password),
+		Email:            email,
+		Code:             "",
+		RegisterRegion:   params.RegisterRegion,
+		Ip:               params.Ip,
+		AppKey:           params.AppKey,
+		TenantId:         params.TenantId,
+		DefaultHomeName:  defaultHomeName,
+		Lang:             lang,
+		RegisterRegionId: params.RegisterRegionId,
+		RegionServerId:   regionServerId,
 	})
 	if err != nil {
 		iotlogger.LogHelper.Error("用户%s注册失败，原因:%s", params.Account, err.Error())
@@ -515,7 +538,8 @@ func (s AppUserService) Register(params entitys.UserRegister) (code int, userId 
 // 不设密码注册，并返回token
 func (s AppUserService) RegisterEx(params entitys.UserRegister) (*entitys.LoginUserRes, int, string) {
 	lang, _ := metadata.Get(s.Ctx, "lang")
-	smsCodeValue := iotredis.GetClient().Get(s.Ctx, cached.APP+"_"+params.AppKey+"_"+params.Account+"_1")
+	smsCachedKey := cached.APP + "_" + params.AppKey + "_" + params.Account + "_1"
+	smsCodeValue := iotredis.GetClient().Get(s.Ctx, smsCachedKey)
 
 	if smsCodeValue.Val() != params.Smscode {
 		iotlogger.LogHelper.Error("验证码有误")
@@ -542,19 +566,26 @@ func (s AppUserService) RegisterEx(params entitys.UserRegister) (*entitys.LoginU
 		password = iotutil.EncodeMD5(params.Password)
 	}
 
+	//区域Id转区域服务器Id
+	regionServerId, err := controls.RegionIdToServerId(iotutil.ToString(params.RegisterRegionId))
+	if err != nil {
+		return nil, -1, err.Error()
+	}
+
 	//区域服务器Id
 	ret, err := rpc.TUcUserService.Register(s.Ctx, &protosService.UcUserRegisterRequest{
-		Phone:           phone,
-		Password:        password,
-		Email:           email,
-		Code:            "",
-		RegisterRegion:  params.RegisterRegion,
-		Ip:              params.Ip,
-		AppKey:          params.AppKey,
-		TenantId:        params.TenantId,
-		DefaultHomeName: defaultHomeName,
-		Lang:            lang,
-		RegionServerId:  params.RegisterRegionId,
+		Phone:            phone,
+		Password:         password,
+		Email:            email,
+		Code:             "",
+		RegisterRegion:   params.RegisterRegion,
+		Ip:               params.Ip,
+		AppKey:           params.AppKey,
+		TenantId:         params.TenantId,
+		DefaultHomeName:  defaultHomeName,
+		Lang:             lang,
+		RegionServerId:   regionServerId,
+		RegisterRegionId: params.RegisterRegionId,
 	})
 	if err != nil {
 		iotlogger.LogHelper.Error("用户%s注册失败，原因:%s", params.Account, err.Error())
@@ -569,8 +600,10 @@ func (s AppUserService) RegisterEx(params entitys.UserRegister) (*entitys.LoginU
 	//	newUserId = ret.Data[0].Id
 	//}
 	//删除redis中验证码
-	iotredis.GetClient().Del(context.Background(), cached.APP+"_"+params.AppKey+"_"+params.Account+"_1")
-
+	delRes := iotredis.GetClient().Del(context.Background(), smsCachedKey)
+	if delRes.Err() != nil {
+		iotlogger.LogHelper.Error("删除redis中验证码失败:%s, cached key: ", delRes.Err().Error(), smsCachedKey)
+	}
 	//注册成功后，走自动登录逻辑
 	var accountType int
 	if params.AccountType == "phone" {
@@ -584,7 +617,7 @@ func (s AppUserService) RegisterEx(params entitys.UserRegister) (*entitys.LoginU
 		Channel:        iotutil.ToString(accountType),
 		AppKey:         params.AppKey,
 		TenantId:       params.TenantId,
-		RegionServerId: params.RegisterRegionId,
+		RegionServerId: regionServerId,
 		VerifyCode:     params.Smscode,
 	})
 	if err != nil {
@@ -667,7 +700,7 @@ func (s AppUserService) UpdateUserPassword(userId string, updateUserParam entity
 	return 0, ""
 }
 
-func (s AppUserService) SendEmail(email string, emailType int32, appKey, lang string) (emailCode string, code int, msg string) {
+func (s AppUserService) SendEmail(email string, emailType int32, tenantId, appKey, lang string) (emailCode string, code int, msg string) {
 	emailCode = iotutil.Getcode()
 	iotlogger.LogHelper.Info(emailCode)
 	res := iotredis.GetClient().Set(context.Background(), cached.APP+"_"+appKey+"_"+email+"_"+iotutil.ToString(emailType), emailCode, 600*time.Second) //有效期10分钟
@@ -676,10 +709,12 @@ func (s AppUserService) SendEmail(email string, emailType int32, appKey, lang st
 		return "", -1, res.Err().Error()
 	}
 	_, err := rpc.EmailService.SendEmailUserCode(context.Background(), &protosService.SendEmailUserCodeRequest{
-		Email:   email,
-		Code:    emailCode,
-		Lang:    lang,
-		TplType: emailType,
+		Email:    email,
+		Code:     emailCode,
+		Lang:     lang,
+		TplType:  emailType,
+		TenantId: tenantId,
+		AppKey:   appKey,
 	})
 	if err != nil {
 		iotlogger.LogHelper.Error("发送邮件失败，原因:%s", err.Error())
@@ -689,8 +724,16 @@ func (s AppUserService) SendEmail(email string, emailType int32, appKey, lang st
 }
 
 // 发送短信验证码
-func (s AppUserService) SendSms(lang, areaPhone, phone string, phoneType, smsType int32, appKey string) (smsCode string, code int, msg string) {
+func (s AppUserService) SendSms(lang, areaPhone, phone string, phoneType, smsType int32, tenantId, appKey string) (smsCode string, code int, msg string) {
 	smsCode = iotutil.Getcode()
+	//TODO 考虑增加短信发送频率限制，防止别人知道接口，暴力调用
+	//resTtl := iotredis.GetClient().TTL(context.Background(), cached.APP+"_"+appKey+"_"+phone+"_"+iotutil.ToString(smsType)) //有效期10分钟
+	//if resTtl.Err() == nil {
+	//	if 600-int64(resTtl.Val()) < 60 {
+	//		//过去小于60s的数据不容许再次推送，直接返回成功
+	//		return smsCode, 0, ""
+	//	}
+	//}
 	res := iotredis.GetClient().Set(context.Background(), cached.APP+"_"+appKey+"_"+phone+"_"+iotutil.ToString(smsType), smsCode, 600*time.Second) //有效期10分钟
 	if res.Err() != nil {
 		iotlogger.LogHelper.Errorf("SendSms,缓存smsCodeInt失败:%s", res.Err().Error())
@@ -703,6 +746,8 @@ func (s AppUserService) SendSms(lang, areaPhone, phone string, phoneType, smsTyp
 		Lang:        lang,
 		TplType:     smsType,
 		PhoneType:   phoneType,
+		TenantId:    tenantId,
+		AppKey:      appKey,
 	})
 	if err != nil {
 		iotlogger.LogHelper.Error("发送短信验证码失败，原因:%s", err.Error())
@@ -1317,13 +1362,6 @@ func (s *AppUserService) verityAccount(userlist []*protosService.UcUser) (userin
 // TODO 迁移到auth微服务中
 // 微信登录
 func (s AppUserService) WechatLogin(authorizationCode, appKey, tenantId, ip string, regionServerId int64) (*entitys.LoginUserRes, int, string) {
-	////根据渠道类型、code查出渠道信息(第三方userid和昵称)
-	//channelUserId, channelIdName, channelNickname, channelName, code, msg := GetWechatInfo(authorizationCode)
-	//if code != 0 {
-	//	return
-	//}
-	//obj, code, msg = GetChannelAuthData(channelUserId, channelIdName, channelNickname, channelName, _const.Wechat)
-
 	oemAppResult, err := rpc.ClientOemAppService.Find(context.Background(), &protosService.OemAppFilter{
 		AppKey: appKey,
 	})
@@ -1376,20 +1414,71 @@ func (s AppUserService) WechatLogin(authorizationCode, appKey, tenantId, ip stri
 		Ip:             ip,
 	})
 
-	if AppLoginResponse == nil && err != nil {
+	if err != nil {
 		iotlogger.LogHelper.Error("用户%s登录失败，原因:%s", "", err.Error())
 		return &entitys.LoginUserRes{}, -1, iotutil.ResErrToString(err)
 	}
-	//if AppLoginResponse == nil {
-	//	iotlogger.LogHelper.Error("用户%s登录失败，原因:%s", "", err.Error())
-	//	return nil, -1, iotutil.ResErrToString(err)
-	//}
+	if AppLoginResponse == nil {
+		iotlogger.LogHelper.Error("用户%s登录失败，原因:%s", "", "未获取用户信息")
+		return &entitys.LoginUserRes{}, -1, iotutil.ResErrToString(err)
+	}
 	if AppLoginResponse.Token == "" {
 		loginResponse := AppLoginInfo_pb2e(AppLoginResponse).SetShowVconsole(getShowVconsole(AppLoginResponse.UserInfo.Id))
 		loginResponse.LoginKey = loginResponse.ThirdPartyLogin.Wechat.LoginKey
 		loginResponse.ChannelName = loginResponse.ThirdPartyLogin.Wechat.Nickname
 		loginResponse.UserId = ""
 		return loginResponse, 0, "没有绑定用户请前往绑定"
+	}
+
+	userinfo := AppUserInfo_pb2eModel("", AppLoginResponse.GetUserInfo())
+	userinfo.TenantId = tenantId
+	userinfo.AppKey = appKey
+	expires := time.Unix(AppLoginResponse.ExpiresAt, 0).Sub(time.Now())
+	cacheResp := iotredis.GetClient().Set(context.Background(), AppLoginResponse.Token, iotutil.ToString(userinfo), expires)
+	if cacheResp.Err() != nil {
+		iotlogger.LogHelper.Errorf("AppUserLogin,缓存token失败:%s", cacheResp.Err().Error())
+		return &entitys.LoginUserRes{}, -1, iotutil.ResErrToString(cacheResp.Err())
+	}
+	return AppLoginInfo_pb2e(AppLoginResponse).SetShowVconsole(getShowVconsole(AppLoginResponse.UserInfo.Id)), 0, "ok"
+}
+
+// 微信小程序登录
+func (s AppUserService) MinProgramLogin(authorizationCode, appKey, tenantId, ip string, regionServerId int64, sysInfo controls.SystemInfo) (*entitys.LoginUserRes, int, string) {
+	oemAppResult, err := rpc.ClientOemAppService.Find(context.Background(), &protosService.OemAppFilter{
+		AppKey: appKey,
+	})
+	if err != nil {
+		iotlogger.LogHelper.Errorf("GetFunctionConfig error")
+		return &entitys.LoginUserRes{}, -1, iotutil.ResErrToString(err)
+	}
+	if oemAppResult.Code != 200 {
+		iotlogger.LogHelper.Errorf(oemAppResult.Message)
+		return &entitys.LoginUserRes{}, -1, oemAppResult.Message
+	}
+	AppLoginResponse, err := rpc.AppAuthService.MiniProgramLogin(context.Background(), &protosService.MiniProgramLoginRequest{
+		Code:     authorizationCode,
+		Channel:  "wechat",
+		Explorer: sysInfo.Model + " " + sysInfo.Version,
+		Os:       sysInfo.Os,
+		ClientIp: ip,
+	})
+	if err != nil {
+		iotlogger.LogHelper.Error("用户%s登录失败，原因:%s", "", err.Error())
+		return &entitys.LoginUserRes{}, -1, iotutil.ResErrToString(err)
+	}
+	if AppLoginResponse == nil {
+		iotlogger.LogHelper.Error("用户%s登录失败，原因:%s", "", "未获取用户信息")
+		return &entitys.LoginUserRes{}, -1, iotutil.ResErrToString(err)
+	}
+	if AppLoginResponse.Token == "" {
+		loginResponse := AppLoginInfo_pb2e(AppLoginResponse).SetShowVconsole(getShowVconsole(AppLoginResponse.UserInfo.Id))
+		loginResponse.LoginKey = loginResponse.ThirdPartyLogin.Wechat.LoginKey
+		loginResponse.ChannelName = loginResponse.ThirdPartyLogin.Wechat.Nickname
+		loginResponse.UserId = ""
+		return loginResponse, 0, "没有绑定用户请前往绑定"
+	}
+	if AppLoginResponse.UserInfo == nil || AppLoginResponse.UserInfo.Id == 0 {
+		return &entitys.LoginUserRes{}, -1, iotutil.ResErrToString(errors.New("账号异常"))
 	}
 
 	userinfo := AppUserInfo_pb2eModel("", AppLoginResponse.GetUserInfo())
@@ -1429,35 +1518,12 @@ func (s AppUserService) AppleidLogin(channelId string, nickname, ip, appKey, ten
 		iotlogger.LogHelper.Error("用户%s登录失败，原因:%s", "", err.Error())
 		return &entitys.LoginUserRes{}, -1, iotutil.ResErrToString(err)
 	}
-	//if AppLoginResponse.UserInfo == nil {
-	//	iotlogger.LogHelper.Error("账号或密码错误")
-	//	return &entitys.LoginUserRes{}, -1, "账号或密码错误"
-	//}
 	if AppLoginResponse.Token == "" {
 		loginResponse := AppLoginInfo_pb2e(AppLoginResponse).SetShowVconsole(getShowVconsole(AppLoginResponse.UserInfo.Id))
 		loginResponse.LoginKey = loginResponse.ThirdPartyLogin.Wechat.LoginKey
 		loginResponse.ChannelName = loginResponse.ThirdPartyLogin.Wechat.Nickname
 		loginResponse.UserId = ""
 		return loginResponse, 0, "没有绑定用户请前往绑定"
-		//if config.Global.Service.ThirdPartyRequirePwd {
-		//	loginResponse := AppLoginInfo_pb2e(AppLoginResponse)
-		//	loginResponse.LoginKey = loginResponse.ThirdPartyLogin.Wechat.LoginKey
-		//	loginResponse.ChannelName = loginResponse.ThirdPartyLogin.Wechat.Nickname
-		//	loginResponse.UserId = ""
-		//	return loginResponse, 0, "没有绑定用户请前往绑定"
-		//} else {
-		//	//此处可以进行第三方登录，自动注册功能
-		//	loginResponse, code, msg := s.RegisterAndLogin(entitys.RegisterNewUser{
-		//		Ip:             ip,
-		//		AppKey:         appKey,
-		//		TenantId:       tenantId,
-		//		ThirdType:      _const.Appleid,
-		//		ThirdUserId:    channelId,
-		//		ThirdNickname:  nickname,
-		//		RegionServerId: regionServerId,
-		//	})
-		//	return loginResponse, code, msg
-		//}
 	}
 
 	userinfo := AppUserInfo_pb2eModel("", AppLoginResponse.GetUserInfo())
@@ -1492,6 +1558,12 @@ func (s AppUserService) AccountBind(userId int64, accountBindParam entitys.Accou
 		return -1, "验证码有误"
 	}
 
+	//区域Id转区域服务器Id
+	regionServerId, err := controls.RegionIdToServerId(iotutil.ToString(regionId))
+	if err != nil {
+		return -1, err.Error()
+	}
+
 	var phone, email string
 	switch accountType {
 	case 1:
@@ -1513,7 +1585,7 @@ func (s AppUserService) AccountBind(userId int64, accountBindParam entitys.Accou
 		Email:          email,
 		AppKey:         appKey,
 		TenantId:       tenantId,
-		RegionServerId: regionId,
+		RegionServerId: regionServerId,
 	})
 	if err == nil && data.Total != 0 {
 		iotlogger.LogHelper.Error("该账号被注册了,无法进行绑定")
@@ -1736,13 +1808,19 @@ func (s AppUserService) CheckChannelBindParams(account string, smsCode string, c
 	return
 }
 
-func (s AppUserService) AddChannelBind(req entitys.AddChannelBind, userId int64, appKey, tenantId string, regionServerId int64, nickName string) (*entitys.LoginUserRes, int, string) {
+func (s AppUserService) AddChannelBind(req entitys.AddChannelBind, userId int64, appKey, tenantId string, regionId int64, nickName string) (*entitys.LoginUserRes, int, string) {
 	//根据渠道类型、code查出渠道信息(第三方userid和昵称)
 	channelUserId, channelNickname, code, msg := s.GetChannelInfo(req.Type, req.Code, req.ChannelId, req.Nickname, appKey)
 	if code != 0 {
 		//c.JSON(200,  sys.ErrorCode.HSet(c, gin.H{"code": code,  "msg": msg}))
 		return nil, 2, msg
 	}
+	//区域Id转区域服务器Id
+	regionServerId, err := controls.RegionIdToServerId(iotutil.ToString(regionId))
+	if err != nil {
+		return nil, 2, err.Error()
+	}
+
 	//todo 需判断当前第三方账号是否被其他用户账号绑定
 	ucUserThirdResp, err := rpc.ClientUcUserThirdService.Find(context.Background(), &protosService.UcUserThirdFilter{
 		ThirdType:      req.Type,
@@ -2063,15 +2141,15 @@ func (s AppUserService) GetFunctionConfigVoice(userId int64, appKey string) (int
 			ContentType: 4,
 		},
 	})
+	appIntroduceKeyValue := map[string]string{}
 	if err != nil {
 		iotlogger.LogHelper.Errorf("GetOemAppIntroduce error")
 		//return -1, err.Error(), resultList
-	}
-
-	appIntroduceKeyValue := map[string]string{}
-	if oemAppIntroduce.Code == 200 && oemAppIntroduce.Data != nil {
-		for _, appIntroduce := range oemAppIntroduce.Data {
-			appIntroduceKeyValue[appIntroduce.VoiceCode] = appIntroduce.Abstract
+	} else {
+		if oemAppIntroduce.Code == 200 && oemAppIntroduce.Data != nil {
+			for _, appIntroduce := range oemAppIntroduce.Data {
+				appIntroduceKeyValue[appIntroduce.VoiceCode] = appIntroduce.Abstract
+			}
 		}
 	}
 

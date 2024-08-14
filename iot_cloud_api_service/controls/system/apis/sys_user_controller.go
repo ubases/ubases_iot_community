@@ -32,8 +32,11 @@ func (UserController) SendVerificationCodeForExists(c *gin.Context) {
 		iotgin.ResBadRequest(c, "type not found")
 		return
 	}
-	lang := controls.GetLang(c)
-	res, err := userservices.SendVerificationCodeForExists(userName, lang, iotutil.ToInt32(codeType))
+	var (
+		lang     = controls.GetLang(c)
+		tenantId = controls.GetTenantId(c)
+	)
+	res, err := userservices.SendVerificationCodeForExists(userName, tenantId, lang, iotutil.ToInt32(codeType))
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
@@ -169,25 +172,6 @@ func (UserController) EditUser(c *gin.Context) {
 	services.RefreshUserCache()
 }
 
-func (UserController) EditStatus(c *gin.Context) {
-	var req entitys.UserStatusReq
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		iotgin.ResErrCli(c, err)
-		return
-	}
-	if req.Id == 0 {
-		iotgin.ResFailCode(c, "参数异常", -1)
-		return
-	}
-	id, err := userservices.UpdateStatus(req)
-	if err != nil {
-		iotgin.ResErrCli(c, err)
-		return
-	}
-	iotgin.ResSuccess(c, id)
-}
-
 // 个人中心修改用户自己信息
 func (UserController) EditUserCenter(c *gin.Context) {
 	var req entitys.UserCenterEditReq
@@ -263,6 +247,10 @@ func (UserController) DeleteUser(c *gin.Context) {
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
+	}
+	//清理删除用户的Token
+	for _, userId := range req.Ids {
+		controls.ClearTokenByUserId(iotutil.ToInt64(userId))
 	}
 	iotgin.ResSuccessMsg(c)
 	services.RefreshUserCache()

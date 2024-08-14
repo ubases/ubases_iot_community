@@ -66,7 +66,7 @@ func Init() *gin.Engine {
 		fmt.Println(err)
 	}
 	router.Use(iotgin.LimitMiddleware())
-	LoadHtmlRouter(router)
+	//LoadHtmlRouter(router)
 
 	//fixme Prometheus，subsystem和自定义参数根据实际需要定义
 	var p = iotgin.NewPrometheus("api")

@@ -3,11 +3,14 @@ package services
 import (
 	"bytes"
 	"cloud_platform/iot_cloud_api_service/cached"
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/product/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotgincache/persist"
+	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"encoding/json"
@@ -37,6 +40,42 @@ func int32Tobool(n int32) bool {
 	} else {
 		return false
 	}
+}
+
+func (s ProductService) GetProductListCached() ([]*protosService.TPmProductRequest, error) {
+	if c := iotredis.GetClient().Get(context.Background(), iotconst.PRODUCT_TYPE_ALL_DATA); c.Err() == nil {
+		var data []*protosService.TPmProductRequest
+		err := json.Unmarshal([]byte(c.Val()), &data)
+		if err != nil {
+			goto reload
+		}
+		if data == nil || len(data) == 0 {
+			goto reload
+		}
+		return data, nil
+	}
+reload:
+	pros, err := rpc.ClientProductService.ListTPmProduct(context.Background(), &protosService.TPmProductFilterPage{})
+	if err == nil {
+		c := iotredis.GetClient().Set(context.Background(), iotconst.PRODUCT_TYPE_ALL_DATA, iotutil.ToString(pros.List), 0)
+		if c.Err() != nil {
+			return pros.List, c.Err()
+		}
+	}
+	return pros.List, nil
+}
+
+// GetProductTypeMap 获取产品类型类型数据（非产品分类数据）
+func (s ProductService) GetProductTypeMap() (map[int64]*protosService.TPmProductRequest, error) {
+	res := make(map[int64]*protosService.TPmProductRequest)
+	proList, err := s.GetProductListCached()
+	if err != nil {
+		return res, err
+	}
+	for _, p := range proList {
+		res[p.Id] = p
+	}
+	return res, nil
 }
 
 // CreateProduct create one record
@@ -106,6 +145,11 @@ func (s ProductService) CreateProduct(req *entitys.CreateProductForm) (ret int64
 	if err := cached.RedisStore.Delete(iotconst.OPEN_PRODUCT_TREE_DATA); err != nil {
 		return 0, err
 	}
+
+	//设置上传图片对应业务是否成功
+	if data.ImageUrl != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmProduct, iotutil.ToString(res.Data.Id), data.ImageUrl)
+	}
 	return res.Data.Id, err
 }
 
@@ -174,6 +218,11 @@ func (s ProductService) UpdateProduct(req *entitys.UpProductForm) (err error) {
 	}
 	if err := cached.RedisStore.Delete(iotconst.OPEN_PRODUCT_TREE_DATA); err != nil {
 		return err
+	}
+
+	//设置上传图片对应业务是否成功
+	if data.ImageUrl != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmProduct, iotutil.ToString(res.Data.Id), data.ImageUrl)
 	}
 	return nil
 }
@@ -585,6 +634,28 @@ func (s ProductService) GetProductThingModelDetail(prodcutKey string) (resp []*e
 	return thingModelVoResp, err
 }
 
+// 获取产品类型的故障物模型数据
+func (s ProductService) GetProductFaultThingModel(prodcutKey string) (resp []*entitys.TPmThingModelVo, err error) {
+	var (
+		_this                      = new(ProductService)
+		thingModelPropertiesFilter = &protosService.TPmThingModelPropertiesFilter{
+			ProductKey: prodcutKey,
+			DataType:   iotconst.Dict_type_data_type,
+		}
+		propertyRes = new(protosService.TPmThingModelPropertiesResponseList)
+	)
+	//查询物模型属性
+	propertyRes, err = rpc.ClientThingModelPropertiesService.ListTPmThingModelProperties(context.Background(), &protosService.TPmThingModelPropertiesFilterPage{
+		QueryObj: thingModelPropertiesFilter,
+	})
+	//合并&转换物模型属性/方法/事件
+	var thingModelVoResp = make([]*entitys.TPmThingModelVo, 0)
+	if err = _this.mergePropertyAttributeDesc(propertyRes, nil, nil, thingModelVoResp); err != nil {
+		return nil, err
+	}
+	return thingModelVoResp, err
+}
+
 // 合并物模型属性/方法/事件
 func (ProductService) mergePropertyAttributeDesc(propertyRes *protosService.TPmThingModelPropertiesResponseList, serviceRes *protosService.TPmThingModelServicesResponseList, eventRes *protosService.TPmThingModelEventsResponseList, thingModelVoResp []*entitys.TPmThingModelVo) error {
 	var (
@@ -790,12 +861,14 @@ func (ProductService) transformPropertyAttributeDesc(dataType string, space stri
 			rets = append(rets, fmt.Sprintf("默认值: %v", data.DefaultValue))
 		}
 		ret = strings.Join(rets, ", ")
-	case "ENUM", "BOOL":
+	case "ENUM", "BOOL", "FAULT":
 		var (
 			buff bytes.Buffer
 		)
 		if dataType == "ENUM" {
 			buff.WriteString("枚举值：")
+		} else if dataType == "FAULT" {
+			buff.WriteString("故障值：")
 		} else {
 			buff.WriteString("布尔值：")
 		}

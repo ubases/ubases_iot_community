@@ -105,6 +105,8 @@ func (t *tPublicAppVersion) WithContext(ctx context.Context) *tPublicAppVersionD
 
 func (t tPublicAppVersion) TableName() string { return t.tPublicAppVersionDo.TableName() }
 
+func (t tPublicAppVersion) Alias() string { return t.tPublicAppVersionDo.Alias() }
+
 func (t *tPublicAppVersion) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

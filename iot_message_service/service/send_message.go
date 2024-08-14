@@ -160,7 +160,7 @@ func (s SendMessageSvc) SendMessage(messageId int64, message *protosService.Send
 	t1 := q.TAppPushTokenUser
 	t2 := q.TAppPushToken
 	var list []pushModel.PushTokenItem
-	err = t1.WithContext(context.Background()).LeftJoin(t2, t1.AppPushId.EqCol(t2.AppPushId)).
+	err = t1.WithContext(context.Background()).Join(t2, t1.AppPushId.EqCol(t2.AppPushId)).
 		Select(t2.Lang, t1.UserId, t1.AppPushId, t1.AppKey, t1.TenantId, t1.RegionId, t2.AppToken, t2.AppPushPlatform, t2.AppPacketName).
 		Where(t1.UserId.In(message.UserId...)).Scan(&list)
 	if err != nil {
@@ -242,6 +242,7 @@ func (s SendMessageSvc) SendLaserMessage(message *protosService.SendMessageReque
 		CreatedAt:   time.Now().Unix(),
 		AppKey:      message.AppKey,
 		TenantId:    message.TenantId,
+		Params:      message.Params,
 	}
 
 	q := orm.Use(iotmodel.GetDB())

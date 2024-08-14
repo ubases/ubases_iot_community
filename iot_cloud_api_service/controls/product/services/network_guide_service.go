@@ -53,6 +53,7 @@ func (s NetworkGuideService) UpdateNetworkGuide(req *entitys.PmNetworkGuideEntit
 	if res.Code != 200 {
 		return errors.New(res.Message)
 	}
+
 	return err
 }
 

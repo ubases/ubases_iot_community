@@ -27,6 +27,45 @@ type OemAppIntroduceSvc struct {
 	Ctx context.Context
 }
 
+func (s *OemAppIntroduceSvc) CopyOemAppIntroduce(req *proto.OemAppIntroduceCopyRequest) error {
+	if req.AppId == 0 {
+		return errors.New("appId not found")
+	}
+	if req.OldVersion == "" {
+		return errors.New("来源版本号不能为空")
+	}
+	if req.OldVersion == "" {
+		return errors.New("新版本号不能为空")
+	}
+	q := orm.Use(iotmodel.GetDB())
+	err := q.Transaction(func(tx *orm.Query) error {
+		t := tx.TOemAppIntroduce
+		do := t.WithContext(context.Background())
+		list, err := do.Where(t.AppId.Eq(req.AppId), t.Version.Eq(req.OldVersion)).Find()
+		if err != nil {
+			return err
+		}
+		var newList []*model.TOemAppIntroduce
+		for _, introduce := range list {
+			introduce.Id = iotutil.GetNextSeqInt64()
+			introduce.Version = req.NewVersion
+			introduce.Status = 2
+			introduce.CreatedAt = time.Now()
+			newList = append(newList, introduce)
+		}
+		err = do.Create(newList...)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Errorf("UpdateStatusOemAppIntroduce error : %s", err.Error())
+		return err
+	}
+	return err
+}
+
 func (s *OemAppIntroduceSvc) EnableOemAppIntroduce(req *proto.OemAppIntroduce) (*proto.OemAppIntroduce, error) {
 	if req.AppId == 0 {
 		return nil, errors.New("appId not found")
@@ -113,6 +152,9 @@ func (s *OemAppIntroduceSvc) DeleteOemAppIntroduce(req *proto.OemAppIntroduce) (
 	if req.UpdatedBy != 0 { //整数
 		do = do.Where(t.UpdatedBy.Eq(req.UpdatedBy))
 	}
+	if req.RemindMode != 0 { //整数
+		do = do.Where(t.RemindMode.Eq(req.RemindMode))
+	}
 	_, err := do.Delete()
 	if err != nil {
 		logger.Errorf("DeleteOemAppIntroduce error : %s", err.Error())
@@ -194,6 +236,9 @@ func (s *OemAppIntroduceSvc) UpdateOemAppIntroduce(req *proto.OemAppIntroduce) (
 	if req.UpdatedBy != 0 { //整数
 		updateField = append(updateField, t.UpdatedBy)
 	}
+	if req.RemindMode != 0 { //整数
+		updateField = append(updateField, t.RemindMode)
+	}
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}
@@ -237,6 +282,7 @@ func (s *OemAppIntroduceSvc) UpdateAllOemAppIntroduce(req *proto.OemAppIntroduce
 	updateField = append(updateField, t.Version)
 	updateField = append(updateField, t.CreatedBy)
 	updateField = append(updateField, t.UpdatedBy)
+	updateField = append(updateField, t.RemindMode)
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}
@@ -282,10 +328,13 @@ func (s *OemAppIntroduceSvc) UpdateFieldsOemAppIntroduce(req *proto.OemAppIntrod
 	if req.Data.Id != 0 { //整数
 		do = do.Where(t.Id.Eq(req.Data.Id))
 		HasPrimaryKey = true
-	}
-	if !HasPrimaryKey {
-		logger.Error("UpdateFieldsOemAppIntroduce error : Missing condition")
-		return nil, errors.New("Missing condition")
+	} else if req.Data.AppId != 0 && req.Data.Version != "" {
+		do = do.Where(t.AppId.Eq(req.Data.AppId), t.Version.Eq(req.Data.Version))
+	} else {
+		if !HasPrimaryKey {
+			logger.Error("UpdateFieldsOemAppIntroduce error : Missing condition")
+			return nil, errors.New("Missing condition")
+		}
 	}
 	dbObj := convert.OemAppIntroduce_pb2db(req.Data)
 	_, err := do.Updates(dbObj)
@@ -338,6 +387,9 @@ func (s *OemAppIntroduceSvc) FindOemAppIntroduce(req *proto.OemAppIntroduceFilte
 	if req.UpdatedBy != 0 { //整数
 		do = do.Where(t.UpdatedBy.Eq(req.UpdatedBy))
 	}
+	if req.RemindMode != 0 { //整数
+		do = do.Where(t.RemindMode.Eq(req.RemindMode))
+	}
 	dbObj, err := do.First()
 	if err != nil {
 		logger.Errorf("FindOemAppIntroduce error : %s", err.Error())
@@ -367,7 +419,7 @@ func (s *OemAppIntroduceSvc) FindByIdOemAppIntroduce(req *proto.OemAppIntroduceF
 
 // 获取列表(自定义)
 func (s *OemAppIntroduceSvc) GetOemAppIntroduceList2(req *proto.OemAppIntroduceListRequest) ([]*proto.OemAppIntroduceModelResponse, error) {
-	rows, errRows := iotmodel.GetDB().Table("t_oem_app_introduce").Select("version,min(created_at) as created_at,max(updated_at) as updated_at,count(1) lang_count ,min(`status`) as `status`, min(app_id) as app_id, min(content_type) as content_type").Where("app_id = ? and content_type = ?", req.Query.AppId, req.Query.ContentType).Group("version").Rows()
+	rows, errRows := iotmodel.GetDB().Table("t_oem_app_introduce").Select("version,min(created_at) as created_at,max(updated_at) as updated_at,count(1) lang_count ,min(`status`) as `status`, min(app_id) as app_id, min(content_type) as content_type, min(remind_mode) as remind_mode").Where("app_id = ? and content_type = ?", req.Query.AppId, req.Query.ContentType).Group("version").Rows()
 	if errRows != nil {
 		return nil, errRows
 	}
@@ -384,6 +436,7 @@ func (s *OemAppIntroduceSvc) GetOemAppIntroduceList2(req *proto.OemAppIntroduceL
 			Status:      iotutil.ToInt32(tmp["status"]),
 			AppId:       iotutil.ToInt64(tmp["app_id"]),
 			ContentType: iotutil.ToInt32(tmp["content_type"]),
+			RemindMode: iotutil.ToInt32(tmp["remind_mode"]),
 		})
 	}
 	return res, nil
@@ -434,15 +487,19 @@ func (s *OemAppIntroduceSvc) GetListOemAppIntroduce(req *proto.OemAppIntroduceLi
 		if query.UpdatedBy != 0 { //整数
 			do = do.Where(t.UpdatedBy.Eq(query.UpdatedBy))
 		}
+		if query.RemindMode != 0 { //整数
+			do = do.Where(t.RemindMode.Eq(query.RemindMode))
+		}
 	}
 	orderCol, ok := t.GetFieldByName(req.OrderKey)
 	if !ok {
-		orderCol = t.Id
-	}
-	if req.OrderDesc != "" {
-		do = do.Order(orderCol.Desc())
+		do = do.Order(field.Func.VersionOrder(t.Version).Desc())
 	} else {
-		do = do.Order(orderCol)
+		if req.OrderDesc != "" {
+			do = do.Order(orderCol.Desc())
+		} else {
+			do = do.Order(orderCol)
+		}
 	}
 
 	var list []*model.TOemAppIntroduce
@@ -470,4 +527,35 @@ func (s *OemAppIntroduceSvc) GetListOemAppIntroduce(req *proto.OemAppIntroduceLi
 		result[i] = convert.OemAppIntroduce_db2pb(v)
 	}
 	return result, total, nil
+}
+
+// 根据数据库表主键查找OemAppIntroduce
+func (s *OemAppIntroduceSvc) GetLastVersion(req *proto.OemAppIntroduceFilter) (userAgreementRemind int32, userAgreementVer string,privacyPolicyRemind int32,privacyPolicyVer string,err error) {
+	t := orm.Use(iotmodel.GetDB()).TOemAppIntroduce
+	do := t.WithContext(context.Background())
+	if req.AppKey == "" {
+		err = errors.New("AppKey不能为空")
+		return
+	}
+	do = do.Where(t.AppKey.Eq(req.AppKey), t.ContentType.In(1,2), t.Status.Eq(1))
+	if req.Lang == "" {
+		do = do.Where(t.Lang.Eq(req.Lang))
+	}
+	list, err := do.Select(t.Version,t.RemindMode, t.Id, t.AppKey, t.ContentType).Find()
+	if err != nil {
+		logger.Errorf("FindByIdOemAppIntroduce error : %s", err.Error())
+		return
+	}
+	for _, l := range list {
+		//1 用户协议,2隐私政策,3关于我们,4 语音服务帮助文档
+		switch l.ContentType {
+		case 1:
+			userAgreementRemind = l.RemindMode
+			userAgreementVer = l.Version
+		case 2:
+			privacyPolicyRemind = l.RemindMode
+			privacyPolicyVer = l.Version
+		}
+	}
+	return
 }

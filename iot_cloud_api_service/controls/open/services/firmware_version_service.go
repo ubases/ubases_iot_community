@@ -1,9 +1,11 @@
 package services
 
 import (
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/open/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
@@ -72,12 +74,36 @@ func (s OpmFirmwareVersionService) AddOpmFirmwareVersion(req entitys.OpmFirmware
 	saveObj := entitys.OpmFirmwareVersion_e2pb(&req)
 	saveObj.Id = iotutil.GetNextSeqInt64()
 	saveObj.Status = 2
+
+	//版本号检查
+	fvRes, err := rpc.ClientFirmwareVersionService.Lists(s.Ctx, &protosService.OpmFirmwareVersionListRequest{
+		Page:     1,
+		PageSize: 1,
+		Query: &protosService.OpmFirmwareVersion{
+			FirmwareId: iotutil.ToInt64(req.FirmwareId),
+			Status:     -1,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(fvRes.Data) > 0 {
+		if r, _ := iotutil.VerCompare(req.Version, fvRes.Data[0].Version); r != 1 {
+			return "", errors.New("上传的版本不能小于或等于最新的版本")
+		}
+	}
+
 	res, err := rpc.ClientFirmwareVersionService.Create(s.Ctx, saveObj)
 	if err != nil {
 		return "", err
 	}
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
+	}
+	//面板产品图片
+	if req.ProdFilePath != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmFirmwareVersion+"_prod", iotutil.ToString(req.Id), req.ProdFilePath)
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmFirmwareVersion+"_upgrade", iotutil.ToString(req.Id), req.UpgradeFilePath)
 	}
 	return iotutil.ToString(saveObj.Id), err
 }
@@ -93,6 +119,10 @@ func (s OpmFirmwareVersionService) UpdateOpmFirmwareVersion(req entitys.OpmFirmw
 	}
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
+	}
+	if req.ProdFilePath != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmFirmwareVersion+"_prod", iotutil.ToString(req.Id), req.ProdFilePath)
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmFirmwareVersion+"_upgrade", iotutil.ToString(req.Id), req.UpgradeFilePath)
 	}
 	return iotutil.ToString(req.Id), err
 }

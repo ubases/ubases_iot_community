@@ -1,9 +1,11 @@
 package services
 
 import (
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/product/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
@@ -34,6 +36,15 @@ func (s NetworkGuideStepService) CreateNetworkGuideStep(req *entitys.PmNetworkGu
 	if res.Code != 200 {
 		return 0, errors.New(res.Message)
 	}
+	//设置上传图片对应业务是否成功
+	urls := []string{}
+	if data.ImageUrl != "" {
+		urls = append(urls, data.ImageUrl)
+	}
+	if data.VideoUrl != "" {
+		urls = append(urls, data.VideoUrl)
+	}
+	commonGlobal.SetAttachmentStatus(model.TableNameTOpmNetworkGuide, iotutil.ToString(req.Id), urls...)
 	return 0, err
 }
 
@@ -53,6 +64,14 @@ func (s NetworkGuideStepService) UpdateNetworkGuideStep(req *entitys.PmNetworkGu
 	if ret != nil && ret.Code != 200 {
 		return errors.New(ret.Message)
 	}
+	urls := []string{}
+	if data.ImageUrl != "" {
+		urls = append(urls, data.ImageUrl)
+	}
+	if data.VideoUrl != "" {
+		urls = append(urls, data.VideoUrl)
+	}
+	commonGlobal.SetAttachmentStatus(model.TableNameTOpmNetworkGuide, iotutil.ToString(req.Id), urls...)
 	return nil
 }
 

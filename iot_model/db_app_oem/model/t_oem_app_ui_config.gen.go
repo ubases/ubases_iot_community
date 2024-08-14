@@ -9,16 +9,16 @@ const TableNameTOemAppUiConfig = "t_oem_app_ui_config"
 // TOemAppUiConfig mapped from table <t_oem_app_ui_config>
 type TOemAppUiConfig struct {
 	Id                  int64  `gorm:"column:id;primaryKey" json:"id"`
-	AppId               int64  `gorm:"column:app_id" json:"app_id"`                               // t_opm_app主键id
-	Version             string `gorm:"column:version" json:"version"`                             // 版本号
-	IconUrl             string `gorm:"column:icon_url" json:"icon_url"`                           // 图标icon，1024*1024图oss URL
-	IosLaunchScreen     string `gorm:"column:ios_launch_screen" json:"ios_launch_screen"`         // ios启动图，json串
-	AndroidLaunchScreen string `gorm:"column:android_launch_screen" json:"android_launch_screen"` // android启动图，json串
-	ThemeColors         string `gorm:"column:theme_colors" json:"theme_colors"`                   // 主题色，json串
-	BottomMenu          string `gorm:"column:bottom_menu" json:"bottom_menu"`                     // 底部菜单栏，json串
-	Personalize         string `gorm:"column:personalize" json:"personalize"`                     // 个性化配置，json串
-	Room                string `gorm:"column:room" json:"room"`                                   // 默认房间
-	RoomIcons           string `gorm:"column:room_icons" json:"room_icons"`                       // 自定义房间图标
+	AppId               int64  `gorm:"column:app_id" json:"appId"`                              // t_opm_app主键id
+	Version             string `gorm:"column:version" json:"version"`                           // 版本号
+	IconUrl             string `gorm:"column:icon_url" json:"iconUrl"`                          // 图标icon，1024*1024图oss URL
+	IosLaunchScreen     string `gorm:"column:ios_launch_screen" json:"iosLaunchScreen"`         // ios启动图，json串
+	AndroidLaunchScreen string `gorm:"column:android_launch_screen" json:"androidLaunchScreen"` // android启动图，json串
+	ThemeColors         string `gorm:"column:theme_colors" json:"themeColors"`                  // 主题色，json串
+	BottomMenu          string `gorm:"column:bottom_menu" json:"bottomMenu"`                    // 底部菜单栏，json串
+	Personalize         string `gorm:"column:personalize" json:"personalize"`                   // 个性化配置，json串
+	Room                string `gorm:"column:room" json:"room"`                                 // 默认房间
+	RoomIcons           string `gorm:"column:room_icons" json:"roomIcons"`                      // 自定义房间图标
 }
 
 // TableName TOemAppUiConfig's table name

@@ -1,15 +1,15 @@
 package main
 
 import (
+	"cloud_platform/iot_common/iotconst"
+	"cloud_platform/iot_common/iotredis"
+	"cloud_platform/iot_common/iottrace"
 	model "cloud_platform/iot_model"
 	"cloud_platform/iot_statistics_service/etl"
 	"cloud_platform/iot_statistics_service/rpc"
 	"cloud_platform/iot_statistics_service/task"
-	"cloud_platform/iot_common/iotconst"
-	"cloud_platform/iot_common/iotredis"
-	"cloud_platform/iot_common/iottrace"
+	"context"
 	"log"
-	"strings"
 
 	"github.com/opentracing/opentracing-go"
 
@@ -21,13 +21,13 @@ import (
 )
 
 var (
-	version string = "2.0.0"
+	version string = "2.1.0"
 	name           = "iot_statistics_service"
 )
 
 func main() {
 	log.Println(version)
-	if err := config.Init(); err != nil {
+	if err := config.Init2(); err != nil {
 		log.Println("加载配置文件发生错误:", err)
 		return
 	}
@@ -53,18 +53,14 @@ func main() {
 			}
 		}
 	}
-	cnf := iotredis.Config{
-		Cluster:      config.Global.Redis.Cluster,
-		Addrs:        strings.Join(config.Global.Redis.Addrs, ","),
-		Username:     config.Global.Redis.Username,
-		Password:     config.Global.Redis.Password,
-		Database:     config.Global.Redis.Database,
-		MinIdleConns: config.Global.Redis.MinIdleConns,
-		IdleTimeout:  config.Global.Redis.IdleTimeout,
-		PoolSize:     config.Global.Redis.PoolSize,
-		MaxConnAge:   config.Global.Redis.MaxConnAge,
-	}
-	_, err = iotredis.NewClient(cnf)
+
+	//task.HourDataOveriewStatistics(context.Background(), nil)
+	//task.MonthDataOveriewStatistics(context.Background(), nil)
+	//task.HourActive(context.Background(), nil)
+	//task.DeviceDataSum()
+	task.HourDataOveriewStatistics(context.Background(), nil)
+
+	_, err = iotredis.NewClient(config.Global.Redis)
 	if err != nil {
 		iotlogger.LogHelper.Errorf("初始化redis连接:%s", err.Error())
 		return

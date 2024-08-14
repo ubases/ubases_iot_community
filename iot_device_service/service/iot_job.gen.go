@@ -35,6 +35,11 @@ func (s *IotJobSvc) CreateIotJob(req *proto.IotJob) (*proto.IotJob, error) {
 		logger.Errorf("CreateIotJob error : %s", err.Error())
 		return nil, err
 	}
+	req.Id = dbObj.Id
+	err = GetCron().CreateJob(req)
+	if err != nil {
+		return nil, goerrors.New("", err.Error(), ioterrs.ErrJobTaskCreate)
+	}
 	return req, err
 }
 
@@ -85,6 +90,11 @@ func (s *IotJobSvc) DeleteIotJob(req *proto.IotJob) (*proto.IotJob, error) {
 		logger.Errorf("DeleteIotJob error : %s", err.Error())
 		return nil, err
 	}
+	err = GetCron().DeleteJob(req)
+	if err != nil {
+		return nil, goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
+	}
+
 	return req, err
 }
 
@@ -102,6 +112,12 @@ func (s *IotJobSvc) DeleteByIdIotJob(req *proto.IotJob) (*proto.IotJob, error) {
 		logger.Errorf("DeleteByIdIotJob error : %s", err.Error())
 		return nil, err
 	}
+
+	err = GetCron().DeleteJob(req)
+	if err != nil {
+		return nil, goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
+	}
+
 	return req, err
 }
 
@@ -117,6 +133,10 @@ func (s *IotJobSvc) DeleteByIdsIotJob(req *proto.IotJobBatchDeleteRequest) (*pro
 		_, err = do.Delete()
 		if err != nil {
 			logger.Errorf("DeleteByIdsIotJob error : %s", err.Error())
+			break
+		}
+		err = GetCron().DeleteJob(&proto.IotJob{Id: k.Id})
+		if err != nil {
 			break
 		}
 	}
@@ -186,6 +206,27 @@ func (s *IotJobSvc) UpdateIotJob(req *proto.IotJob) (*proto.IotJob, error) {
 		logger.Errorf("UpdateIotJob error : %s", err.Error())
 		return nil, err
 	}
+
+	//重新查询，在删除和创建任务
+	infoReq := &proto.IotJobFilter{
+		Id: req.Id,
+	}
+	jobInfo, err := s.FindByIdIotJob(infoReq)
+	if req.Enabled == 1 {
+		err = GetCron().DeleteJob(jobInfo)
+		if err != nil {
+			return nil, goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
+		}
+		err = GetCron().CreateJob(jobInfo)
+		if err != nil {
+			return nil, goerrors.New("", err.Error(), ioterrs.ErrJobTaskCreate)
+		}
+	} else {
+		err = GetCron().DeleteJob(jobInfo)
+		if err != nil {
+			return nil, goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
+		}
+	}
 	return req, err
 }
 
@@ -227,6 +268,16 @@ func (s *IotJobSvc) UpdateAllIotJob(req *proto.IotJob) (*proto.IotJob, error) {
 		logger.Errorf("UpdateAllIotJob error : %s", err.Error())
 		return nil, err
 	}
+
+	err = GetCron().DeleteJob(req)
+	if err != nil {
+		return nil, goerrors.New("", err.Error(), ioterrs.ErrJobTaskDelete)
+	}
+	err = GetCron().CreateJob(req)
+	if err != nil {
+		return nil, goerrors.New("", err.Error(), ioterrs.ErrJobTaskCreate)
+	}
+
 	return req, err
 }
 

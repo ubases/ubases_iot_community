@@ -72,6 +72,8 @@ func (t *tOemAppFlashScreenUser) WithContext(ctx context.Context) *tOemAppFlashS
 
 func (t tOemAppFlashScreenUser) TableName() string { return t.tOemAppFlashScreenUserDo.TableName() }
 
+func (t tOemAppFlashScreenUser) Alias() string { return t.tOemAppFlashScreenUserDo.Alias() }
+
 func (t *tOemAppFlashScreenUser) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

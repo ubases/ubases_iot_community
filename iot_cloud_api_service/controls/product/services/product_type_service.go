@@ -2,11 +2,13 @@ package services
 
 import (
 	"cloud_platform/iot_cloud_api_service/cached"
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/product/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotgincache/persist"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
@@ -44,6 +46,11 @@ func (s ProductTypeService) CreateProductType(req *entitys.CreateProductTypeForm
 	if err := cached.RedisStore.Delete(iotconst.OPEN_PRODUCT_TREE_DATA); err != nil {
 		return 0, err
 	}
+
+	if data.ImgFullPath != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmProductType, iotutil.ToString(res.Data.Id), data.ImgFullPath)
+	}
+
 	return res.Data.Id, err
 }
 
@@ -72,6 +79,9 @@ func (s ProductTypeService) UpdateProductType(req *entitys.UpProductTypeForm) (e
 	}
 	if err := cached.RedisStore.Delete(iotconst.OPEN_PRODUCT_TREE_DATA); err != nil {
 		return err
+	}
+	if data.ImgFullPath != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmProductType, iotutil.ToString(res.Data.Id), data.ImgFullPath)
 	}
 	return err
 }
@@ -348,11 +358,11 @@ func (s ProductTypeService) GetProductTree(filter *entitys.QueryProductTypeForm)
 	return tree, total, err
 }
 
-func (s ProductTypeService) convertTreeData(pid string, areaList []*protosService.TPmProductTypeRequest, pVos map[int64][]*entitys.TPmProductVo) []*entitys.TPmProductTypeVo {
+func (s ProductTypeService) convertTreeData(pid string, proTypes []*protosService.TPmProductTypeRequest, pVos map[int64][]*entitys.TPmProductVo) []*entitys.TPmProductTypeVo {
 	treeList := func() []*entitys.TPmProductTypeVo {
 		treeList := []*entitys.TPmProductTypeVo{}
 		flatPtr := []*entitys.TPmProductTypeVo{}
-		for _, src := range areaList {
+		for _, src := range proTypes {
 			area := &entitys.TPmProductTypeVo{
 				Id:          iotutil.ToString(src.Id),
 				Name:        src.Name,
@@ -390,10 +400,14 @@ func (s ProductTypeService) convertTreeData(pid string, areaList []*protosServic
 						}
 						newChildren = append(newChildren, c)
 					}
+					if len(newChildren) == 0 {
+						continue
+					}
 					j.Children = newChildren
+					//如果没有children将不显示该分类
+					j.Products = nil
+					treeList = append(treeList, j)
 				}
-				j.Products = nil
-				treeList = append(treeList, j)
 			}
 		}
 		return treeList

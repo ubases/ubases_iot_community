@@ -47,6 +47,7 @@ func newTPmControlPanels(db *gorm.DB) tPmControlPanels {
 	_tPmControlPanels.DeletedAt = field.NewField(tableName, "deleted_at")
 	_tPmControlPanels.HasLangPackage = field.NewInt32(tableName, "has_lang_package")
 	_tPmControlPanels.LangFileName = field.NewString(tableName, "lang_file_name")
+	_tPmControlPanels.Code = field.NewString(tableName, "code")
 
 	_tPmControlPanels.fillFieldMap()
 
@@ -79,6 +80,7 @@ type tPmControlPanels struct {
 	DeletedAt      field.Field
 	HasLangPackage field.Int32
 	LangFileName   field.String
+	Code   field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -117,6 +119,7 @@ func (t *tPmControlPanels) updateTableName(table string) *tPmControlPanels {
 	t.DeletedAt = field.NewField(table, "deleted_at")
 	t.HasLangPackage = field.NewInt32(table, "has_lang_package")
 	t.LangFileName = field.NewString(table, "lang_file_name")
+	t.Code = field.NewString(table, "code")
 
 	t.fillFieldMap()
 
@@ -164,6 +167,7 @@ func (t *tPmControlPanels) fillFieldMap() {
 	t.fieldMap["deleted_at"] = t.DeletedAt
 	t.fieldMap["has_lang_package"] = t.HasLangPackage
 	t.fieldMap["lang_file_name"] = t.LangFileName
+	t.fieldMap["code"] = t.Code
 }
 
 func (t tPmControlPanels) clone(db *gorm.DB) tPmControlPanels {

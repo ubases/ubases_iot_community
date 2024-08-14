@@ -22,7 +22,8 @@ func (s *SmsSvc) SendCode(request *protosService.SendSMSCodeRequest) (*protosSer
 		iotlogger.LogHelper.Error(err)
 		return &ret, err
 	}
-	err = SmdMgr.SendSMS(CodeInput{UserName: request.UserName, Code: request.Code}, dbObj.TplCode, request.PhoneNumber)
+	err = SmdMgr.SendSMS(CodeInput{UserName: request.UserName, Code: request.Code}, dbObj.TplCode, dbObj,
+		request.Lang, request.TenantId, request.AppKey, request.PhoneNumber)
 	if err != nil {
 		iotlogger.LogHelper.Error(err)
 		return &ret, err
@@ -39,7 +40,8 @@ func (s *SmsSvc) SendSMSVerifyCode(request *protosService.SendSMSVerifyCodeReque
 		return &ret, err
 	}
 
-	err = SmdMgr.SendSMS(CodeInput{UserName: request.UserName, Code: request.Code, PhoneType: iotutil.ToString(request.PhoneType), Lang: request.Lang, Template: dbObj.TplContent}, dbObj.TplCode, request.PhoneNumber)
+	err = SmdMgr.SendSMS(CodeInput{UserName: request.UserName, Code: request.Code, PhoneType: iotutil.ToString(request.PhoneType), Lang: request.Lang, Template: dbObj.TplContent}, dbObj.TplCode, dbObj,
+		request.Lang, request.TenantId, request.AppKey, request.PhoneNumber)
 	if err != nil {
 		iotlogger.LogHelper.Error(err)
 		return &ret, err
@@ -55,7 +57,8 @@ func (s *SmsSvc) SendLoggedIn(request *protosService.SendSMSLoggedInRequest) (*p
 		iotlogger.LogHelper.Error(err)
 		return &ret, err
 	}
-	err = SmdMgr.SendSMS(LoggedInInput{UserName: request.UserName, IP: request.Ip}, dbObj.TplCode, request.PhoneNumber)
+	err = SmdMgr.SendSMS(LoggedInInput{UserName: request.UserName, IP: request.Ip}, dbObj.TplCode, dbObj,
+		request.Lang, request.TenantId, request.AppKey, request.PhoneNumber)
 	if err != nil {
 		iotlogger.LogHelper.Error(err)
 		return &ret, err
@@ -71,7 +74,8 @@ func (s *SmsSvc) SendRegister(request *protosService.SendSMSRegisterRequest) (*p
 		iotlogger.LogHelper.Error(err)
 		return &ret, err
 	}
-	err = SmdMgr.SendSMS(RegisterInput{UserName: request.UserName}, dbObj.TplCode, request.PhoneNumber)
+	err = SmdMgr.SendSMS(RegisterInput{UserName: request.UserName}, dbObj.TplCode, dbObj,
+		request.Lang, request.TenantId, request.AppKey, request.PhoneNumber)
 	if err != nil {
 		iotlogger.LogHelper.Error(err)
 		return &ret, err
@@ -83,7 +87,7 @@ func (s *SmsSvc) SendRegister(request *protosService.SendSMSRegisterRequest) (*p
 func (s *SmsSvc) GetSMSTplByType(lang string, method int32, tplType iotconst.NotifierBusinesses) (*model.TMsNoticeTemplate, error) {
 	t := orm.Use(iotmodel.GetDB()).TMsNoticeTemplate
 	do := t.WithContext(context.Background())
-	//短信验证码翻译，需要读取对应语言的短信模板, 通知模板增加短信类型（短信、短信（英文））
+	//update by hogan 短信验证码翻译，需要读取对应语言的短信模板, 通知模板增加短信类型（短信、短信（英文））
 	do = do.Where(t.TplType.Eq(int32(tplType)), t.Method.Eq(method), t.Lang.Eq(lang))
 	dbObj, err := do.First()
 	if err != nil {
@@ -96,7 +100,7 @@ func (s *SmsSvc) GetSMSTplByType(lang string, method int32, tplType iotconst.Not
 func (s *SmsSvc) GetSMSTpl(lang string, tplType iotconst.NotifierBusinesses) (*model.TMsNoticeTemplate, error) {
 	t := orm.Use(iotmodel.GetDB()).TMsNoticeTemplate
 	do := t.WithContext(context.Background())
-	//短信验证码翻译，需要读取对应语言的短信模板, 通知模板增加短信类型（短信、短信（英文））
+	//update by hogan 短信验证码翻译，需要读取对应语言的短信模板, 通知模板增加短信类型（短信、短信（英文））
 	var method int32 = 3
 	if lang == "zh" {
 		method = 1

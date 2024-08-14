@@ -113,9 +113,27 @@ func (s SysAreaService) DeleteSysArea(req entitys.SysAreaFilter) error {
 }
 
 // QueryRegionList 获取区域列表
-func (s SysAreaService) QueryRegionList() ([]*protosService.SysRegionServer, error) {
+func (s SysAreaService) QueryRegionList() ([]*entitys.SysRegionServerEntitys, error) {
 	rep, err := rpc.SysRegionServerService.Lists(context.Background(), &protosService.SysRegionServerListRequest{
-		Query: &protosService.SysRegionServer{},
+		Query: &protosService.SysRegionServer{Enabled: 1},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if rep.Code != 200 {
+		return nil, errors.New(rep.Message)
+	}
+	var list []*entitys.SysRegionServerEntitys
+	for _, d := range rep.Data {
+		list = append(list, entitys.SysRegionServer_pb2e(d))
+	}
+	return list, nil
+}
+
+// QueryRegionList2 获取区域列表
+func (s SysAreaService) QueryRegionList2() ([]*protosService.SysRegionServer, error) {
+	rep, err := rpc.SysRegionServerService.Lists(context.Background(), &protosService.SysRegionServerListRequest{
+		Query: &protosService.SysRegionServer{Enabled: 1},
 	})
 	if err != nil {
 		return nil, err
@@ -125,9 +143,10 @@ func (s SysAreaService) QueryRegionList() ([]*protosService.SysRegionServer, err
 	}
 	return rep.Data, nil
 }
+
 func (s SysAreaService) GetRegionMap() (map[int64]*protosService.SysRegionServer, error) {
 	res := make(map[int64]*protosService.SysRegionServer)
-	list, err := s.QueryRegionList()
+	list, err := s.QueryRegionList2()
 	if err != nil {
 		return res, err
 	}

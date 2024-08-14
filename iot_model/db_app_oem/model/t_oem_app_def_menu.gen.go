@@ -15,18 +15,18 @@ const TableNameTOemAppDefMenu = "t_oem_app_def_menu"
 // TOemAppDefMenu mapped from table <t_oem_app_def_menu>
 type TOemAppDefMenu struct {
 	Id        int64          `gorm:"column:id;primaryKey" json:"id"`
-	Name      string         `gorm:"column:name" json:"name"`           // 菜单名称
-	MenuKey   string         `gorm:"column:menu_key" json:"menu_key"`   // 菜单标识
-	Position  int32          `gorm:"column:position" json:"position"`   // 菜单位置，左到右，1开始
-	DefImage  string         `gorm:"column:def_image" json:"def_image"` // 默认图标
-	SelImage  string         `gorm:"column:sel_image" json:"sel_image"` // 选中图标
-	Required  int32          `gorm:"column:required" json:"required"`   // 是否必须 1 必须,  2 非必须
-	Status    int32          `gorm:"column:status" json:"status"`       // 1启用2禁用
-	CreatedBy int64          `gorm:"column:created_by" json:"created_by"`
-	UpdatedBy int64          `gorm:"column:updated_by" json:"updated_by"`
-	CreatedAt time.Time      `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
+	Name      string         `gorm:"column:name" json:"name"`          // 菜单名称
+	MenuKey   string         `gorm:"column:menu_key" json:"menuKey"`   // 菜单标识
+	Position  int32          `gorm:"column:position" json:"position"`  // 菜单位置，左到右，1开始
+	DefImage  string         `gorm:"column:def_image" json:"defImage"` // 默认图标
+	SelImage  string         `gorm:"column:sel_image" json:"selImage"` // 选中图标
+	Required  int32          `gorm:"column:required" json:"required"`  // 是否必须 1 必须,  2 非必须
+	Status    int32          `gorm:"column:status" json:"status"`      // 1启用2禁用
+	CreatedBy int64          `gorm:"column:created_by" json:"createdBy"`
+	UpdatedBy int64          `gorm:"column:updated_by" json:"updatedBy"`
+	CreatedAt time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"`
 }
 
 // TableName TOemAppDefMenu's table name

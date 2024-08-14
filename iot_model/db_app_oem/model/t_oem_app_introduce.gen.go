@@ -15,21 +15,23 @@ const TableNameTOemAppIntroduce = "t_oem_app_introduce"
 // TOemAppIntroduce mapped from table <t_oem_app_introduce>
 type TOemAppIntroduce struct {
 	Id          int64          `gorm:"column:id;primaryKey" json:"id"`
-	Content     string         `gorm:"column:content" json:"content"`           // 内容
-	ContentUrl  string         `gorm:"column:content_url" json:"content_url"`   // URL内容(预留.暂时未用上)
-	Lang        string         `gorm:"column:lang" json:"lang"`                 // 语言
-	Status      int32          `gorm:"column:status" json:"status"`             // 状态(1 已启用, 2 未启用,3 已失效)
-	ContentType int32          `gorm:"column:content_type" json:"content_type"` // 文档类型(1 用户协议,2隐私政策,3关于我们,4 语音服务帮助文档)
-	AppId       int64          `gorm:"column:app_id" json:"app_id"`
-	AppKey      string         `gorm:"column:app_key" json:"app_key"`
+	Content     string         `gorm:"column:content" json:"content"`          // 内容
+	ContentUrl  string         `gorm:"column:content_url" json:"contentUrl"`   // URL内容(预留.暂时未用上)
+	Lang        string         `gorm:"column:lang" json:"lang"`                // 语言
+	Status      int32          `gorm:"column:status" json:"status"`            // 状态(1 已启用, 2 未启用,3 已失效)
+	ContentType int32          `gorm:"column:content_type" json:"contentType"` // 文档类型(1 用户协议,2隐私政策,3关于我们,4 语音服务帮助文档)
+	AppId       int64          `gorm:"column:app_id" json:"appId"`
+	AppKey      string         `gorm:"column:app_key" json:"appKey"`
 	Version     string         `gorm:"column:version" json:"version"`
-	VoiceCode   string         `gorm:"column:voice_code" json:"voice_code"`                    // 语音帮助文档类型编码(alexa,天猫精灵,小爱等等)
-	CreatedBy   int64          `gorm:"column:created_by;not null;default:0" json:"created_by"` // 创建人
-	UpdatedBy   int64          `gorm:"column:updated_by;not null;default:0" json:"updated_by"` // 修改人
-	CreatedAt   time.Time      `gorm:"column:created_at" json:"created_at"`                    // 创建时间
-	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updated_at"`                    // 修改时间
-	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`                    // 删除时间
-	Abstract    string         `gorm:"column:abstract" json:"abstract"`                        // 摘要
+	VoiceCode   string         `gorm:"column:voice_code" json:"voiceCode"`                    // 语音帮助文档类型编码(alexa,天猫精灵,小爱等等)
+	CreatedBy   int64          `gorm:"column:created_by;not null;default:0" json:"createdBy"` // 创建人
+	UpdatedBy   int64          `gorm:"column:updated_by;not null;default:0" json:"updatedBy"` // 修改人
+	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt"`                    // 创建时间
+	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt"`                    // 修改时间
+	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"`                    // 删除时间
+	Abstract    string         `gorm:"column:abstract" json:"abstract"`                       // 摘要
+	AppDevType  int32          `gorm:"column:app_dev_type" json:"appDevType"`
+	RemindMode  int32          `gorm:"column:remind_mode" json:"remindMode"` // 更新提醒模式 =1 不提醒 =2 弹框提醒
 }
 
 // TableName TOemAppIntroduce's table name

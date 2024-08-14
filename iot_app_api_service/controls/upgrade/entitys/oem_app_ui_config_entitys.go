@@ -14,6 +14,11 @@ type OemAppCommonReq struct {
 	Version string `json:"version" form:"version"` //version
 }
 
+type OemAppUpgradeCheckReq struct {
+	Os  int32 `json:"os"` // 1 ios 2 android 3 android国外
+	Type int32 `json:"type"`
+}
+
 type AppVersionReq struct {
 	Type string `json:"type" form:"type"`
 }

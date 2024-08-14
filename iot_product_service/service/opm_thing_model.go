@@ -6,6 +6,7 @@ package service
 
 import (
 	"cloud_platform/iot_common/iotconst"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
 	"context"
@@ -180,7 +181,12 @@ func (s *OpmThingModelSvc) CreateOpmThingModel(req *proto.OpmThingModel) (*proto
 	}
 	//推送物模型翻译内容
 	if translates != nil && len(translates.TranslateList) > 0 {
-		GetJsPublisherMgr().PushData(&NatsPubData{
+		//GetJsPublisherMgr().PushData(&NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotutil.ToString(translates),
+		//})
+
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotutil.ToString(translates),
 		})
@@ -286,7 +292,12 @@ func (s *OpmThingModelSvc) addStandardFunc(req *proto.OpmThingModel, modelId int
 	}
 	//推送物模型翻译内容
 	if translates != nil && len(translates.TranslateList) > 0 {
-		GetJsPublisherMgr().PushData(&NatsPubData{
+		//GetJsPublisherMgr().PushData(&NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotutil.ToString(translates),
+		//})
+
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotutil.ToString(translates),
 		})
@@ -509,7 +520,12 @@ func (s *OpmThingModelSvc) UpdateOpmThingModel(req *proto.OpmThingModel) (*proto
 		SetTranslatesContent(translates, dbObj)
 		//推送物模型翻译内容
 		if translates != nil && len(translates.TranslateList) > 0 {
-			GetJsPublisherMgr().PushData(&NatsPubData{
+			//GetJsPublisherMgr().PushData(&NatsPubData{
+			//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+			//	Data:    iotutil.ToString(translates),
+			//})
+
+			iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 				Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 				Data:    iotutil.ToString(translates),
 			})
@@ -571,7 +587,7 @@ func specCheck(prop *model.TOpmThingModelProperties, args string, enable int32) 
 	}
 	res := args
 	switch prop.DataType {
-	case "ENUM", "BOOL":
+	case "ENUM", "BOOL", "FAULT":
 		if args != "" {
 			mapObj, _ := iotutil.JsonToMapArrayErr(prop.DataSpecsList)
 			originProp := make(map[interface{}]bool)
@@ -826,43 +842,54 @@ func (s *OpmThingModelSvc) GetOpmThingModelByProduct(req *proto.OpmThingModelByP
 		}
 		return nil, err
 	}
-	tModelEvents := q.TOpmThingModelEvents
-	tpsModelEventsDo := tModelEvents.WithContext(context.Background()).Where(tModelEvents.ModelId.Eq(tpsModel.Id))
-	if req.Custom >= 0 {
-		tpsModelEventsDo.Where(tModelEvents.Custom.Eq(req.Custom))
-	}
-	tpsModelEvents, err := tpsModelEventsDo.Order(tModelEvents.Dpid).Find()
-	if err != nil {
-		return nil, err
-	}
-	tModelProperties := q.TOpmThingModelProperties
-	tpsModelPropertiesDo := tModelProperties.WithContext(context.Background()).Where(tModelProperties.ModelId.Eq(tpsModel.Id))
-	if req.Custom >= 0 {
-		tpsModelPropertiesDo.Where(tModelProperties.Custom.Eq(req.Custom))
-	}
-	tpsModelProperties, err := tpsModelPropertiesDo.Order(tModelProperties.Dpid).Find()
-	if err != nil {
-		return nil, err
-	}
-	tModelServices := q.TOpmThingModelServices
-	tpsModelServicesDo := tModelServices.WithContext(context.Background()).Where(tModelServices.ModelId.Eq(tpsModel.Id))
-	if req.Custom >= 0 {
-		tpsModelServicesDo.Where(tModelServices.Custom.Eq(req.Custom))
-	}
-	tpsModelServices, err := tpsModelServicesDo.Order(tModelServices.Dpid).Find()
-	if err != nil {
-		return nil, err
-	}
 
 	result.Model = convert.OpmThingModel_db2pb(tpsModel)
-	for _, property := range tpsModelProperties {
-		result.Properties = append(result.Properties, convert.OpmThingModelProperties_db2pb(property))
+
+	if !req.UnQueryService {
+		tModelEvents := q.TOpmThingModelEvents
+		tpsModelEventsDo := tModelEvents.WithContext(context.Background()).Where(tModelEvents.ModelId.Eq(tpsModel.Id))
+		if req.Custom >= 0 {
+			tpsModelEventsDo = tpsModelEventsDo.Where(tModelEvents.Custom.Eq(req.Custom))
+		}
+		tpsModelEvents, err := tpsModelEventsDo.Order(tModelEvents.Dpid).Find()
+		if err != nil {
+			return nil, err
+		}
+		for _, event := range tpsModelEvents {
+			result.Events = append(result.Events, convert.OpmThingModelEvents_db2pb(event))
+		}
 	}
-	for _, event := range tpsModelEvents {
-		result.Events = append(result.Events, convert.OpmThingModelEvents_db2pb(event))
+	if !req.UnQueryProperties {
+		tModelProperties := q.TOpmThingModelProperties
+		tpsModelPropertiesDo := tModelProperties.WithContext(context.Background()).Where(tModelProperties.ModelId.Eq(tpsModel.Id))
+		if req.Custom >= 0 {
+			tpsModelPropertiesDo = tpsModelPropertiesDo.Where(tModelProperties.Custom.Eq(req.Custom))
+		}
+		if req.DataType != "" {{
+			tpsModelPropertiesDo = tpsModelPropertiesDo.Where(tModelProperties.DataType.Eq(req.DataType))
+		}}
+		tpsModelProperties, err := tpsModelPropertiesDo.Order(tModelProperties.Dpid).Find()
+		if err != nil {
+			return nil, err
+		}
+		for _, property := range tpsModelProperties {
+			result.Properties = append(result.Properties, convert.OpmThingModelProperties_db2pb(property))
+		}
 	}
-	for _, services := range tpsModelServices {
-		result.Services = append(result.Services, convert.OpmThingModelServices_db2pb(services))
+	if !req.UnQueryService {
+		tModelServices := q.TOpmThingModelServices
+		tpsModelServicesDo := tModelServices.WithContext(context.Background()).Where(tModelServices.ModelId.Eq(tpsModel.Id))
+		if req.Custom >= 0 {
+			tpsModelServicesDo = tpsModelServicesDo.Where(tModelServices.Custom.Eq(req.Custom))
+		}
+		tpsModelServices, err := tpsModelServicesDo.Order(tModelServices.Dpid).Find()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, services := range tpsModelServices {
+			result.Services = append(result.Services, convert.OpmThingModelServices_db2pb(services))
+		}
 	}
 	return result, nil
 }
@@ -889,11 +916,13 @@ func (s *OpmThingModelSvc) GetStandardThingModelByProduct(req *proto.OpmThingMod
 	if err != nil {
 		return nil, err
 	}
+
 	tModelProperties := q.TPmThingModelProperties
 	tpsModelProperties, err := tModelProperties.WithContext(context.Background()).Where(tModelProperties.ModelId.Eq(tpsModel.Id), tModelProperties.Valid.Eq(1)).Find()
 	if err != nil {
 		return nil, err
 	}
+
 	tModelServices := q.TPmThingModelServices
 	tpsModelServices, err := tModelServices.WithContext(context.Background()).Where(tModelServices.ModelId.Eq(tpsModel.Id), tModelServices.Valid.Eq(1)).Find()
 	if err != nil {

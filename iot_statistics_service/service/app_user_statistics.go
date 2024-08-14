@@ -22,7 +22,7 @@ func (s *AppUserStatisticsSvc) GetAppUserStatistics(req *proto.AppUserStatistics
 		return nil, errors.New("数据库未初始化")
 	}
 	//获取注册用户总数
-	var total int64
+	var total int64 //累计
 	t := orm.Use(db).TAppUserSum
 	err := t.WithContext(context.Background()).Select(t.RegisterSum.IfNull(0).As("total")).Where(t.AppKey.Eq(req.GetAppKey())).Scan(&total)
 	if err != nil {

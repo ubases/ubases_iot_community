@@ -4,6 +4,7 @@
 package protosService
 
 import (
+	// _ "/api"
 	fmt "fmt"
 	proto "google.golang.org/protobuf/proto"
 	math "math"
@@ -143,6 +144,13 @@ func NewIotDeviceTriadServiceEndpoints() []*api.Endpoint {
 			Body:    "*",
 			Handler: "rpc",
 		},
+		{
+			Name:    "IotDeviceTriadService.GetDeviceTriadCount",
+			Path:    []string{"/v1/iotDeviceTriad/getDeviceTriadCount"},
+			Method:  []string{"POST"},
+			Body:    "*",
+			Handler: "rpc",
+		},
 	}
 }
 
@@ -181,6 +189,8 @@ type IotDeviceTriadService interface {
 	CreateAndBindDeviceTriad(ctx context.Context, in *IotDeviceTriadGenerateRequest, opts ...client.CallOption) (*Response, error)
 	//查找，支持分页，可返回多条数据
 	SetExportCount(ctx context.Context, in *IotDeviceTriadListRequest, opts ...client.CallOption) (*IotDeviceTriadResponse, error)
+	//设备三组统计
+	GetDeviceTriadCount(ctx context.Context, in *IotDeviceTriadCountRequest, opts ...client.CallOption) (*IotDeviceTriadCountResponse, error)
 }
 
 type iotDeviceTriadService struct {
@@ -355,6 +365,16 @@ func (c *iotDeviceTriadService) SetExportCount(ctx context.Context, in *IotDevic
 	return out, nil
 }
 
+func (c *iotDeviceTriadService) GetDeviceTriadCount(ctx context.Context, in *IotDeviceTriadCountRequest, opts ...client.CallOption) (*IotDeviceTriadCountResponse, error) {
+	req := c.c.NewRequest(c.name, "IotDeviceTriadService.GetDeviceTriadCount", in)
+	out := new(IotDeviceTriadCountResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for IotDeviceTriadService service
 
 type IotDeviceTriadServiceHandler interface {
@@ -390,6 +410,8 @@ type IotDeviceTriadServiceHandler interface {
 	CreateAndBindDeviceTriad(context.Context, *IotDeviceTriadGenerateRequest, *Response) error
 	//查找，支持分页，可返回多条数据
 	SetExportCount(context.Context, *IotDeviceTriadListRequest, *IotDeviceTriadResponse) error
+	//设备三组统计
+	GetDeviceTriadCount(context.Context, *IotDeviceTriadCountRequest, *IotDeviceTriadCountResponse) error
 }
 
 func RegisterIotDeviceTriadServiceHandler(s server.Server, hdlr IotDeviceTriadServiceHandler, opts ...server.HandlerOption) error {
@@ -410,6 +432,7 @@ func RegisterIotDeviceTriadServiceHandler(s server.Server, hdlr IotDeviceTriadSe
 		BindTestAccount(ctx context.Context, in *BindTestAccountRequest, out *Response) error
 		CreateAndBindDeviceTriad(ctx context.Context, in *IotDeviceTriadGenerateRequest, out *Response) error
 		SetExportCount(ctx context.Context, in *IotDeviceTriadListRequest, out *IotDeviceTriadResponse) error
+		GetDeviceTriadCount(ctx context.Context, in *IotDeviceTriadCountRequest, out *IotDeviceTriadCountResponse) error
 	}
 	type IotDeviceTriadService struct {
 		iotDeviceTriadService
@@ -527,6 +550,13 @@ func RegisterIotDeviceTriadServiceHandler(s server.Server, hdlr IotDeviceTriadSe
 		Body:    "*",
 		Handler: "rpc",
 	}))
+	opts = append(opts, api.WithEndpoint(&api.Endpoint{
+		Name:    "IotDeviceTriadService.GetDeviceTriadCount",
+		Path:    []string{"/v1/iotDeviceTriad/getDeviceTriadCount"},
+		Method:  []string{"POST"},
+		Body:    "*",
+		Handler: "rpc",
+	}))
 	return s.Handle(s.NewHandler(&IotDeviceTriadService{h}, opts...))
 }
 
@@ -596,4 +626,8 @@ func (h *iotDeviceTriadServiceHandler) CreateAndBindDeviceTriad(ctx context.Cont
 
 func (h *iotDeviceTriadServiceHandler) SetExportCount(ctx context.Context, in *IotDeviceTriadListRequest, out *IotDeviceTriadResponse) error {
 	return h.IotDeviceTriadServiceHandler.SetExportCount(ctx, in, out)
+}
+
+func (h *iotDeviceTriadServiceHandler) GetDeviceTriadCount(ctx context.Context, in *IotDeviceTriadCountRequest, out *IotDeviceTriadCountResponse) error {
+	return h.IotDeviceTriadServiceHandler.GetDeviceTriadCount(ctx, in, out)
 }

@@ -1,9 +1,11 @@
 package services
 
 import (
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/open/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
@@ -73,6 +75,9 @@ func (s OpmCommunityProductService) AddOpmCommunityProduct(req entitys.OpmCommun
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
 	}
+	if req.ImageUrl != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmCommunityProduct, iotutil.ToString(req.Id), req.ImageUrl)
+	}
 	return iotutil.ToString(saveObj.Id), err
 }
 
@@ -87,6 +92,9 @@ func (s OpmCommunityProductService) UpdateOpmCommunityProduct(req entitys.OpmCom
 	}
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
+	}
+	if req.ImageUrl != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmCommunityProduct, iotutil.ToString(req.Id), req.ImageUrl)
 	}
 	return iotutil.ToString(req.Id), err
 }

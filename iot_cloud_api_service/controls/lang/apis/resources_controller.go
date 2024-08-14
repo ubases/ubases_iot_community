@@ -305,17 +305,20 @@ func (s *LangResourcesController) GetExport(c *gin.Context) {
 		return
 	}
 	belongId := c.DefaultQuery("belongId", "0")
-	belongTypeInt, err := iotutil.ToInt32Err(belongType)
-	if err != nil {
-		iotgin.ResErrCli(c, errors.New("参数错误 belongType"))
+	belongTypeInt, _ := iotutil.ToInt32Err(belongType)
+	packageId := c.DefaultQuery("packageId", "0")
+	packageIdInt, _ := iotutil.ToInt64AndErr(packageId)
+	belongIdInt, err := iotutil.ToInt64AndErr(belongId)
+	if belongIdInt == 0 && packageIdInt == 0 {
+		iotgin.ResErrCli(c, errors.New("参数错误 belongType / packageId"))
 		return
 	}
-	belongIdInt, err := iotutil.ToInt64AndErr(belongId)
 	thisContext := controls.WithUserContext(c)
 	res, err := rpc.ClientLangResourcesPackageService.Lists(thisContext, &proto.LangResourcePackageListRequest{
 		Query: &proto.LangResourcePackage{
 			BelongType: belongTypeInt,
 			BelongId:   belongIdInt,
+			Id:         packageIdInt,
 		},
 	})
 
@@ -345,7 +348,7 @@ func (s *LangResourcesController) GetExport(c *gin.Context) {
 	}
 
 	rep, err := rpc.ClientLangResourcesService.Lists(thisContext, &proto.LangResourcesListRequest{
-		Query: &proto.LangResources{BelongType: belongTypeInt, BelongId: belongIdInt},
+		Query: &proto.LangResources{BelongType: belongTypeInt, BelongId: belongIdInt, PackageId: packageIdInt},
 	})
 	if err != nil {
 		iotgin.ResErrCli(c, err)

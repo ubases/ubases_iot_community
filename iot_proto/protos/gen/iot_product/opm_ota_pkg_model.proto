@@ -78,6 +78,10 @@ message OpmOtaPkg {
     int32 isCustomFirmware = 131; //是否自定义固件
 
     int32 isMustVersion = 132;
+    //固件Key
+    string firmwareKey =133;
+    //固件Url
+    string firmwareUrl =134;
 }
 
 message OpmOtaPkgFilter {

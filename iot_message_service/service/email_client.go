@@ -100,10 +100,17 @@ func (e *EmailClientMgr) QueueHandle() {
 				}
 			}
 			//成功立即返回，失败最多再试1次
+			var (
+				isSucc = false
+				errMsg = ""
+			)
 			for i := 0; i < 2; i++ {
 				if _, err = client.Send(*emailInput); err == nil {
+					isSucc = true
+					errMsg = ""
 					break
 				} else {
+					errMsg = err.Error()
 					iotlogger.LogHelper.Errorf("EmailClientMgr.QueueHandle,Send error:%s, params: %s", err.Error(), iotutil.ToString(&emailInput))
 					client.Close()
 					client = e.NewEmailClient()
@@ -112,6 +119,7 @@ func (e *EmailClientMgr) QueueHandle() {
 					}
 				}
 			}
+			MsNoticerecordSvc.SetStatus(emailInput.RecordId, iotutil.IfInt32(isSucc, 1, 2), errMsg)
 		}
 	}
 }

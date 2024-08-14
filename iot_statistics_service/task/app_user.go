@@ -55,11 +55,12 @@ func DayAppActiveUser(cxt context.Context, param *xxl.RunReq) (msg string) {
 	}
 	//如果是0点多，再次统计昨天整天的
 	if preHour.Hour() == 23 {
-		err = AppActiveDayUserStatistics(preHour)
+		start := iotutil.New(preHour).BeginningOfDay()
+		err = AppActiveDayUserStatistics(start)
 		if err != nil {
 			return err.Error()
 		}
-		err = AppActive30DayUserStatistics(preHour)
+		err = AppActive30DayUserStatistics(start)
 		if err != nil {
 			return err.Error()
 		}
@@ -303,8 +304,7 @@ func AppRegisterUserTodayStatistics(appKey string) (int32, error) {
 	var total int64
 	t := appOrm.Use(appBuild).TUcUser
 	err := t.WithContext(context.Background()).Select(t.Id.Count().As("total")).
-		Where(t.TenantId.IsNotNull(), t.TenantId.Neq(""), t.AppKey.Eq(appKey),
-			t.CreatedAt.Between(iotutil.BeginningOfDay(), iotutil.EndOfDay())).Scan(&total)
+		Where(t.TenantId.IsNotNull(), t.TenantId.Neq(""), t.AppKey.Eq(appKey), t.CreatedAt.Between(iotutil.BeginningOfDay(), time.Now())).Scan(&total)
 	if err != nil {
 		return 0, err
 	}

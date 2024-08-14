@@ -36,6 +36,13 @@ func GetVagueTopic(topic string) string {
 	return "+/+/" + topic
 }
 
+// 产品所有主题
+func GetProductTopic(productKey string) string {
+	return productKey + "/#"
+}
+func GetDeviceTopic(deviceKey string) string {
+	return "+/" + deviceKey + "/#"
+}
 // 去掉产品key和设备Id部分的topic，即返回上边宏定义的内容
 func GetTopicSuffix(topic string) string {
 	slist := strings.SplitAfterN(topic, "/", 3)

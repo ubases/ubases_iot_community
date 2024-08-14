@@ -6,6 +6,9 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const FROM_APP = "app"
+const FROM_DEVICE = "device"
+const FROM_CLOUD = "cloud"
 type Header struct {
 	Ns   string `json:"ns"`
 	Name string `json:"name"`
@@ -18,10 +21,14 @@ type Header struct {
 
 type NormalAck struct {
 	Code int `json:"code"`
+	Msg  string `json:"msg"`
 }
 
-func EncodeHeader(ns, name, gid string) Header {
-	return Header{Ns: ns, Name: name, Mid: uuid.NewV4().String(), Ts: time.Now().UTC().Unix(), Ver: "1.0.0", Gid: gid, From: "cloud"}
+func EncodeHeader(ns, name, gid, mid string) Header {
+	if mid == "" {
+		mid = uuid.NewV4().String()
+	}
+	return Header{Ns: ns, Name: name, Mid: mid, Ts: time.Now().UTC().Unix(), Ver: "1.0.0", Gid: gid, From: FROM_DEVICE}
 }
 
 // 响应时拷贝上行的head，目前只需要修改时间戳
@@ -37,4 +44,7 @@ func (h *Header) CopyHeader() Header {
 		From: h.From,
 	}
 	return hh
+}
+type PackHeader struct {
+	Header Header `json:"header"`
 }

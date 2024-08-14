@@ -41,8 +41,17 @@ func (s OpmPanelService) GetOpmPanelDetail(id string) (*entitys.OpmPanelEntitys,
 	if len(req.Data) == 0 {
 		return nil, errors.New("not found")
 	}
-	var data = req.Data[0]
-	return entitys.OpmPanel_pb2e(data), err
+
+	list, err := rpc.ClientOpmProductPanelRelationService.Lists(s.Ctx, &protosService.OpmProductPanelRelationListRequest{
+		Query: &protosService.OpmProductPanelRelation{ControlPanelId: rid},
+	})
+	if err != nil {
+		return nil, err
+	}
+	bindProCount := len(list.Data)
+	var data = entitys.OpmPanel_pb2e(req.Data[0])
+	data.UseCount = int32(bindProCount) //当前绑定产品数量使用次数
+	return data, err
 }
 
 // QueryOpmPanelList 面板列表
@@ -53,7 +62,7 @@ func (s OpmPanelService) QueryOpmPanelList(filter entitys.OpmPanelQuery) ([]*ent
 		PageSize:  int64(filter.Limit),
 		SearchKey: filter.SearchKey,
 		OrderDesc: "desc",
-		OrderKey:  "updated_at",
+		OrderKey:  "created_at",
 		Query:     queryObj,
 	})
 	if err != nil {
@@ -76,7 +85,7 @@ func (s OpmPanelService) AddOpmPanel(req entitys.OpmPanelEntitys) (string, error
 	}
 	saveObj := entitys.OpmPanel_e2pb(&req)
 	saveObj.Id = iotutil.GetNextSeqInt64()
-	saveObj.Status = 2 // 面板模组新增，默认为禁用
+	//saveObj.Status = 2 // 面板模组新增，默认为禁用
 	res, err := rpc.ClientOpmPanelService.Create(s.Ctx, saveObj)
 	if err != nil {
 		return "", err
@@ -94,6 +103,58 @@ func (s OpmPanelService) UpdateOpmPanel(req entitys.OpmPanelEntitys) (string, er
 		return "", err
 	}
 	res, err := rpc.ClientOpmPanelService.UpdateAll(s.Ctx, entitys.OpmPanel_e2pb(&req))
+	if err != nil {
+		return "", err
+	}
+	if res.Code != 200 {
+		return "", errors.New(res.Message)
+	}
+	//services.SetDefaultTranslate(context.Background(), "t_pm_firmware", req.Id, "name", req.Name, req.NameEn)
+	return iotutil.ToString(req.Id), err
+}
+
+// 修改面板
+func (s OpmPanelService) UpdateOpmPanelV2(req entitys.OpmPanelEntitys) (string, error) {
+	if err := req.UpdateCheck(); err != nil {
+		return "", err
+	}
+
+	reqInfo, err := rpc.ClientOpmPanelService.FindById(s.Ctx, &protosService.OpmPanelFilter{Id: req.Id})
+	if err != nil {
+		return "", err
+	}
+	if reqInfo.Code != 200 {
+		return "", errors.New(reqInfo.Message)
+	}
+	if len(reqInfo.Data) == 0 {
+		return "", errors.New("not found")
+	}
+
+	savePanelInfo := reqInfo.Data[0]
+	savePanelInfo.Id = req.Id
+	savePanelInfo.TenantId = req.TenantId
+	savePanelInfo.PanelName = req.PanelName
+	savePanelInfo.PanelType = req.PanelType
+	savePanelInfo.Remark = req.Remark
+	savePanelInfo.ProductId = req.ProductId
+	savePanelInfo.BaseProductId = req.BaseProductId
+	savePanelInfo.Code = req.PanelCode
+
+	//不上传的情况，保留原来的数据
+	if req.PanelUrl != "" {
+		savePanelInfo.PanelUrl = req.PanelUrl
+		savePanelInfo.PanelUrlName = req.PanelUrlName
+		savePanelInfo.PanelSize = req.PanelSize
+		savePanelInfo.PanelKey = req.PanelKey
+	}
+	if req.PreviewUrl != "" {
+		savePanelInfo.PreviewName = req.PreviewName
+		savePanelInfo.PreviewUrl = req.PreviewUrl
+	}
+	if req.LangFileName != "" {
+		savePanelInfo.LangFileName = req.LangFileName
+	}
+	res, err := rpc.ClientOpmPanelService.UpdateAll(s.Ctx, savePanelInfo)
 	if err != nil {
 		return "", err
 	}
@@ -179,6 +240,21 @@ func (s OpmPanelService) SetStatusOpmPanel(req entitys.OpmPanelFilter) error {
 		}
 	}
 	return nil
+}
+
+// 清理产品面板语言通过面板Id
+func ClearProductPanelLangByPanelId(panelId int64) {
+	defer iotutil.PanicHandler()
+	panelRels, err := rpc.ClientOpmProductPanelRelationService.Lists(context.Background(), &protosService.OpmProductPanelRelationListRequest{
+		Query: &protosService.OpmProductPanelRelation{ControlPanelId: panelId},
+	})
+	if err != nil {
+		return
+	}
+	for _, v := range panelRels.Data {
+		//清理缓存
+		ClearProductPanelLang(v.ProductId, v.ProductKey)
+	}
 }
 
 // ClearProductPanelLang 清理产品的面板翻译

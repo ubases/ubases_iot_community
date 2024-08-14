@@ -365,6 +365,15 @@ func (s *OpmPanelSvc) UpdateOpmPanel(req *proto.OpmPanel) (*proto.OpmPanel, erro
 	if req.SourceZip != "" {
 		updateField = append(updateField, t.SourceZip)
 	}
+	if req.LangFileName != "" {
+		updateField = append(updateField, t.LangFileName)
+	}
+	if req.Remark != "" {
+		updateField = append(updateField, t.Remark)
+	}
+	if req.Code != "" {
+		updateField = append(updateField, t.Code)
+	}
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}
@@ -420,6 +429,9 @@ func (s *OpmPanelSvc) UpdateAllOpmPanel(req *proto.OpmPanel) (*proto.OpmPanel, e
 	updateField = append(updateField, t.BaseProductId)
 	updateField = append(updateField, t.ProductId)
 	updateField = append(updateField, t.BuildErrStatus)
+	updateField = append(updateField, t.LangFileName)
+	updateField = append(updateField, t.Remark)
+	updateField = append(updateField, t.Code)
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}
@@ -533,6 +545,9 @@ func (s *OpmPanelSvc) FindOpmPanel(req *proto.OpmPanelFilter) (*proto.OpmPanel, 
 	if req.ModelName != "" { //字符串
 		do = do.Where(t.ModelName.Eq(req.ModelName))
 	}
+	if req.Code != "" { //字符串
+		do = do.Where(t.Code.Eq(req.Code))
+	}
 	if req.CreatedBy != 0 { //整数
 		do = do.Where(t.CreatedBy.Eq(req.CreatedBy))
 	}
@@ -584,8 +599,16 @@ func (s *OpmPanelSvc) FindByIdOpmPanel(req *proto.OpmPanelFilter) (*proto.OpmPan
 func (s *OpmPanelSvc) GetListOpmPanel(req *proto.OpmPanelListRequest) ([]*proto.OpmPanel, int64, error) {
 	// fixme 请检查条件和校验参数
 	var err error
-	t := orm.Use(iotmodel.GetDB()).TOpmPanel
+	q := orm.Use(iotmodel.GetDB())
+	t := q.TOpmPanel
 	do := t.WithContext(context.Background())
+
+	tRetion := q.TOpmProductPanelRelation
+	t2 := q.TOpmPanel.As("t2")
+	doRetion := tRetion.WithContext(context.Background()).Join(t2, t2.Id.EqCol(tRetion.ControlPanelId), t2.TenantId.Eq(req.Query.TenantId)).Group(tRetion.ControlPanelId).Select(tRetion.ControlPanelId, tRetion.ProductId.Count().As("useCount"))
+
+	do = do.LeftJoin(doRetion.As(tRetion.TableName()), tRetion.ControlPanelId.EqCol(t.Id))
+
 	query := req.Query
 	if query != nil {
 
@@ -649,6 +672,9 @@ func (s *OpmPanelSvc) GetListOpmPanel(req *proto.OpmPanelListRequest) ([]*proto.
 		if query.ProductId != 0 { //整数
 			do = do.Where(t.ProductId.Eq(query.ProductId))
 		}
+		if query.PanelTypes != nil && len(query.PanelTypes) != 0 {
+			do = do.Where(t.PanelType.In(query.PanelTypes...))
+		}
 	}
 	orderCol, ok := t.GetFieldByName(req.OrderKey)
 	if !ok {
@@ -660,7 +686,13 @@ func (s *OpmPanelSvc) GetListOpmPanel(req *proto.OpmPanelListRequest) ([]*proto.
 		do = do.Order(orderCol)
 	}
 
-	var list []*model.TOpmPanel
+	var list []struct{
+		model.TOpmPanel
+		UseCount int32 `gorm:"column:useCount" json:"useCount"`// 当前适用次数
+	}
+
+	do = do.Select(t.ALL, field.NewInt(tRetion.TableName(), "useCount"))
+
 	var total int64
 	if req.PageSize > 0 {
 		limit := req.PageSize
@@ -668,9 +700,9 @@ func (s *OpmPanelSvc) GetListOpmPanel(req *proto.OpmPanelListRequest) ([]*proto.
 			req.Page = 1
 		}
 		offset := req.PageSize * (req.Page - 1)
-		list, total, err = do.FindByPage(int(offset), int(limit))
+		total, err = do.ScanByPage(&list, int(offset), int(limit))
 	} else {
-		list, err = do.Find()
+		err = do.Scan(&list)
 		total = int64(len(list))
 	}
 	if err != nil {
@@ -682,7 +714,8 @@ func (s *OpmPanelSvc) GetListOpmPanel(req *proto.OpmPanelListRequest) ([]*proto.
 	}
 	result := make([]*proto.OpmPanel, len(list))
 	for i, v := range list {
-		result[i] = convert.OpmPanel_db2pb(v)
+		result[i] = convert.OpmPanel_db2pb(&v.TOpmPanel)
+		result[i].UseCount =  v.UseCount
 	}
 	return result, total, nil
 }

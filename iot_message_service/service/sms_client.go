@@ -5,6 +5,7 @@ import (
 	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_message_service/config"
 	"cloud_platform/iot_message_service/service/sms"
+	"cloud_platform/iot_model/db_message/model"
 	"context"
 	"errors"
 	"time"
@@ -16,6 +17,7 @@ type SmsInfo struct {
 	Template          string
 	Param             map[string]string
 	TargetPhoneNumber []string
+	RecordId          int64
 }
 
 type SMSClientMgr struct {
@@ -38,13 +40,20 @@ func (s *SMSClientMgr) Init() error {
 	return err
 }
 
-func (s *SMSClientMgr) SendSMS(data interface{}, template string, targetPhoneNumber ...string) error {
+func (s *SMSClientMgr) SendSMS(data interface{}, template string, tempObj *model.TMsNoticeTemplate, lang, tenantId, appKey string, targetPhoneNumber ...string) error {
 	var param map[string]string
 	param = VariablesToMap(data)
 	smsinfo := SmsInfo{
 		Template:          template,
 		Param:             param,
 		TargetPhoneNumber: targetPhoneNumber,
+	}
+	smsinfo.RecordId = iotutil.GetNextSeqInt64()
+	err := MsNoticerecordSvc.SaveNoticeRecord(smsinfo.RecordId, 1, tempObj.TplName, tempObj.TplContent,
+		lang, tenantId, appKey, tempObj, targetPhoneNumber...)
+	if err != nil {
+		iotlogger.LogHelper.Error(err)
+		return err
 	}
 	ok, quantity := s.queue.Put(smsinfo)
 	if !ok {
@@ -76,6 +85,9 @@ func (s *SMSClientMgr) QueueHandle() {
 					err = s.smsClient.SendMessage(smsinfo.Template, smsinfo.Param, smsinfo.TargetPhoneNumber...)
 					if err != nil {
 						iotlogger.LogHelper.Errorf("SMSClientMgr.SendMessage error:%s", err.Error())
+						MsNoticerecordSvc.SetStatus(smsinfo.RecordId, 2, err.Error())
+					} else {
+						MsNoticerecordSvc.SetStatus(smsinfo.RecordId, 1, "")
 					}
 				}
 			}

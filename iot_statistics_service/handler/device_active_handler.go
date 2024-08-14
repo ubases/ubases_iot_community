@@ -1,8 +1,8 @@
 package handler
 
 import (
-	proto "cloud_platform/iot_proto/protos/protosService"
 	"cloud_platform/iot_statistics_service/service"
+	proto "cloud_platform/iot_proto/protos/protosService"
 	"context"
 )
 

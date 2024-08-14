@@ -1,7 +1,14 @@
+/**
+ * @Author: hogan
+ * @Date: 2022/3/23 20:19
+ */
 package iotutil
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -639,6 +646,11 @@ func UrlEncode(in string) string {
 	return r.Replace(url.QueryEscape(in))
 }
 
+func Sign(stringToSign string) string {
+	h := hmac.New(sha1.New, []byte(fmt.Sprintf("%s&", "och1oekoXH4hzdyA8PShQKzZAyJWiM")))
+	h.Write([]byte(stringToSign))
+	return UrlEncode(base64.StdEncoding.EncodeToString(h.Sum(nil)))
+}
 func Keys(data map[string]string) []string {
 	var keys []string
 	for k := range data {
@@ -769,6 +781,12 @@ func IfInt32(condition bool, trueVal, falseVal int32) int32 {
 	return falseVal
 }
 
+func IfString(condition bool, trueVal, falseVal string) string {
+	if condition {
+		return trueVal
+	}
+	return falseVal
+}
 func IfStringEmpty(inVal, defaultVal string) string {
 	if inVal != "" {
 		return inVal
@@ -1033,6 +1051,7 @@ func FindMissingElements(A []string, B []string) []string {
 	return result
 }
 
+// BoolArrayIsVal 检查布尔数组中的所有值是否与指定的布尔值相等。
 func BoolArrayIsVal(vals []bool, eqVal bool) bool {
 	if len(vals) == 0 {
 		return true
@@ -1043,4 +1062,20 @@ func BoolArrayIsVal(vals []bool, eqVal bool) bool {
 		}
 	}
 	return true
+}
+// RemoveEmptyString 移除字符串切片中的空字符串。
+// 参数 arr 是一个字符串切片，可能包含空字符串。
+func RemoveEmptyString(arr []string) []string {
+	result := []string{}
+	for _, str := range arr {
+		if str != "" {
+			result = append(result, str)
+		}
+	}
+	return result
+}
+func IsJSON(data []byte) (map[string]interface{}, error) {
+	var js map[string]interface{}
+	err := json.Unmarshal(data, &js)
+	return js, err
 }

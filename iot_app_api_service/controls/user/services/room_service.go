@@ -11,6 +11,8 @@ import (
 	"errors"
 	"time"
 
+	"go-micro.dev/v4/metadata"
+
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -46,6 +48,11 @@ func (s AppRoomService) AddRoom(req entitys.UcHomeRoomEntitys, userId int64) err
 }
 
 func (s AppRoomService) Details(homeId, roomId string) (map[string]interface{}, error) {
+	var (
+		lang, _     = metadata.Get(s.Ctx, "lang")
+		tenantId, _ = metadata.Get(s.Ctx, "tenantId")
+		appKey, _   = metadata.Get(s.Ctx, "appKey")
+	)
 	roomObj := make(map[string]interface{})
 
 	deviceHomeList, err := rpc.IotDeviceHomeService.UserDevList(context.Background(), &protosService.IotDeviceHomeHomeId{HomeId: iotutil.ToInt64(homeId)})
@@ -70,7 +77,15 @@ func (s AppRoomService) Details(homeId, roomId string) (map[string]interface{}, 
 		return nil, errors.New(roomRes.Message)
 	}
 	roomMap := map[int64]*protosService.UcHomeRoom{}
+	defaultRooms := GetDefaultRooms(lang, tenantId, appKey)
+
+	//对选择的房间名称进行翻译
 	for _, room := range roomRes.Data {
+		if room.RoomTemplateId != 0 {
+			if dfVal, ok := defaultRooms[iotutil.ToString(room.RoomTemplateId)]; ok {
+				room.RoomName = dfVal
+			}
+		}
 		roomMap[room.Id] = room
 	}
 

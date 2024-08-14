@@ -4,7 +4,7 @@ import (
 	"cloud_platform/iot_app_api_service/cached"
 	"cloud_platform/iot_app_api_service/rpc"
 	"cloud_platform/iot_common/iotconst"
-	"cloud_platform/iot_common/iotnats/jetstream"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iottrace"
 	"context"
 	"log"
@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	version string = "2.0.0"
+	version string = "2.1.0"
 	name           = "iot_app_api_service"
 )
 
@@ -42,7 +42,7 @@ var (
 // @BasePath /v1/platform
 func main() {
 	log.Println(version)
-	if err := config.Init(); err != nil {
+	if err := config.Init2(); err != nil {
 		log.Println("加载配置文件发生错误:", err)
 		return
 	}
@@ -74,13 +74,12 @@ func main() {
 	defer io.Close()
 	opentracing.SetGlobalTracer(t)
 
-	// 初始化nats消息队列，新增发布者
-	if err := jetstream.GetJsPublisherMgr().AddPublisher("iot_app_api_service", iotconst.NATS_STREAM_APP, iotconst.NATS_SUBJECT_RECORDS, config.Global.Nats.Addrs); err != nil {
-		iotlogger.LogHelper.Error("nats.AddPublisher failed:%s", err)
-		return
+	err = iotnatsjs.GetJsClientPub().InitJsClient(config.Global.Nats.Addrs)
+	if err != nil {
+		iotlogger.LogHelper.Errorf("InitJsClient error:%s", err.Error())
 	}
 
-	go jetstream.GetJsPublisherMgr().Run()
+	go iotnatsjs.GetJsClientPub().Run()
 
 	//grpc客户端
 	rpc.InitServiceClient()

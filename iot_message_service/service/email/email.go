@@ -13,9 +13,10 @@ type Email interface {
 
 // 邮件详细输入参数
 type SendEmailInput struct {
-	To      string
-	Subject string
-	Body    string
+	To       string
+	Subject  string
+	Body     string
+	RecordId int64
 }
 
 // 从模板文件htmp文件加载

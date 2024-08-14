@@ -257,7 +257,6 @@ func (s OemAppBuildRecordService) HandlerIosPlistFile(buildId string, ipaOssUrl 
 		logger.Error("iotutil.ImageResize 512 error:" + err512.Error())
 		return "", err512
 	}
-
 	//上传57尺寸的icon图标到oss
 	iconUrl57, errOss57 := apis.UploadStatic(config.Global.Oss.UseOss, iconLocalName57, iconLocalPath57)
 	if errOss57 != nil {

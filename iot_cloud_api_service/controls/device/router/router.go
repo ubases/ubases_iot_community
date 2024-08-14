@@ -22,6 +22,7 @@ func RegisterRouter(e *gin.Engine) {
 	admin.POST("/device/delete", apis.DeviceTriadcontroller.Delete)
 	admin.POST("/deviceTriad/generator", apis.DeviceTriadcontroller.GeneratorDeviceTriad)
 	admin.POST("/deviceTriad/import", apis.DeviceTriadcontroller.ImportDeviceTriad)
+	admin.POST("/deviceTriad/platformImport", apis.DeviceTriadcontroller.PlatformImportDeviceTriad)
 
 	//生成虚拟设备
 	//个人账号最多生成10个，
@@ -70,11 +71,13 @@ func RegisterRouter(e *gin.Engine) {
 	admin.GET("/activeDevice/triadExport", apis.DeviceInfocontroller.GetExportTriad)
 	admin.GET("/activeDevice/triadExportCount", apis.DeviceInfocontroller.GetExportTriadCount)
 
+	admin.POST("/produce/platform/list", apis.DeviceInfocontroller.QueryProducePlatformList)
+	admin.GET("/produce/platform/export", apis.DeviceInfocontroller.GetExportTriadPlatform)
+	admin.GET("/produce/platform/exportCount", apis.DeviceInfocontroller.GetExportTriadCountPlatform)
+
 	// 设备日志
 	admin.POST("/activeDevice/logList", apis.DeviceLogcontroller.QueryList)
 	admin.POST("/activeDevice/logCount", apis.DeviceLogcontroller.QueryCount)
 	admin.GET("/activeDevice/logExport", apis.DeviceLogcontroller.Export)
 	admin.POST("/activeDevice/logExport", apis.DeviceLogcontroller.ExportPostMethod)
-
-	//
 }

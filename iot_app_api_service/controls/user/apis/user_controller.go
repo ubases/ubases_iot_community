@@ -3,6 +3,7 @@ package apis
 import (
 	"cloud_platform/iot_app_api_service/cached"
 	"cloud_platform/iot_app_api_service/controls"
+	"cloud_platform/iot_app_api_service/controls/common/commonGlobal"
 	_const "cloud_platform/iot_app_api_service/controls/user/const"
 	"cloud_platform/iot_app_api_service/controls/user/entitys"
 	"cloud_platform/iot_app_api_service/controls/user/services"
@@ -11,6 +12,7 @@ import (
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_app/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	proto "cloud_platform/iot_proto/protos/protosService"
 	"context"
@@ -35,6 +37,10 @@ var userServices = services.AppUserService{}
 // @Router /v1/platform/app/user/detail [get]
 func (UserController) GetUserDetail(c *gin.Context) {
 	userid := controls.GetUserId(c)
+	if userid == 0 {
+		iotgin.ResBusinessP(c, "header.userId not found")
+		return
+	}
 	data, code, err := userServices.SetContext(controls.WithUserContext(c)).GetUser(iotutil.ToString(userid))
 	if code != 0 {
 		iotgin.ResBusinessP(c, err.Error())
@@ -260,8 +266,11 @@ func (UserController) SendSms(c *gin.Context) {
 		iotgin.ResBusinessP(c, "验证码类型有误")
 		return
 	}
-	appKey := c.Request.Header.Get("appKey")
-	lang := c.Request.Header.Get("lang")
+	var (
+		appKey   = controls.GetAppKey(c)
+		lang     = controls.GetLang(c)
+		tenantId = controls.GetTenantId(c)
+	)
 	if iotutil.CheckAllPhone(areaPhoneNumber, phone) == false {
 		iotgin.ResBusinessP(c, "手机号码不合法")
 		return
@@ -277,7 +286,7 @@ func (UserController) SendSms(c *gin.Context) {
 		return
 	}
 	// 发送验证码
-	_, code, msg := userServices.SendSms(lang, phone, bm.Phone, phoneType, smsType, appKey)
+	_, code, msg := userServices.SendSms(lang, phone, bm.Phone, phoneType, smsType, tenantId, appKey)
 	if code != 0 {
 		iotgin.ResBusinessP(c, msg)
 		return
@@ -308,10 +317,13 @@ func (UserController) SendEmail(c *gin.Context) {
 		iotgin.ResBusinessP(c, "邮件类型为空")
 		return
 	}
-	lang := c.GetHeader("lang")
-	appKey := c.Request.Header.Get("appKey")
+	var (
+		lang     = controls.GetLang(c)
+		appKey   = controls.GetAppKey(c)
+		tenantId = controls.GetTenantId(c)
+	)
 	// 发送邮件
-	_, code, msg := userServices.SendEmail(email, emailType, appKey, lang)
+	_, code, msg := userServices.SendEmail(email, emailType, tenantId, appKey, lang)
 	if code != 0 {
 		iotgin.ResBusinessP(c, msg)
 		return
@@ -380,6 +392,10 @@ func (UserController) UpdateUser(c *gin.Context) {
 		//清除token
 		controls.ClearTokenByUserId(iotutil.ToInt64(userId))
 	}
+	//设置图片状态
+	if bm.Photo != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTUcUser, iotutil.ToString(userId), bm.Photo)
+	}
 }
 
 // @Summary logout
@@ -413,7 +429,7 @@ func (UserController) ForgetPassword(c *gin.Context) {
 	}
 	appKey := controls.GetAppKey(c)
 	tenantId := controls.GetTenantId(c)
-	regionServerId := controls.GetRegionInt(c)
+	regionServerId, _ := controls.RegionIdToServerId(iotutil.ToString(controls.GetRegionInt(c)))
 	c.Set("Account", bm.Account)
 	// 忘记密码
 	data, code, msg := userServices.SetContext(controls.WithUserContext(c)).ForgetPassword(bm, appKey, tenantId, regionServerId)
@@ -438,7 +454,6 @@ func (UserController) SetUserPassword(c *gin.Context) {
 		return
 	}
 	newPassword := bm.NewPassword
-	//account := bm.Account
 	if strings.TrimSpace(newPassword) == "" {
 		iotgin.ResBusinessP(c, "密码为空")
 		return
@@ -496,7 +511,7 @@ func (UserController) CheckAccount(c *gin.Context) {
 	}
 	appKey := controls.GetAppKey(c)
 	tenantId := controls.GetTenantId(c)
-	regionServerId := controls.GetRegionInt(c)
+	regionServerId, _ := controls.RegionIdToServerId(iotutil.ToString(controls.GetRegionInt(c)))
 	// 校验验证码
 	code, msg := userServices.CheckAccount(bm, appKey, tenantId, regionServerId)
 	if code != 0 {
@@ -615,25 +630,43 @@ func (UserController) ChannelAuth(c *gin.Context) {
 		iotgin.ResBadRequest(c, err.Error())
 		return
 	}
-	authorizationCode := bm.Code
-	channelType := bm.Type
-	channelId := bm.ChannelId
-	nickname := bm.Nickname
-	var result *entitys.LoginUserRes
-	var resultMsg string
+	var (
+		appKey            = controls.GetAppKey(c)
+		tenantId          = controls.GetTenantId(c)
+		regionId          = controls.GetRegionInt(c)
+		appPushId         = controls.GetAppPushId(c)
+		thisContext       = controls.WithUserContext(c)
+		sysInfo           = controls.GetSystemInfo(c)
+		authorizationCode = bm.Code
+		channelType       = bm.Type
+		channelId         = bm.ChannelId
+		nickname          = bm.Nickname
+		result            *entitys.LoginUserRes
+		resultMsg         string
+	)
 	if channelType == 0 {
 		iotgin.ResBadRequest(c, "type")
 		return
 	}
 
-	appKey := controls.GetAppKey(c)
-	tenantId := controls.GetTenantId(c)
-	regionId := controls.GetRegionInt(c)
-	appPushId := controls.GetAppPushId(c)
-	thisContext := controls.WithUserContext(c)
+	//区域Id转区域服务器Id
+	regionServerId, err := controls.RegionIdToServerId(iotutil.ToString(regionId))
+	if err != nil {
+		iotgin.ResBadRequest(c, "region")
+		return
+	}
+
 	switch channelType {
 	case _const.Wechat:
-		data, msgcode, msg := userServices.SetContext(thisContext).WechatLogin(authorizationCode, appKey, tenantId, c.ClientIP(), regionId)
+		data, msgcode, msg := userServices.SetContext(thisContext).WechatLogin(authorizationCode, appKey, tenantId, c.ClientIP(), regionServerId)
+		result = data
+		resultMsg = msg
+		if msgcode != 0 && msgcode != 200 {
+			iotgin.ResBusinessP(c, msg)
+			return
+		}
+	case _const.WechatApplet:
+		data, msgcode, msg := userServices.SetContext(thisContext).MinProgramLogin(authorizationCode, appKey, tenantId, c.ClientIP(), regionServerId, sysInfo)
 		result = data
 		resultMsg = msg
 		if msgcode != 0 && msgcode != 200 {
@@ -641,7 +674,7 @@ func (UserController) ChannelAuth(c *gin.Context) {
 			return
 		}
 	case _const.Appleid, _const.Google:
-		data, msgcode, msg := userServices.SetContext(thisContext).AppleidLogin(channelId, nickname, c.ClientIP(), appKey, tenantId, channelType, regionId)
+		data, msgcode, msg := userServices.SetContext(thisContext).AppleidLogin(channelId, nickname, c.ClientIP(), appKey, tenantId, channelType, regionServerId)
 		result = data
 		resultMsg = msg
 		if msgcode != 0 && msgcode != 200 {
@@ -650,6 +683,48 @@ func (UserController) ChannelAuth(c *gin.Context) {
 		}
 	default:
 		iotgin.ResBadRequest(c, "type")
+		return
+	}
+	//清理推送别名和注册新对的推送别名
+	go clearUserAlias(thisContext, result.UserId, appKey, tenantId, appPushId)
+	iotgin.ResSuccessDataAndMsg(c, result, resultMsg)
+}
+
+// MinprogramChannelAuth 微信小程序登录
+// @Summary 微信小程序登录
+// @Description 微信小程序登录
+// @Tags APP
+// @Accept application/json
+// @Param data body entitys.ChannelAuth true "请求参数结构体"
+// @Success 200 {object} iotgin.ResponseModel 成功返回值
+// @Router /v1/platform/app/wechat/minprogram/login [post]
+func (UserController) MinprogramChannelAuth(c *gin.Context) {
+	bm := entitys.ChannelAuth{}
+	if err := c.BindJSON(&bm); err != nil {
+		iotgin.ResBadRequest(c, err.Error())
+		return
+	}
+	var (
+		authorizationCode = bm.Code
+		appKey            = controls.GetAppKey(c)
+		tenantId          = controls.GetTenantId(c)
+		regionId          = controls.GetRegionInt(c)
+		appPushId         = controls.GetAppPushId(c)
+		thisContext       = controls.WithUserContext(c)
+		sysInfo           = controls.GetSystemInfo(c)
+	)
+
+	//区域Id转区域服务器Id
+	regionServerId, err := controls.RegionIdToServerId(iotutil.ToString(regionId))
+	if err != nil {
+		iotgin.ResBadRequest(c, "region")
+		return
+	}
+
+	result, msgcode, msg := userServices.SetContext(thisContext).MinProgramLogin(authorizationCode, appKey, tenantId, c.ClientIP(), regionServerId, sysInfo)
+	resultMsg := msg
+	if msgcode != 0 && msgcode != 200 {
+		iotgin.ResBusinessP(c, msg)
 		return
 	}
 	//清理推送别名和注册新对的推送别名
@@ -675,8 +750,6 @@ func (UserController) ChannelBind(c *gin.Context) {
 	bindType := bm.BindType
 	channelId := bm.ChannelId
 	channelType := bm.Type
-	//password:=bm.Password
-	//nickname:=bm.Nickname
 	code, msg := userServices.CheckChannelBindParams(account, smsCode, bindType, channelType, channelId)
 	if code != 0 {
 		iotgin.ResBusinessP(c, msg)
@@ -726,9 +799,9 @@ func (UserController) AddChannelBind(c *gin.Context) {
 	userId := controls.GetUserId(c)
 	appKey := controls.GetAppKey(c)
 	tenantId := controls.GetTenantId(c)
-	regionServerId := controls.GetRegionInt(c)
+	regionId := controls.GetRegionInt(c)
 	nickName := controls.GetNickName(c)
-	data, msgcode, msg := userServices.SetContext(controls.WithUserContext(c)).AddChannelBind(bm, iotutil.ToInt64(userId), appKey, tenantId, regionServerId, nickName)
+	data, msgcode, msg := userServices.SetContext(controls.WithUserContext(c)).AddChannelBind(bm, iotutil.ToInt64(userId), appKey, tenantId, regionId, nickName)
 	if msgcode != 0 && msgcode != 200 {
 		iotgin.ResFailCode(c, msg, msgcode)
 		return
@@ -762,7 +835,7 @@ func (UserController) UnbindChannel(c *gin.Context) {
 	userId := controls.GetUserId(c)
 	appKey := controls.GetAppKey(c)
 	tenantId := controls.GetTenantId(c)
-	regionServerId := controls.GetRegionInt(c)
+	regionServerId, _ := controls.RegionIdToServerId(iotutil.ToString(controls.GetRegionInt(c)))
 	msgcode, msg := userServices.SetContext(controls.WithUserContext(c)).UnbindChannel(bm, iotutil.ToInt64(userId), appKey, tenantId, regionServerId)
 	if msgcode != 0 {
 		iotgin.ResBusinessP(c, msg)
@@ -1004,6 +1077,10 @@ func (UserController) PushRegister(c *gin.Context) {
 	bm := entitys.AppPushRegister{}
 	if err := c.BindJSON(&bm); err != nil {
 		iotgin.ResBadRequest(c, err.Error())
+		return
+	}
+	if bm.AppPushId == "" || bm.AppPushId == "undefined" {
+		iotgin.ResBadRequest(c, "appPushId不能为空或者undefined")
 		return
 	}
 	appKey := controls.GetAppKey(c)

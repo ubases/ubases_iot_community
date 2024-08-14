@@ -6,6 +6,7 @@ package handler
 
 import (
 	"cloud_platform/iot_common/iotconst"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotstruct"
 	"context"
 
@@ -29,7 +30,11 @@ func (h *PmFirmwareHandler) Create(ctx context.Context, req *proto.PmFirmware, r
 	SetResponse(resp, err)
 	if ret != nil && err == nil {
 		resp.Data = ret.Id
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_firmware, ret.Id, "name", req.Name, req.NameEn),
+		//})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_firmware, ret.Id, "name", req.Name, req.NameEn),
 		})
@@ -67,7 +72,11 @@ func (h *PmFirmwareHandler) Update(ctx context.Context, req *proto.PmFirmware, r
 	_, err := s.UpdatePmFirmware(req)
 	SetResponse(resp, err)
 	if err == nil {
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_firmware, req.Id, "name", req.Name, req.NameEn),
+		//})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_firmware, req.Id, "name", req.Name, req.NameEn),
 		})
@@ -81,7 +90,11 @@ func (h *PmFirmwareHandler) UpdateAll(ctx context.Context, req *proto.PmFirmware
 	_, err := s.UpdateAllPmFirmware(req)
 	SetResponse(resp, err)
 	if err == nil {
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_firmware, req.Id, "name", req.Name, req.NameEn),
+		//})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_firmware, req.Id, "name", req.Name, req.NameEn),
 		})
@@ -96,7 +109,11 @@ func (h *PmFirmwareHandler) UpdateFields(ctx context.Context, req *proto.PmFirmw
 	SetResponse(resp, err)
 	if err == nil {
 		if req.Data.Name != "" || req.Data.NameEn != "" {
-			service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+			//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+			//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+			//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_firmware, req.Data.Id, "name", req.Data.Name, req.Data.NameEn),
+			//})
+			iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 				Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 				Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_firmware, req.Data.Id, "name", req.Data.Name, req.Data.NameEn),
 			})

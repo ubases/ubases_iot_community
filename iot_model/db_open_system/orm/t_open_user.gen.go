@@ -49,6 +49,7 @@ func newTOpenUser(db *gorm.DB) tOpenUser {
 	_tOpenUser.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_tOpenUser.UpdatedBy = field.NewInt64(tableName, "updated_by")
 	_tOpenUser.DeletedAt = field.NewField(tableName, "deleted_at")
+	_tOpenUser.HasGuided = field.NewInt32(tableName, "has_guided")
 
 	_tOpenUser.fillFieldMap()
 
@@ -83,6 +84,7 @@ type tOpenUser struct {
 	UpdatedAt     field.Time
 	UpdatedBy     field.Int64
 	DeletedAt     field.Field
+	HasGuided     field.Int32
 
 	fieldMap map[string]field.Expr
 }
@@ -123,6 +125,7 @@ func (t *tOpenUser) updateTableName(table string) *tOpenUser {
 	t.UpdatedAt = field.NewTime(table, "updated_at")
 	t.UpdatedBy = field.NewInt64(table, "updated_by")
 	t.DeletedAt = field.NewField(table, "deleted_at")
+	t.HasGuided = field.NewInt32(table, "has_guided")
 
 	t.fillFieldMap()
 
@@ -172,6 +175,7 @@ func (t *tOpenUser) fillFieldMap() {
 	t.fieldMap["updated_at"] = t.UpdatedAt
 	t.fieldMap["updated_by"] = t.UpdatedBy
 	t.fieldMap["deleted_at"] = t.DeletedAt
+	t.fieldMap["has_guided"] = t.HasGuided
 }
 
 func (t tOpenUser) clone(db *gorm.DB) tOpenUser {

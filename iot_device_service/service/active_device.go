@@ -3,6 +3,7 @@ package service
 import (
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
@@ -37,6 +38,9 @@ type ActiveDeviceSvc struct {
 	deviceVersion   string
 	mcuVer          string
 	hwVer           string
+	extends         []map[string]interface{}
+	zigbeeVer       string
+	btVer           string
 	sn              string
 	userName        string
 	password        string
@@ -74,6 +78,16 @@ func (s *ActiveDeviceSvc) ActiveDevice() error {
 	s.deviceVersion = iotutil.ToString(payLoadMap["fwVer"])
 	s.mcuVer = iotutil.ToString(payLoadMap["mcuVer"])
 	s.hwVer = iotutil.ToString(payLoadMap["hwVer"])
+	s.zigbeeVer = iotutil.ToString(payLoadMap["zigbeeVer"])
+	s.btVer = iotutil.ToString(payLoadMap["btVer"])
+	if val, ok := payLoadMap["extends"]; ok {
+		if val != nil && iotutil.ToString(val) != "" && iotutil.ToString(val) != "null" {
+			var extends []map[string]interface{}
+			if err := json.Unmarshal([]byte(iotutil.ToString(val)), &extends); err == nil {
+				s.extends = extends
+			}
+		}
+	}
 	//获取网络参数
 	if val, ok := payLoadMap["ap"]; ok {
 		ap := val.(map[string]interface{})
@@ -195,10 +209,16 @@ func pushClearHomeCached(homeId int64) error {
 	if err != nil {
 		return err
 	}
-	err = cached.RedisStore.GetClient().Publish(context.Background(), strings.Join([]string{iotconst.HKEY_CACHED_CLEAR_PUB_PREFIX, iotutil.ToString(homeId)}, "."), string(duBytes)).Err()
-	if err != nil {
-		return err
+	//err = cached.RedisStore.GetClient().Publish(context.Background(), strings.Join([]string{iotconst.HKEY_CACHED_CLEAR_PUB_PREFIX, iotutil.ToString(homeId)}, "."), string(duBytes)).Err()
+	//if err != nil {
+	//	return err
+	//}
+
+	data := iotnatsjs.NatsPubData{
+		Subject: strings.Join([]string{iotconst.HKEY_CACHED_CLEAR_PUB_PREFIX, iotutil.ToString(homeId)}, "."),
+		Data:    string(duBytes),
 	}
+	iotnatsjs.GetJsClientPub().PushData(&data)
 	return nil
 }
 
@@ -314,6 +334,22 @@ func (s *ActiveDeviceSvc) setVersion(devId string, payLoadMap map[string]interfa
 			setRedis["memFree"] = memFree
 		}
 	}
+	if val, ok := payLoadMap["zigbeeVer"]; ok {
+		zigbeeVer := iotutil.ToString(val)
+		if zigbeeVer != "" {
+			setRedis["zigbeeVer"] = zigbeeVer
+		}
+	}
+	if val, ok := payLoadMap["btVer"]; ok {
+		btVer := iotutil.ToString(val)
+		if btVer != "" {
+			setRedis["btVer"] = btVer
+		}
+	}
+	if val, ok := payLoadMap["extends"]; ok {
+		setRedis["extends"] = iotutil.ToString(val)
+	}
+
 	if len(setRedis) > 0 {
 		newDeviceStatusCmd := iotredis.GetClient().HMSet(context.Background(), iotconst.HKEY_DEV_DATA_PREFIX+devId, setRedis)
 		if newDeviceStatusCmd.Err() != nil {
@@ -356,6 +392,7 @@ func (s *ActiveDeviceSvc) saveDeviceInfo(tx *orm.Query) error {
 		TenantId:          s.cachedInfo.TenantId,
 		AppKey:            s.cachedInfo.AppKey,
 		UseType:           s.useType,
+		RegionServerId:    s.cachedInfo.RegionServerId,
 	})
 	if err != nil {
 		return err
@@ -404,6 +441,9 @@ func (s *ActiveDeviceSvc) cachedDeviceInfo() error {
 		"ssid":         s.ssid,
 		"rssi":         s.rssi,
 		"fwVer":        s.deviceVersion,
+		"extends":      iotutil.ToString(s.extends),
+		"zigbeeVer":    s.zigbeeVer,
+		"btVer":        s.btVer,
 	}
 	newDeviceStatusCmd := iotredis.GetClient().HMSet(context.Background(), iotconst.HKEY_DEV_DATA_PREFIX+s.DevId, deviceInitStatus)
 	if newDeviceStatusCmd.Err() != nil {

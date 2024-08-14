@@ -106,6 +106,7 @@ func (s IntroduceService) GetIntroduceDetailByCode(appKey string, code string, l
 		ContentUrl:  data.ContentUrl,
 		Lang:        data.Lang,
 		Status:      data.Status,
+		Version:     data.Version,
 	}
 	return res, err
 }

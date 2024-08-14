@@ -3,11 +3,13 @@ package apis
 import (
 	"cloud_platform/iot_cloud_api_service/controls"
 	"cloud_platform/iot_cloud_api_service/controls/common/apis"
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/open/entitys"
 	apiservice "cloud_platform/iot_cloud_api_service/controls/open/services"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotgin"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"errors"
 	"strconv"
@@ -150,6 +152,9 @@ func (s *OpmDocumentsController) Add(c *gin.Context) {
 	if rep.Code != 200 {
 		iotgin.ResErrCli(c, errors.New(rep.Message))
 		return
+	}
+	if filePath != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmDocuments, iotutil.ToString(req.Id), filePath)
 	}
 	iotgin.ResSuccessMsg(c)
 }

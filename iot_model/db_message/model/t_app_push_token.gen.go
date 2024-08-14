@@ -15,7 +15,11 @@ type TAppPushToken struct {
 	Id              int64     `gorm:"column:id;primaryKey" json:"id"`                           // 主键ID
 	AppToken        string    `gorm:"column:app_token;not null" json:"appToken"`                // APP生成的推送Token
 	AppPushId       string    `gorm:"column:app_push_id;not null" json:"appPushId"`             // APP生成的手机唯一Id
-	AppPushPlatform string    `gorm:"column:app_push_platform;not null" json:"appPushPlatform"` // APP推送注册平台 ios、android、huawei
+	/*
+		APP推送注册平台 ios、android、huawei
+		1=huawei =2 xiaomi =3 oppo =4 vivo 5=honor  6=meizu 7=ios 8=android 9=wechat
+	*/
+	AppPushPlatform string    `gorm:"column:app_push_platform;not null" json:"appPushPlatform"`
 	CreatedAt       time.Time `gorm:"column:created_at;not null" json:"createdAt"`              // 创建时间
 	UpdatedAt       time.Time `gorm:"column:updated_at;not null" json:"updatedAt"`              // 修改时间
 	LastPushTime    time.Time `gorm:"column:last_push_time" json:"lastPushTime"`                // 最后推送时间

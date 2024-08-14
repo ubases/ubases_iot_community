@@ -1,9 +1,8 @@
 package cache
 
 import (
-	"cloud_platform/iot_weather_service/config"
 	"cloud_platform/iot_common/iotredis"
-	"strings"
+	"cloud_platform/iot_weather_service/config"
 )
 
 var RepoCache CacheStore
@@ -16,19 +15,7 @@ func Init() error {
 }
 
 func InitCache() error {
-	rdscnf := config.Global.Redis
-	cnf := iotredis.Config{
-		Cluster:      rdscnf.Cluster,
-		Addrs:        strings.Join(rdscnf.Addrs, ","),
-		Username:     rdscnf.Username,
-		Password:     rdscnf.Password,
-		Database:     rdscnf.Database,
-		MinIdleConns: rdscnf.MinIdleConns,
-		IdleTimeout:  rdscnf.IdleTimeout,
-		PoolSize:     rdscnf.PoolSize,
-		MaxConnAge:   rdscnf.MaxConnAge,
-	}
-	cli, err := iotredis.NewClient(cnf)
+	cli, err := iotredis.NewClient(config.Global.Redis)
 	if err != nil {
 		return err
 	}

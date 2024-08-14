@@ -1,7 +1,12 @@
 package config
 
 import (
+	"cloud_platform/iot_common/iotconfig"
+	"cloud_platform/iot_common/iotredis"
+	"errors"
+	"fmt"
 	"os"
+	"go-micro.dev/v4/config/reader"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
@@ -13,8 +18,8 @@ type Settings struct {
 	Service    ServiceConfig `yaml:"service"`         //服务配置
 	Geo        GeoConfig     `yaml:"geo"`             //获取地理位置服务配置(geoip)
 	IpService  IpService     `yaml:"ipService"`       //获取地理位置服务配置（阿里云）
-	Redis      RedisConfig   `yaml:"redis,omitempty"` //redis配置
-	Nats       NATSConfig    `yaml:"NATS,omitempty"`  //Nats配置
+	Redis     iotredis.Config `yaml:"redis,omitempty"` //redis配置
+	//Nats       NATSConfig      `yaml:"NATS,omitempty"`  //Nats配置
 	Zipkin     Zipkin        `yaml:"zipkin"`          //ZipKin配置
 	Etcd       EtcdCfg       `yaml:"etcd"`            //Etcd配置
 	Weather    Weather       `yaml:"weather"`         //天气1配置 openweathermap
@@ -144,6 +149,10 @@ func Init() error {
 
 	viper.SetConfigFile(configFile)
 	err = viper.ReadInConfig()
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 	if err = viper.Unmarshal(Global); err != nil {
 		log.Error(err)
 		return err
@@ -157,4 +166,35 @@ func Init() error {
 	})
 	log.Info("setting init success !")
 	return err
+}
+func Init2() error {
+	cnf, err := iotconfig.LoadIotConfig()
+	if err != nil {
+		return Init()
+	}
+	if cnf.Config.Location == iotconfig.Location_local {
+		return Init()
+	}
+	if cnf.Config.Location != iotconfig.Location_nacos {
+		return errors.New("location unsupported ")
+	}
+	conf, err := iotconfig.NewNacosConfig(&cnf.Nacos, fmt.Sprintf("iot_weather_service-%s.yaml", cnf.Config.Env))
+	if err != nil {
+		return err
+	}
+	if err := conf.Scan(Global); err != nil {
+		return err
+	}
+	//开启监听
+	iotconfig.Watch(conf, WatchCB)
+	return nil
+}
+func WatchCB(v reader.Value, err error) {
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	if err = v.Scan(Global); err != nil {
+		log.Error(err)
+	}
 }

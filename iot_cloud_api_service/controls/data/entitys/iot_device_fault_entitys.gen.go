@@ -14,17 +14,20 @@ import (
 
 // 增、删、改及查询返回
 type IotDeviceFaultEntitys struct {
-	Id          int64  `json:"id,omitempty"`
-	DeviceId    string `json:"deviceId,omitempty"`
-	DeviceKey   string `json:"deviceKey,omitempty"`
-	DeviceName  string `json:"deviceName,omitempty"`
-	ProductId   string `json:"productId,omitempty"`
-	ProductKey  string `json:"productKey,omitempty"`
-	ProductName string `json:"productName,omitempty"`
-	FaultCode   string `json:"faultCode,omitempty"`
-	FaultName   string `json:"faultName,omitempty"`
-	//CreatedAt time.Time `json:"createdAt,omitempty"`
-	CreatedAt int64 `json:"time,omitempty"`
+	Id              int64  `json:"id,omitempty"`
+	DeviceId        string `json:"deviceId,omitempty"`
+	DeviceKey       string `json:"deviceKey,omitempty"`
+	DeviceName      string `json:"deviceName,omitempty"`
+	BaseProductId   string `json:"baseProductId,omitempty"`
+	ProductId       string `json:"productId,omitempty"`
+	ProductKey      string `json:"productKey,omitempty"`
+	ProductName     string `json:"productName,omitempty"`
+	FaultIdentifier string `json:"faultIdentifier,omitempty"`
+	FaultDpid       int32  `json:"faultDpid,omitempty"`
+	FaultCode       string `json:"faultCode,omitempty"`
+	FaultName       string `json:"faultName,omitempty"`
+	CreatedAt       int64  `json:"time,omitempty"`
+	Developer 		string `json:"developer"`
 }
 
 // 新增参数非空检查
@@ -54,12 +57,15 @@ type IotDeviceFaultQuery struct {
 
 // IotDeviceFaultFilter，查询条件，字段请根据需要自行增减
 type IotDeviceFaultFilter struct {
-	Did       string `json:"did,omitempty"`
-	LastDay   int32  `json:"lastDay,omitempty"`   //0,今天，7近7天，30近30天，-1所有
-	StartTime int64  `json:"startTime,omitempty"` //预留
-	EndTime   int64  `json:"endTime,omitempty"`   //预留
-	ProductId string `json:"productId,omitempty"`
-	FaultCode int64  `json:"faultCode,omitempty"`
+	Did           string `json:"did,omitempty"`
+	LastDay       int32  `json:"lastDay,omitempty"`       //0,今天，7近7天，30近30天，-1所有
+	StartTime     int64  `json:"startTime,omitempty"`     //预留
+	EndTime       int64  `json:"endTime,omitempty"`       //预留
+	BaseProductId string `json:"baseProductId,omitempty"` //产品类型ID
+	ProductId     string `json:"productId,omitempty"`     //产品ID
+	FaultCode     int64  `json:"faultCode,omitempty"`
+	Developer 	  int64 `json:"developer,string"`
+	TenantId  	  string `json:"tenantId"`
 }
 
 // 实体转pb对象
@@ -69,15 +75,18 @@ func IotDeviceFault_e2pb(src *IotDeviceFaultEntitys) *proto.IotDeviceFault {
 	}
 	pbObj := proto.IotDeviceFault{
 		Id: src.Id,
-		//DeviceId:    src.DeviceId,
+		//DeviceId:      iotutil.ToInt64(src.DeviceId),
 		DeviceKey:  src.DeviceKey,
 		DeviceName: src.DeviceName,
-		//ProductId:   src.ProductId,
-		ProductKey:  src.ProductKey,
-		ProductName: src.ProductName,
-		FaultCode:   src.FaultCode,
-		FaultName:   src.FaultName,
-		CreatedAt:   timestamppb.New(time.Unix(src.CreatedAt, 0)),
+		//BaseProductId: iotutil.ToInt64(src.BaseProductId),
+		//ProductId:     iotutil.ToInt64(src.ProductId),
+		ProductKey:      src.ProductKey,
+		ProductName:     src.ProductName,
+		FaultIdentifier: src.FaultIdentifier,
+		FaultDpid:       src.FaultDpid,
+		FaultCode:       src.FaultCode,
+		FaultName:       src.FaultName,
+		CreatedAt:       timestamppb.New(time.Unix(src.CreatedAt, 0)),
 	}
 	if src.DeviceId != "" {
 		Id, err := strconv.Atoi(src.DeviceId)
@@ -91,6 +100,12 @@ func IotDeviceFault_e2pb(src *IotDeviceFaultEntitys) *proto.IotDeviceFault {
 			pbObj.ProductId = int64(Id)
 		}
 	}
+	if src.BaseProductId != "" {
+		Id, err := strconv.Atoi(src.BaseProductId)
+		if err == nil {
+			pbObj.BaseProductId = int64(Id)
+		}
+	}
 	return &pbObj
 }
 
@@ -100,16 +115,19 @@ func IotDeviceFault_pb2e(src *proto.IotDeviceFault) *IotDeviceFaultEntitys {
 		return nil
 	}
 	entitysObj := IotDeviceFaultEntitys{
-		Id:          src.Id,
-		DeviceId:    strconv.Itoa(int(src.DeviceId)),
-		DeviceKey:   src.DeviceKey,
-		DeviceName:  src.DeviceName,
-		ProductId:   strconv.Itoa(int(src.ProductId)),
-		ProductKey:  src.ProductKey,
-		ProductName: src.ProductName,
-		FaultCode:   src.FaultCode,
-		FaultName:   src.FaultName,
-		CreatedAt:   src.CreatedAt.AsTime().Unix(),
+		Id:              src.Id,
+		DeviceId:        src.DeviceKey,
+		DeviceKey:       src.DeviceKey,
+		DeviceName:      src.DeviceName,
+		BaseProductId:   strconv.Itoa(int(src.BaseProductId)),
+		ProductId:       strconv.Itoa(int(src.ProductId)),
+		ProductKey:      src.ProductKey,
+		ProductName:     src.ProductName,
+		FaultIdentifier: src.FaultIdentifier,
+		FaultDpid:       src.FaultDpid,
+		FaultCode:       src.FaultCode,
+		FaultName:       src.FaultName,
+		CreatedAt:       src.CreatedAt.AsTime().Unix(),
 	}
 	return &entitysObj
 }

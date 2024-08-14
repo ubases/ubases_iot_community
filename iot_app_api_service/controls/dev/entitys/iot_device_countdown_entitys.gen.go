@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// 增、删、改及查询返回
+//增、删、改及查询返回
 type IotDeviceCountdown struct {
 	Hour           int32     `json:"hour,omitempty"`
 	Minute         int32     `json:"minute,omitempty"`
@@ -33,7 +33,7 @@ type IotDeviceCountdown struct {
 	RegionServerId int64     `json:"regionServerId"` //区域服务器Id
 }
 
-// 增、删、改及查询返回
+//增、删、改及查询返回
 type IotDeviceCountdownEntitys struct {
 	Id             int64     `json:"id,omitempty"`
 	Hour           int32     `json:"hour,omitempty"`
@@ -56,22 +56,22 @@ type IotDeviceCountdownEntitys struct {
 	RegionServerId int64     `json:"regionServerId"` //区域服务器Id
 }
 
-// 新增参数非空检查
+//新增参数非空检查
 func (s *IotDeviceCountdownEntitys) AddCheck() error {
 	return nil
 }
 
-// 修改参数非空检查
+//修改参数非空检查
 func (s *IotDeviceCountdownEntitys) UpdateCheck() error {
 	return nil
 }
 
-// 查询参数必填检查
+//查询参数必填检查
 func (*IotDeviceCountdownQuery) QueryCheck() error {
 	return nil
 }
 
-// 查询条件
+//查询条件
 type IotDeviceCountdownQuery struct {
 	Page      uint64                    `json:"page,omitempty"`
 	Limit     uint64                    `json:"limit,omitempty"`
@@ -81,7 +81,7 @@ type IotDeviceCountdownQuery struct {
 	Query     *IotDeviceCountdownFilter `json:"query,omitempty"`
 }
 
-// IotDeviceCountdownFilter，查询条件，字段请根据需要自行增减
+//IotDeviceCountdownFilter，查询条件，字段请根据需要自行增减
 type IotDeviceCountdownFilter struct {
 	Id            int64     `json:"id,omitempty"`
 	Hour          string    `json:"hour,omitempty"`
@@ -102,7 +102,7 @@ type IotDeviceCountdownFilter struct {
 	UpdatedAt     time.Time `json:"updatedAt,omitempty"`
 }
 
-// 实体转pb对象
+//实体转pb对象
 func IotDeviceCountdown_e2pb(src *IotDeviceCountdownEntitys) *proto.IotDeviceCountdown {
 	if src == nil {
 		return nil
@@ -130,7 +130,7 @@ func IotDeviceCountdown_e2pb(src *IotDeviceCountdownEntitys) *proto.IotDeviceCou
 	return &pbObj
 }
 
-// pb对象转实体
+//pb对象转实体
 func IotDeviceCountdown_pb2e(src *proto.IotDeviceCountdown) *IotDeviceCountdownEntitys {
 	if src == nil {
 		return nil
@@ -158,7 +158,7 @@ func IotDeviceCountdown_pb2e(src *proto.IotDeviceCountdown) *IotDeviceCountdownE
 	return &entitysObj
 }
 
-// 增、删、改及查询返回
+//增、删、改及查询返回
 type IotDeviceCountdownVo struct {
 	Id             int64     `json:"id,string"`
 	Hour           int32     `json:"hour,omitempty"`
@@ -177,7 +177,7 @@ type IotDeviceCountdownVo struct {
 	RegionServerId int64     `json:"regionServerId"` //区域服务器Id
 }
 
-// pb对象转实体
+//pb对象转实体
 func IotDeviceCountdown_vo(src *proto.IotDeviceCountdown) *IotDeviceCountdownVo {
 	if src == nil {
 		return nil

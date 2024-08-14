@@ -26,8 +26,10 @@ func Use(db *gorm.DB) *Query {
 		TSysAppEntry:         newTSysAppEntry(db),
 		TSysAppEntrySeting:   newTSysAppEntrySeting(db),
 		TSysAppHelpCenter:    newTSysAppHelpCenter(db),
+		TSysAttachment:       newTSysAttachment(db),
 		TSysAuthRule:         newTSysAuthRule(db),
 		TSysCasbinRule:       newTSysCasbinRule(db),
+		TSysCasbinRuleBak:    newTSysCasbinRuleBak(db),
 		TSysConfig:           newTSysConfig(db),
 		TSysDept:             newTSysDept(db),
 		TSysDictData:         newTSysDictData(db),
@@ -36,6 +38,7 @@ func Use(db *gorm.DB) *Query {
 		TSysLoginLog:         newTSysLoginLog(db),
 		TSysModelInfo:        newTSysModelInfo(db),
 		TSysOperLog:          newTSysOperLog(db),
+		TSysPlatform:         newTSysPlatform(db),
 		TSysPost:             newTSysPost(db),
 		TSysRole:             newTSysRole(db),
 		TSysRoleDept:         newTSysRoleDept(db),
@@ -63,8 +66,10 @@ type Query struct {
 	TSysAppEntry         tSysAppEntry
 	TSysAppEntrySeting   tSysAppEntrySeting
 	TSysAppHelpCenter    tSysAppHelpCenter
+	TSysAttachment       tSysAttachment
 	TSysAuthRule         tSysAuthRule
 	TSysCasbinRule       tSysCasbinRule
+	TSysCasbinRuleBak    tSysCasbinRuleBak
 	TSysConfig           tSysConfig
 	TSysDept             tSysDept
 	TSysDictData         tSysDictData
@@ -73,6 +78,7 @@ type Query struct {
 	TSysLoginLog         tSysLoginLog
 	TSysModelInfo        tSysModelInfo
 	TSysOperLog          tSysOperLog
+	TSysPlatform         tSysPlatform
 	TSysPost             tSysPost
 	TSysRole             tSysRole
 	TSysRoleDept         tSysRoleDept
@@ -101,8 +107,10 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		TSysAppEntry:         q.TSysAppEntry.clone(db),
 		TSysAppEntrySeting:   q.TSysAppEntrySeting.clone(db),
 		TSysAppHelpCenter:    q.TSysAppHelpCenter.clone(db),
+		TSysAttachment:       q.TSysAttachment.clone(db),
 		TSysAuthRule:         q.TSysAuthRule.clone(db),
 		TSysCasbinRule:       q.TSysCasbinRule.clone(db),
+		TSysCasbinRuleBak:    q.TSysCasbinRuleBak.clone(db),
 		TSysConfig:           q.TSysConfig.clone(db),
 		TSysDept:             q.TSysDept.clone(db),
 		TSysDictData:         q.TSysDictData.clone(db),
@@ -111,6 +119,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		TSysLoginLog:         q.TSysLoginLog.clone(db),
 		TSysModelInfo:        q.TSysModelInfo.clone(db),
 		TSysOperLog:          q.TSysOperLog.clone(db),
+		TSysPlatform:         q.TSysPlatform.clone(db),
 		TSysPost:             q.TSysPost.clone(db),
 		TSysRole:             q.TSysRole.clone(db),
 		TSysRoleDept:         q.TSysRoleDept.clone(db),
@@ -136,8 +145,10 @@ type queryCtx struct {
 	TSysAppEntry         tSysAppEntryDo
 	TSysAppEntrySeting   tSysAppEntrySetingDo
 	TSysAppHelpCenter    tSysAppHelpCenterDo
+	TSysAttachment       tSysAttachmentDo
 	TSysAuthRule         tSysAuthRuleDo
 	TSysCasbinRule       tSysCasbinRuleDo
+	TSysCasbinRuleBak    tSysCasbinRuleBakDo
 	TSysConfig           tSysConfigDo
 	TSysDept             tSysDeptDo
 	TSysDictData         tSysDictDataDo
@@ -146,6 +157,7 @@ type queryCtx struct {
 	TSysLoginLog         tSysLoginLogDo
 	TSysModelInfo        tSysModelInfoDo
 	TSysOperLog          tSysOperLogDo
+	TSysPlatform         tSysPlatformDo
 	TSysPost             tSysPostDo
 	TSysRole             tSysRoleDo
 	TSysRoleDept         tSysRoleDeptDo
@@ -171,8 +183,10 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		TSysAppEntry:         *q.TSysAppEntry.WithContext(ctx),
 		TSysAppEntrySeting:   *q.TSysAppEntrySeting.WithContext(ctx),
 		TSysAppHelpCenter:    *q.TSysAppHelpCenter.WithContext(ctx),
+		TSysAttachment:       *q.TSysAttachment.WithContext(ctx),
 		TSysAuthRule:         *q.TSysAuthRule.WithContext(ctx),
 		TSysCasbinRule:       *q.TSysCasbinRule.WithContext(ctx),
+		TSysCasbinRuleBak:    *q.TSysCasbinRuleBak.WithContext(ctx),
 		TSysConfig:           *q.TSysConfig.WithContext(ctx),
 		TSysDept:             *q.TSysDept.WithContext(ctx),
 		TSysDictData:         *q.TSysDictData.WithContext(ctx),
@@ -181,6 +195,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		TSysLoginLog:         *q.TSysLoginLog.WithContext(ctx),
 		TSysModelInfo:        *q.TSysModelInfo.WithContext(ctx),
 		TSysOperLog:          *q.TSysOperLog.WithContext(ctx),
+		TSysPlatform:         *q.TSysPlatform.WithContext(ctx),
 		TSysPost:             *q.TSysPost.WithContext(ctx),
 		TSysRole:             *q.TSysRole.WithContext(ctx),
 		TSysRoleDept:         *q.TSysRoleDept.WithContext(ctx),

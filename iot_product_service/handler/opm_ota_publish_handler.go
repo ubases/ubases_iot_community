@@ -7,9 +7,11 @@ package handler
 import (
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
+	"cloud_platform/iot_common/iotprotocol"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotutil"
 	"context"
+	"sort"
 
 	"go-micro.dev/v4/logger"
 
@@ -25,7 +27,7 @@ func (h *OpmOtaPublishHandler) CheckOtaVersion(ctx context.Context, request *pro
 		res *proto.CheckOtaVersionResponse
 		err error
 	)
-	newDeviceStatus, redisErr := iotredis.GetClient().HGetAll(context.Background(), iotconst.HKEY_DEV_DATA_PREFIX+request.DeviceId).Result()
+	devStatus, redisErr := iotredis.GetClient().HGetAll(context.Background(), iotconst.HKEY_DEV_DATA_PREFIX+request.DeviceId).Result()
 	if redisErr != nil {
 		logger.Errorf("CheckOtaVersion redis, deviceId: %s, error : %s", request.DeviceId, redisErr.Error())
 		response.Code = ERROR
@@ -34,31 +36,92 @@ func (h *OpmOtaPublishHandler) CheckOtaVersion(ctx context.Context, request *pro
 	}
 	if request.FirmwareTypes == nil || len(request.FirmwareTypes) == 0 {
 		//先检测模组固件
-		request.FirmwareTypes = []int32{
-			iotconst.FIRMWARE_TYPE_MODULE,
-			iotconst.FIRMWARE_TYPE_BLE,
-			iotconst.FIRMWARE_TYPE_ZIGBEE,
-			iotconst.FIRMWARE_TYPE_EXTAND}
-		res, err = s.CheckOtaVersion(request)
+		//request.FirmwareTypes = []int32{
+		//	iotconst.FIRMWARE_TYPE_MODULE,
+		//	iotconst.FIRMWARE_TYPE_BLE,
+		//	iotconst.FIRMWARE_TYPE_ZIGBEE,
+		//	iotconst.FIRMWARE_TYPE_EXTAND}
+		request.FirmwareTypes = []int32{iotconst.FIRMWARE_TYPE_MODULE}
+		res, err = s.CheckOtaVersion(request, "")
 		if res.Code == 101 {
-			//获取设备的MCU版本
-			var mcuVer = ""
-			//优先redis缓存中fwVer版本号
-			if newDeviceStatus != nil {
-				if val, ok := newDeviceStatus["mcuVer"]; ok && val != "" {
-					mcuVer = iotutil.ToString(val)
-				}
+			//查询产品配置的固件列表
+			proSvc := service.OpmProductSvc{Ctx: ctx}
+			proInfo, err := proSvc.FindOpmProduct(&proto.OpmProductFilter{ProductKey: request.ProductKey})
+			if err != nil {
+				response.Code = ERROR
+				response.Message = err.Error()
+				return nil
 			}
-			if mcuVer != "" {
-				iotlogger.LogHelper.Infof("CheckOtaVersion mcu ota check")
-				request.Version = mcuVer
-				request.FirmwareTypes = []int32{iotconst.FIRMWARE_TYPE_MCU}
-				//指定类型升级
-				res, err = s.CheckOtaVersion(request)
+			firmList, err := proSvc.GetProductFirmwares(proInfo.Id)
+			if err != nil {
+				response.Code = ERROR
+				response.Message = err.Error()
+				return nil
+			}
+			//根据固
+			for _, info := range firmList {
+				var version, versionKey string
+				switch info.FirmwareType {
+				case iotconst.FIRMWARE_TYPE_MODULE:
+					continue //模组固件已经检查
+					//versionKey = "fwVer"
+				case iotconst.FIRMWARE_TYPE_BLE:
+					versionKey = "bleVer"
+				case iotconst.FIRMWARE_TYPE_ZIGBEE:
+					versionKey = "zigbeeVer"
+				case iotconst.FIRMWARE_TYPE_EXTAND:
+					versionKey = "extends"
+				case iotconst.FIRMWARE_TYPE_MCU:
+					versionKey = "mcuVer"
+				default:
+					continue
+				}
+				if val, ok := devStatus[versionKey]; ok && val != "" {
+					//扩展版本号赋值
+					if versionKey == "extends" {
+						var extends []iotprotocol.ExtendItem
+						if err := iotutil.JsonToStruct(val, &extends); err == nil {
+							for _, extend := range extends {
+								if extend.Key == info.FirmwareKey {
+									version = extend.Ver
+									break
+								}
+							}
+						}
+					} else {
+						version = iotutil.ToString(val)
+					}
+				}
+				if version != "" {
+					request.Version = version
+					request.FirmwareTypes = []int32{info.FirmwareType}
+					res, err = s.CheckOtaVersion(request, info.FirmwareKey)
+
+					//是否有升级
+					iotlogger.LogHelper.Info("hasOtaUpgrade:true")
+					var otaUpgradeStatus int32 = 1
+					if val, ok := devStatus[iotconst.FIELD_UPGRADE_HAS]; ok {
+						if val == "true" {
+							otaUpgradeStatus = 1
+						} else {
+							otaUpgradeStatus = 0
+						}
+					}
+					//upgradeMode 升级方式 1: APP提醒升级, 2: APP强制升级, 3: APP检测升级
+					if res.UpgradePublish.UpgradeMode == 2 && otaUpgradeStatus == 0 {
+						//如果升级为强制升级，并且已经升级过了，就不需要提示升级了；（为了解决上传错误版本号的情况，反复弹出强制升级弹框的问题）
+						res.UpgradePublish.UpgradeMode = 1
+					}
+
+					if res.Code == 200 {
+						//存在升级数据，返回升级信息
+						break
+					}
+				}
 			}
 		}
 	} else {
-		res, err = s.CheckOtaVersion(request)
+		res, err = s.CheckOtaVersion(request, "")
 	}
 	if err != nil {
 		response.Code = ERROR
@@ -68,15 +131,113 @@ func (h *OpmOtaPublishHandler) CheckOtaVersion(ctx context.Context, request *pro
 		response.Message = "success"
 		response.OtaPkg = res.OtaPkg
 		if response.OtaPkg != nil {
-			if val, ok := newDeviceStatus[iotconst.FIELD_UPGRADE_STATE]; ok && val != "" {
+			if val, ok := devStatus[iotconst.FIELD_UPGRADE_STATE]; ok && val != "" {
 				response.OtaPkg.OtaState = iotutil.ToString(val)
 			}
-			if val, ok := newDeviceStatus[iotconst.FIELD_UPGRADE_PROGRESS]; ok && val != "" {
+			if val, ok := devStatus[iotconst.FIELD_UPGRADE_PROGRESS]; ok && val != "" {
 				response.OtaPkg.Progress, _ = iotutil.ToInt32Err(val)
 			}
 		}
 		response.UpgradePublish = res.UpgradePublish
 		response.Batch = res.Batch
+	}
+	return nil
+}
+
+func (h *OpmOtaPublishHandler) CheckOtaUpgradeList(ctx context.Context, request *proto.CheckOtaVersionRequest, response *proto.CheckOtaListResponse) error {
+	s := service.OpmOtaPublishSvc{Ctx: ctx}
+	var (
+		res *proto.CheckOtaVersionResponse
+		err error
+	)
+	//查询产品配置的固件列表
+	proSvc := service.OpmProductSvc{Ctx: ctx}
+	proInfo, err := proSvc.FindOpmProduct(&proto.OpmProductFilter{ProductKey: request.ProductKey})
+	if err != nil {
+		response.Code = ERROR
+		response.Message = err.Error()
+		return nil
+	}
+	firmList, err := proSvc.GetProductFirmwares(proInfo.Id)
+	if err != nil {
+		response.Code = ERROR
+		response.Message = err.Error()
+		return nil
+	}
+
+	//根据固件类型排序
+	sort.Slice(firmList, func(i, j int) bool {
+		return firmList[i].FirmwareType > firmList[j].FirmwareType
+	})
+
+	//获取设备状态信息
+	devStatus, redisErr := iotredis.GetClient().HGetAll(context.Background(), iotconst.HKEY_DEV_DATA_PREFIX+request.DeviceId).Result()
+	if redisErr != nil {
+		logger.Errorf("CheckOtaVersion redis, deviceId: %s, error : %s", request.DeviceId, redisErr.Error())
+		response.Code = ERROR
+		response.Message = err.Error()
+		return nil
+	}
+	var otaList []*proto.CheckOtaVersionResponse
+	for _, info := range firmList {
+		var version, versionKey string
+		switch info.FirmwareType {
+		case iotconst.FIRMWARE_TYPE_MODULE:
+			versionKey = "fwVer"
+		case iotconst.FIRMWARE_TYPE_BLE:
+			versionKey = "bleVer"
+		case iotconst.FIRMWARE_TYPE_ZIGBEE:
+			versionKey = "zigbeeVer"
+		case iotconst.FIRMWARE_TYPE_EXTAND:
+			versionKey = "extends"
+		case iotconst.FIRMWARE_TYPE_MCU:
+			versionKey = "mcuVer"
+		default:
+			continue
+		}
+		if val, ok := devStatus[versionKey]; ok && val != "" {
+			//扩展版本号赋值
+			if versionKey == "extends" {
+				var extends []iotprotocol.ExtendItem
+				if err := iotutil.JsonToStruct(val, &extends); err == nil {
+					for _, extend := range extends {
+						if extend.Key == info.FirmwareKey {
+							version = extend.Ver
+							break
+						}
+					}
+				}
+			} else {
+				version = iotutil.ToString(val)
+			}
+		}
+		request.Version = version
+		request.FirmwareTypes = []int32{info.FirmwareType}
+		res, err = s.CheckOtaVersion(request, info.FirmwareKey)
+		if err != nil {
+			break
+		}
+		if res.OtaPkg == nil {
+			res.OtaPkg = &proto.OtaPkgInfo{ }
+		}
+		res.OtaPkg.FirmwareType = info.FirmwareType
+		res.OtaPkg.FirmwareName = info.Name
+		res.OtaPkg.FirmwareNameEn = info.NameEn
+		res.OtaPkg.FirmwareKey = info.FirmwareKey
+		res.OtaPkg.ProductKey = proInfo.ProductKey
+		res.OtaPkg.Custom = info.IsCustom==1
+		if res.UpgradePublish == nil {
+			res.UpgradePublish = &proto.UpgradePublishInfo{}
+		}
+		res.UpgradePublish.OriVersion = version
+		otaList = append(otaList, res)
+	}
+	if err != nil {
+		response.Code = ERROR
+		response.Message = err.Error()
+	} else {
+		response.Code = SUCCESS
+		response.UpgradeList = otaList
 	}
 	return nil
 }

@@ -81,11 +81,13 @@ type OpenUserProfileRes struct {
 	CompanyName string                    `json:"companyName"`
 	UserType    int32                     `json:"userType"` // 1主账号, 2 子账号
 	TenantList  []*OpenProfileUserCompany `json:"tenantList"`
+	HasGuided bool `json:"hasGuided"`
+	WebsocketUrl string `json:"websocketUrl"`
 }
 
 // 增、删、改及查询返回
 type OpenUserEntitys struct {
-	Id            int64     `json:"id,omitempty"`
+	Id            int64     `json:"id,omite	mpty"`
 	UserName      string    `json:"userName,omitempty"`
 	Mobile        string    `json:"mobile,omitempty"`
 	UserNickname  string    `json:"userNickname,omitempty"`
@@ -241,9 +243,11 @@ type QueryUserListRsp struct {
 // APP绑定设备详情
 type QueryUserDeviceList struct {
 	DeviceName      string `json:"deviceName"`
-	DevicePid       string `json:"devicePid"`
+	DeviceId       string `json:"deviceId"`
+	ProductId int64 `json:"productId,string"`
 	ProductName     string `json:"productName"`
 	ProductTypeName string `json:"productTypeName"`
+	ProductKey string `json:"productKey"`
 	AddMethod       int32  `json:"addMethod"`
 }
 
@@ -256,4 +260,11 @@ type LangBaseDataQuery struct {
 	SearchKey string `json:"searchKey,omitempty"`
 	DictLabel string `json:"dict_label,omitempty" form:"dictLabel"`
 	DictType  string `json:"dict_type,omitempty" form:"dictType"`
+}
+
+type GuideCheckReq struct {
+	UserId     int64 `json:"userId"`     //用户Id
+	UserAccount     string `json:"userAccount"`     //用户账号
+	TenantId     string `json:"tenantId"`     //租户Id 默认是0，自动创建租户Id
+	AccountType  int32  `json:"accountType"`  //账号类型[1 企业, 2 个人]
 }

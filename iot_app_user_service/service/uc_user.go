@@ -185,7 +185,11 @@ func (s *UcUserSvc) UpdateUcUser(req *proto.UcUser) (*proto.UcUser, error) {
 	}
 	if req.Password != "" { //字符串
 		updateField = append(updateField, t.Password)
-		req.Password = iotutil.Md5(req.Password)
+		userInfo, err := do.Where(t.Id.Eq(req.Id)).Find()
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("user not found, %v", req.Id))
+		}
+		req.Password = iotutil.Md5(req.Password + userInfo[0].UserSalt)
 	}
 	if req.DeviceSecretHttp != "" { //字符串
 		updateField = append(updateField, t.DeviceSecretHttp)
@@ -726,9 +730,14 @@ func (s *UcUserSvc) Register(req *proto.UcUserRegisterRequest) (*proto.UcUser, e
 		userId := iotutil.GetNextSeqInt64()
 		homeId := iotutil.GetNextSeqInt64()
 		resUser = &proto.UcUser{Id: userId}
-		//默认密码逻辑
-		if req.Password == "" {
-			req.Password = iotutil.EncodeMD5(iotutil.EncodeMD5(iotutil.GetSecret(6)))
+		if req.UserSalt == "" {
+			req.UserSalt = iotutil.GetSecret(6)
+			//默认密码逻辑
+			if req.Password == "" {
+				req.Password = iotutil.EncodeMD5(iotutil.EncodeMD5(iotutil.GetSecret(6))+req.UserSalt)
+			} else {
+				req.Password = iotutil.EncodeMD5(req.Password+req.UserSalt)
+			}
 		}
 		//如果账号为空，同时第三登录不为空格
 		//if account == "" && req.ThirdUserId != "" {
@@ -743,10 +752,12 @@ func (s *UcUserSvc) Register(req *proto.UcUserRegisterRequest) (*proto.UcUser, e
 			AppOrigin:      "1",
 			Phone:          req.Phone,
 			Password:       req.Password,
+			UserSalt:       req.UserSalt,
 			AppKey:         req.AppKey,
 			TenantId:       req.TenantId,
 			RegisterRegion: req.RegisterRegion,
 			RegionServerId: req.RegionServerId,
+			RegisterRegionId: req.RegisterRegionId,
 			DefaultHomeId:  iotutil.ToString(homeId),
 			Photo:          "",
 			Status:         int32(_const.AccountNormal),
@@ -1071,3 +1082,20 @@ func getAppDefaultHomeName(lang string) string {
 	}
 	return name
 }
+
+// 根据主键更新UcUser
+func (s *UcUserSvc) UpdateAgreementFlag(req *proto.UcUser) (*proto.UcUser, error) {
+	t := orm.Use(iotmodel.GetDB()).TUcUser
+	do := t.WithContext(context.Background())
+	do = do.Where(t.AppKey.Eq(req.AppKey))
+	if req.TenantId != "" {
+		do = do.Where(t.TenantId.Eq(req.TenantId))
+	}
+	_, err := do.UpdateColumn(t.AgreementFlag, req.AgreementFlag)
+	if err != nil {
+		logger.Errorf("UpdateUcUser error : %s", err.Error())
+		return nil, err
+	}
+	return req, err
+}
+

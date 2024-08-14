@@ -194,9 +194,11 @@ func (s *MessageService) QueryMessageGroupList(userId int64, typeStr string, dev
 			row := entitys.MpMessageUserIn_pb2e(d)
 			//翻译转换
 			fKey := fmt.Sprintf("%s_%s_tplContent", lang, d.TplCode)
+			params := iotutil.JsonToMap(d.Params)
 			if langMap[fKey] != "" {
-				params := iotutil.JsonToMap(d.Params)
 				row.PushContent, _ = s.paramIntoContent(iotutil.ToString(langMap[fKey]), params)
+			} else {
+				row.PushContent, _ = s.paramIntoContent(d.PushContent, params)
 			}
 			subjectKey := fmt.Sprintf("%s_%s_tplSubject", lang, d.TplCode)
 			if langMap[subjectKey] != "" {

@@ -30,7 +30,6 @@ func (h *MpMessageHandler) ClearAlias(ctx context.Context, request *proto.ClearA
 			AppPushId: request.AppPushId,
 			AppKey:    request.AppKey,
 			TenantId:  request.TenantId,
-			//RegionId:  request.RegionId,
 		})
 	}
 

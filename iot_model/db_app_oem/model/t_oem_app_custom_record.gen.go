@@ -12,20 +12,23 @@ const TableNameTOemAppCustomRecord = "t_oem_app_custom_record"
 
 // TOemAppCustomRecord mapped from table <t_oem_app_custom_record>
 type TOemAppCustomRecord struct {
-	Id            int64     `gorm:"column:id;primaryKey" json:"id"`              // 唯一主键
-	AppId         int64     `gorm:"column:app_id;not null" json:"app_id"`        // t_opm_app主键id
-	Version       string    `gorm:"column:version;not null" json:"version"`      // 版本
-	PkgUrl        string    `gorm:"column:pkg_url;not null" json:"pkg_url"`      // app安装包oss URL
-	PkgMd5        string    `gorm:"column:pkg_md5;not null" json:"pkg_md5"`      // app安装包MD5
-	Os            int32     `gorm:"column:os;not null" json:"os"`                // app安装包类型(1 ios, 2 android国内, 3 android国外)
-	Status        int32     `gorm:"column:status" json:"status"`                 // 版本状态(1 已启用, 2 未启用,3 已失效)
-	Description   string    `gorm:"column:description" json:"description"`       // 版本描述
-	CreatedBy     int64     `gorm:"column:created_by" json:"created_by"`         // 创建人
-	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"`         // 创建时间
-	UpdatedBy     int64     `gorm:"column:updated_by" json:"updated_by"`         // 修改人
-	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"`         // 修改时间
-	PlistUrl      string    `gorm:"column:plist_url" json:"plist_url"`           // ios plist文件URL
-	LaunchMarkets string    `gorm:"column:launch_markets" json:"launch_markets"` // 已上架市场集合, JSON格式 [{code, name}]
+	Id            int64     `gorm:"column:id;primaryKey" json:"id"`             // 唯一主键
+	AppId         int64     `gorm:"column:app_id;not null" json:"appId"`        // t_opm_app主键id
+	Version       string    `gorm:"column:version;not null" json:"version"`     // 版本
+	PkgUrl        string    `gorm:"column:pkg_url;not null" json:"pkgUrl"`      // app安装包oss URL
+	PkgMd5        string    `gorm:"column:pkg_md5;not null" json:"pkgMd5"`      // app安装包MD5
+	Os            int32     `gorm:"column:os;not null" json:"os"`               // app安装包类型(1 ios, 2 android国内, 3 android国外)
+	Status        int32     `gorm:"column:status" json:"status"`                // 版本状态(1 已启用, 2 未启用,3 已失效)
+	Description   string    `gorm:"column:description" json:"description"`      // 版本描述
+	CreatedBy     int64     `gorm:"column:created_by" json:"createdBy"`         // 创建人
+	CreatedAt     time.Time `gorm:"column:created_at" json:"createdAt"`         // 创建时间
+	UpdatedBy     int64     `gorm:"column:updated_by" json:"updatedBy"`         // 修改人
+	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updatedAt"`         // 修改时间
+	PlistUrl      string    `gorm:"column:plist_url" json:"plistUrl"`           // ios plist文件URL
+	LaunchMarkets string    `gorm:"column:launch_markets" json:"launchMarkets"` // 已上架市场集合, JSON格式 [{code, name}]
+	RemindMode    int32     `gorm:"column:remind_mode" json:"remindMode"`       // 更新提醒模式 =1 红点提醒 =2 弹框提醒 =3 强制升级提醒
+	RemindDesc    string    `gorm:"column:remind_desc" json:"remindDesc"`       // 提醒描述中文
+	RemindDescEn  string    `gorm:"column:remind_desc_en" json:"remindDescEn"`  // 提醒描述英文
 }
 
 // TableName TOemAppCustomRecord's table name

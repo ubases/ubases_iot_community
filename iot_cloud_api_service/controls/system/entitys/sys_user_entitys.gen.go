@@ -112,12 +112,6 @@ type UserCreateReq struct {
 	PostIds []string
 }
 
-// SetUserReq 添加修改用户公用请求字段
-type UserStatusReq struct {
-	Id         int64 `json:"id,string"`
-	UserStatus int32 `json:"status"`
-}
-
 // 重置密码(未登录情况下)忘记密码的时候
 type UserResetPasswordNoTokenReq struct {
 	Account          string `json:"account"`

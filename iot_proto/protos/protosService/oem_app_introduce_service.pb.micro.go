@@ -4,7 +4,7 @@
 package protosService
 
 import (
-	
+	// _ "/api"
 	fmt "fmt"
 	proto "google.golang.org/protobuf/proto"
 	math "math"
@@ -116,6 +116,20 @@ func NewOemAppIntroduceServiceEndpoints() []*api.Endpoint {
 			Body:    "*",
 			Handler: "rpc",
 		},
+		{
+			Name:    "OemAppIntroduceService.GetLastVersion",
+			Path:    []string{"/v1/oemAppIntroduce/getLastVersion"},
+			Method:  []string{"POST"},
+			Body:    "*",
+			Handler: "rpc",
+		},
+		{
+			Name:    "OemAppIntroduceService.Copy",
+			Path:    []string{"/v1/oemAppIntroduce/copy"},
+			Method:  []string{"POST"},
+			Body:    "*",
+			Handler: "rpc",
+		},
 	}
 }
 
@@ -146,6 +160,10 @@ type OemAppIntroduceService interface {
 	IntroduceList(ctx context.Context, in *OemAppIntroduceListRequest, opts ...client.CallOption) (*OemAppIntroduceListResponse, error)
 	//启用
 	Enable(ctx context.Context, in *OemAppIntroduce, opts ...client.CallOption) (*Response, error)
+	// 获取最新得协议版本
+	GetLastVersion(ctx context.Context, in *OemAppIntroduceFilter, opts ...client.CallOption) (*OemAppIntroduceLastResponse, error)
+	//启用
+	Copy(ctx context.Context, in *OemAppIntroduceCopyRequest, opts ...client.CallOption) (*Response, error)
 }
 
 type oemAppIntroduceService struct {
@@ -280,6 +298,26 @@ func (c *oemAppIntroduceService) Enable(ctx context.Context, in *OemAppIntroduce
 	return out, nil
 }
 
+func (c *oemAppIntroduceService) GetLastVersion(ctx context.Context, in *OemAppIntroduceFilter, opts ...client.CallOption) (*OemAppIntroduceLastResponse, error) {
+	req := c.c.NewRequest(c.name, "OemAppIntroduceService.GetLastVersion", in)
+	out := new(OemAppIntroduceLastResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *oemAppIntroduceService) Copy(ctx context.Context, in *OemAppIntroduceCopyRequest, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "OemAppIntroduceService.Copy", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for OemAppIntroduceService service
 
 type OemAppIntroduceServiceHandler interface {
@@ -307,6 +345,10 @@ type OemAppIntroduceServiceHandler interface {
 	IntroduceList(context.Context, *OemAppIntroduceListRequest, *OemAppIntroduceListResponse) error
 	//启用
 	Enable(context.Context, *OemAppIntroduce, *Response) error
+	// 获取最新得协议版本
+	GetLastVersion(context.Context, *OemAppIntroduceFilter, *OemAppIntroduceLastResponse) error
+	//启用
+	Copy(context.Context, *OemAppIntroduceCopyRequest, *Response) error
 }
 
 func RegisterOemAppIntroduceServiceHandler(s server.Server, hdlr OemAppIntroduceServiceHandler, opts ...server.HandlerOption) error {
@@ -323,6 +365,8 @@ func RegisterOemAppIntroduceServiceHandler(s server.Server, hdlr OemAppIntroduce
 		Lists(ctx context.Context, in *OemAppIntroduceListRequest, out *OemAppIntroduceResponse) error
 		IntroduceList(ctx context.Context, in *OemAppIntroduceListRequest, out *OemAppIntroduceListResponse) error
 		Enable(ctx context.Context, in *OemAppIntroduce, out *Response) error
+		GetLastVersion(ctx context.Context, in *OemAppIntroduceFilter, out *OemAppIntroduceLastResponse) error
+		Copy(ctx context.Context, in *OemAppIntroduceCopyRequest, out *Response) error
 	}
 	type OemAppIntroduceService struct {
 		oemAppIntroduceService
@@ -412,6 +456,20 @@ func RegisterOemAppIntroduceServiceHandler(s server.Server, hdlr OemAppIntroduce
 		Body:    "*",
 		Handler: "rpc",
 	}))
+	opts = append(opts, api.WithEndpoint(&api.Endpoint{
+		Name:    "OemAppIntroduceService.GetLastVersion",
+		Path:    []string{"/v1/oemAppIntroduce/getLastVersion"},
+		Method:  []string{"POST"},
+		Body:    "*",
+		Handler: "rpc",
+	}))
+	opts = append(opts, api.WithEndpoint(&api.Endpoint{
+		Name:    "OemAppIntroduceService.Copy",
+		Path:    []string{"/v1/oemAppIntroduce/copy"},
+		Method:  []string{"POST"},
+		Body:    "*",
+		Handler: "rpc",
+	}))
 	return s.Handle(s.NewHandler(&OemAppIntroduceService{h}, opts...))
 }
 
@@ -465,4 +523,12 @@ func (h *oemAppIntroduceServiceHandler) IntroduceList(ctx context.Context, in *O
 
 func (h *oemAppIntroduceServiceHandler) Enable(ctx context.Context, in *OemAppIntroduce, out *Response) error {
 	return h.OemAppIntroduceServiceHandler.Enable(ctx, in, out)
+}
+
+func (h *oemAppIntroduceServiceHandler) GetLastVersion(ctx context.Context, in *OemAppIntroduceFilter, out *OemAppIntroduceLastResponse) error {
+	return h.OemAppIntroduceServiceHandler.GetLastVersion(ctx, in, out)
+}
+
+func (h *oemAppIntroduceServiceHandler) Copy(ctx context.Context, in *OemAppIntroduceCopyRequest, out *Response) error {
+	return h.OemAppIntroduceServiceHandler.Copy(ctx, in, out)
 }

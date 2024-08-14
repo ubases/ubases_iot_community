@@ -4,7 +4,7 @@ import (
 	"cloud_platform/iot_app_api_service/controls"
 	"cloud_platform/iot_app_api_service/controls/document/apis"
 	"cloud_platform/iot_common/iotgin"
-	"cloud_platform/iot_common/iotnats/jetstream"
+	"cloud_platform/iot_common/iotnatsjs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,6 +15,8 @@ func RegisterRouter(e *gin.Engine) {
 	admin.GET("/introduce/:code", apis.Introducecontroller.GetIntroduceDetailByCode)
 
 	admin.Use(controls.AuthCheck)
+	admin.Use(controls.SetParams)
+	admin.Use(iotgin.AppLogger(iotnatsjs.GetJsClientPub()))
 	// 产品类型
 	admin.GET("/questionType", apis.QuestionTypecontroller.QueryList)
 	admin.GET("/questiontop5", apis.Questioncontroller.QueryTop5)
@@ -24,7 +26,7 @@ func RegisterRouter(e *gin.Engine) {
 	//admin.GET("/introduce/:id", apis.Introducecontroller.GetIntroduceDetailByApp)
 	//admin.GET("/introduce", apis.Introducecontroller.GetIntroduceByApp)
 
-	admin.POST("/feedback/add", iotgin.AppLogger(jetstream.GetJsPublisherMgr()), apis.FeedBackcontroller.Add)
+	admin.POST("/feedback/add", apis.FeedBackcontroller.Add)
 	admin.POST("/feedback", apis.FeedBackcontroller.QueryList)
 	admin.GET("/feedback/details/:id", apis.FeedBackcontroller.QueryDetail)
 	admin.GET("/feedback/questionType", apis.FeedBackcontroller.GetFeedBackQuestionType)

@@ -13,7 +13,21 @@ import (
 
 type OemAppIntroduceHandler struct{}
 
-// 创建
+// 复制
+func (h *OemAppIntroduceHandler) Copy(ctx context.Context, req *proto.OemAppIntroduceCopyRequest, resp *proto.Response) error {
+	s := service.OemAppIntroduceSvc{Ctx: ctx}
+	err := s.CopyOemAppIntroduce(req)
+	if err != nil {
+		resp.Code = ERROR
+		resp.Message = err.Error()
+	} else {
+		resp.Code = SUCCESS
+		resp.Message = "success"
+	}
+	return nil
+}
+
+// 启用
 func (h *OemAppIntroduceHandler) Enable(ctx context.Context, req *proto.OemAppIntroduce, resp *proto.Response) error {
 	s := service.OemAppIntroduceSvc{Ctx: ctx}
 	_, err := s.EnableOemAppIntroduce(req)
@@ -90,6 +104,23 @@ func (h *OemAppIntroduceHandler) FindById(ctx context.Context, req *proto.OemApp
 	s := service.OemAppIntroduceSvc{Ctx: ctx}
 	data, err := s.FindByIdOemAppIntroduce(req)
 	h.SetResponse(resp, data, err)
+	return nil
+}
+
+func (h *OemAppIntroduceHandler) GetLastVersion(ctx context.Context, req *proto.OemAppIntroduceFilter, resp *proto.OemAppIntroduceLastResponse) error {
+	s := service.OemAppIntroduceSvc{Ctx: ctx}
+	userAgreementRemind, userAgreementVer,privacyPolicyRemind,privacyPolicyVer, err := s.GetLastVersion(req)
+	if err != nil {
+		resp.Code = ERROR
+		resp.Message = err.Error()
+	} else {
+		resp.Code = SUCCESS
+		resp.Message = "success"
+		resp.UserAgreementRemind = userAgreementRemind
+		resp.UserAgreementVer = userAgreementVer
+		resp.PrivacyPolicyRemind = privacyPolicyRemind
+		resp.PrivacyPolicyVer = privacyPolicyVer
+	}
 	return nil
 }
 

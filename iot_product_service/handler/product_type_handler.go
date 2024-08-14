@@ -3,12 +3,12 @@ package handler
 import (
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
 	iotmodel "cloud_platform/iot_model"
 	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_model/db_product/orm"
-	"cloud_platform/iot_product_service/service"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"encoding/json"
@@ -236,7 +236,11 @@ func (s *TPmProductTypeHandler) CreateTPmProductType(ctx context.Context, reques
 	response.Code = 200
 	response.Data = &protosService.TPmProductTypeRequest{Id: saveObj.Id}
 
-	service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+	//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+	//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+	//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_PRODUCT_TYPE, saveObj.Id, "name", saveObj.Name, saveObj.NameEn),
+	//})
+	iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 		Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 		Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_PRODUCT_TYPE, saveObj.Id, "name", saveObj.Name, saveObj.NameEn),
 	})
@@ -370,7 +374,11 @@ func (s *TPmProductTypeHandler) UpdateTPmProductType(ctx context.Context, filter
 	response.Code = 200
 	response.Data = &protosService.TPmProductTypeRequest{Id: updateObj.Id}
 
-	service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+	//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+	//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+	//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_PRODUCT_TYPE, updateObj.Id, "name", updateObj.Name, updateObj.NameEn),
+	//})
+	iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 		Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 		Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_T_PM_PRODUCT_TYPE, updateObj.Id, "name", updateObj.Name, updateObj.NameEn),
 	})
@@ -631,7 +639,7 @@ func toTPmThingModelProperties(modelid int64, modelItems []*model.TPmThingModelI
 			return nil, fmt.Errorf("identifier错误,要求以字母开头,可包含字母、数字、下划线,长度2~32的字符串.(identifier=%s)", v.Identifier)
 		}
 
-		if p.DataType == "ENUM" {
+		if p.DataType == "ENUM" || p.DataType == "FAULT" {
 			properties := strings.TrimSpace(v.Properties)
 			marks := strings.TrimSpace(v.Mark)
 			if strings.Index(marks, ":") != -1 {

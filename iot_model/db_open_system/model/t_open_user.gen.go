@@ -38,6 +38,7 @@ type TOpenUser struct {
 	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updatedAt"` // 更新时间
 	UpdatedBy     int64          `gorm:"column:updated_by" json:"updatedBy"`
 	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"` // 删除时间
+	HasGuided 	  int32          `gorm:"column:has_guided" json:"hasGuided"`
 }
 
 // TableName TOpenUser's table name

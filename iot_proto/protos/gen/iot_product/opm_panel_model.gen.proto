@@ -130,6 +130,16 @@ message OpmPanel {
     string userAccount  = 132;
     int32 originType  = 133;   //` //来源 = 1 预览 =2发布
     string appKey = 134;
+
+    string langFileName = 135;//语言文件名称
+
+    string remark = 136;//面板描述
+
+    repeated int32 panelTypes = 137;//面板類型多查詢
+
+    int32 useCount = 138;//当前适用次数
+
+    string code = 139;//面板编码
 }
 
 message OpmPanelFilter {
@@ -229,6 +239,8 @@ message OpmPanelFilter {
 
     //产品Id
     int64 productId = 124;
+
+    string code = 125;//面板编码
 }
 
 message OpmPanelListRequest {

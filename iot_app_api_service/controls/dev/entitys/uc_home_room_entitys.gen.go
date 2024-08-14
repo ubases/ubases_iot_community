@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// 增、删、改及查询返回
+//增、删、改及查询返回
 type UcHomeRoomEntitys struct {
 	Id        string    `json:"id,omitempty"`
 	HomeId    string    `json:"homeId,omitempty"`
@@ -25,7 +25,7 @@ type UcHomeRoomEntitys struct {
 	DeletedAt time.Time `json:"deletedAt,omitempty"`
 }
 
-// 查询条件
+//查询条件
 type UcHomeRoomQuery struct {
 	Page      uint64            `json:"page,omitempty"`
 	Limit     uint64            `json:"limit,omitempty"`
@@ -35,7 +35,7 @@ type UcHomeRoomQuery struct {
 	Query     *UcHomeRoomFilter `json:"query,omitempty"`
 }
 
-// UcHomeRoomFilter，查询条件，字段请根据需要自行增减
+//UcHomeRoomFilter，查询条件，字段请根据需要自行增减
 type UcHomeRoomFilter struct {
 	Id        string    `json:"id,omitempty"`
 	HomeId    string    `json:"homeId,omitempty"`
@@ -49,7 +49,7 @@ type UcHomeRoomFilter struct {
 	DeletedAt time.Time `json:"deletedAt,omitempty"`
 }
 
-// 实体转pb对象
+//实体转pb对象
 func UcHomeRoom_e2pb(src *UcHomeRoomEntitys) *proto.UcHomeRoom {
 	if src == nil {
 		return nil
@@ -78,7 +78,7 @@ func UcHomeRoom_e2pb(src *UcHomeRoomEntitys) *proto.UcHomeRoom {
 	return &pbObj
 }
 
-// pb对象转实体
+//pb对象转实体
 func UcHomeRoom_pb2e(src *proto.UcHomeRoom) *UcHomeRoomEntitys {
 	if src == nil {
 		return nil

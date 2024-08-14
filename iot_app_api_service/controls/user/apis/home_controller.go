@@ -7,9 +7,11 @@ import (
 	"cloud_platform/iot_app_api_service/controls/user/services"
 	"cloud_platform/iot_app_api_service/rpc"
 	"cloud_platform/iot_common/iotgin"
+	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotutil"
 	proto "cloud_platform/iot_proto/protos/protosService"
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -68,28 +70,29 @@ func (HomeController) Add(c *gin.Context) {
 		iotgin.ResBadRequest(c, err.Error())
 		return
 	}
+	req.Sid = iotutil.ToString(controls.GetRegionInt(c))
 	name := req.Name
 	if strings.TrimSpace(name) == "" {
 		iotgin.ResBadRequest(c, "名称为空")
 		return
 	}
-	address := req.Address
-	if strings.TrimSpace(address) == "" {
-		iotgin.ResBadRequest(c, "地址为空")
-		return
-	}
+	//address := req.Address
+	//if strings.TrimSpace(address) == "" {
+	//	iotgin.ResBadRequest(c, "地址为空")
+	//	return
+	//}
 	city := req.City
-	if len(req.CountryId) == 0 {
-		if strings.TrimSpace(city) == "" {
-			iotgin.ResBadRequest(c, "城市为空")
-			return
-		}
-		coordType, _ := iotutil.ToInt64AndErr(req.CoordType)
-		if coordType == 0 {
-			iotgin.ResBadRequest(c, "坐标类型为空")
-			return
-		}
-	}
+	//if len(req.CountryId) == 0 {
+	//	if strings.TrimSpace(city) == "" {
+	//		iotgin.ResBadRequest(c, "城市为空")
+	//		return
+	//	}
+	//	coordType, _ := iotutil.ToInt64AndErr(req.CoordType)
+	//	if coordType == 0 {
+	//		iotgin.ResBadRequest(c, "坐标类型为空")
+	//		return
+	//	}
+	//}
 	roomList := req.RoomList
 	if roomList != nil && len(roomList) > 0 {
 		if len(roomList) > 99 {
@@ -132,6 +135,48 @@ func (HomeController) Add(c *gin.Context) {
 			req.Province = iotutil.MapGetStringVal(areaMap[provinceId], "") //geo.Province,
 			req.City = iotutil.MapGetStringVal(areaMap[cityId], "")         //geo.City,
 		}
+	} else {
+		geo, err := controls.Geoip(c.ClientIP())
+		areaMap := map[string]string{}
+		var (
+			countryId  int64 = 0
+			provinceId int64 = 0
+			cityId     int64 = 0
+		)
+		if err != nil {
+			iotlogger.LogHelper.Errorf("get address by ip[%s], error:%s", c.ClientIP(), err.Error())
+		} else {
+			//去除尾部 省、市
+			if strings.HasSuffix(geo.Province, "省") {
+				geo.Province = strings.TrimSuffix(geo.Province, "省")
+			}
+			if strings.HasSuffix(geo.City, "市") {
+				geo.City = strings.TrimSuffix(geo.City, "市")
+			}
+			req.City = geo.City
+			req.Country = geo.Country
+			req.Province = geo.Province
+			areaList, err := rpc.ClientAreaService.Lists(context.Background(), &proto.SysAreaListRequest{Query: &proto.SysArea{
+				EnableGetCode: true,
+				Country:       geo.Country,
+				City:          geo.City,
+				Province:      geo.Province,
+				Pid:           -1,
+			}})
+			if err == nil {
+				for _, a := range areaList.Data {
+					areaMap[a.ChineseName] = iotutil.ToString(a.Id)
+					areaMap[a.EnglishName] = iotutil.ToString(a.Id)
+				}
+			}
+			countryId = iotutil.MapGetInt64Val(areaMap[geo.Country], 0)   //geo.Country,
+			provinceId = iotutil.MapGetInt64Val(areaMap[geo.Province], 0) //geo.Province,
+			cityId = iotutil.MapGetInt64Val(areaMap[geo.City], 0)         //geo.City,
+			req.Address = fmt.Sprintf("%v%v%v", geo.Country, geo.Province, geo.City)
+		}
+		req.CountryId = iotutil.ToString(countryId)
+		req.ProvinceId = iotutil.ToString(provinceId)
+		req.CityId = iotutil.ToString(cityId)
 	}
 	userId := controls.GetUserId(c)
 	err := homeServices.SetContext(controls.WithUserContext(c)).AddHome(req, iotutil.ToInt64(userId))
@@ -222,6 +267,22 @@ func (HomeController) Delete(c *gin.Context) {
 
 	userId := controls.GetUserId(c)
 	code, err := homeServices.SetContext(controls.WithUserContext(c)).Delete(iotutil.ToInt64(homeId), userId, c.ClientIP())
+	if code != 0 {
+		iotgin.ResErrCliCustomCode(c, err, int(code))
+		return
+	}
+	iotgin.ResSuccessMsg(c)
+}
+
+func (HomeController) SendMsgTest(c *gin.Context) {
+	homeId := c.Param("id")
+	if strings.TrimSpace(homeId) == "" {
+		iotgin.ResBadRequest(c, "家庭编号为空")
+		return
+	}
+
+	userId := controls.GetUserId(c)
+	code, err := homeServices.SetContext(controls.WithUserContext(c)).SendMsgTest(iotutil.ToInt64(homeId), userId, c.ClientIP())
 	if code != 0 {
 		iotgin.ResErrCliCustomCode(c, err, int(code))
 		return
@@ -448,7 +509,12 @@ func (HomeController) RoomList(c *gin.Context) {
 		iotgin.ResBadRequest(c, "家庭编号为空")
 		return
 	}
-	resp, msg := homeServices.SetContext(controls.WithUserContext(c)).RoomList(iotutil.ToInt64(homeId))
+	homeIdInt, err := iotutil.ToInt64AndErr(homeId)
+	if err != nil {
+		iotgin.ResBadRequest(c, "家庭编号异常")
+		return
+	}
+	resp, msg := homeServices.SetContext(controls.WithUserContext(c)).RoomList(homeIdInt)
 	if msg != "" {
 		iotgin.ResBusinessP(c, msg)
 		return

@@ -6,6 +6,7 @@ import (
 	"cloud_platform/iot_app_api_service/controls/dev/entitys"
 	services "cloud_platform/iot_app_api_service/controls/user/services"
 	"cloud_platform/iot_app_api_service/rpc"
+	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/ioterrs"
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotredis"
@@ -14,6 +15,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strings"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -23,13 +25,13 @@ type AppShareDeviceService struct {
 	Ctx context.Context
 }
 
-func (s AppShareDeviceService) SetContext(ctx context.Context) AppShareDeviceService {
+func (s *AppShareDeviceService) SetContext(ctx context.Context) *AppShareDeviceService {
 	s.Ctx = ctx
 	return s
 }
 
 // ShareDeviceList 共享设备列表
-func (s AppShareDeviceService) ShareDeviceList(homeId string) ([]entitys.SharedDeviceListEntityDto, error) {
+func (s *AppShareDeviceService) ShareDeviceList(homeId string) ([]entitys.SharedDeviceListEntityDto, error) {
 	ret, err := rpc.IotDeviceHomeService.HomeDevListExcludeVirtualDevices(context.Background(), &protosService.IotDeviceHomeHomeId{
 		HomeId: iotutil.ToInt64(homeId),
 	})
@@ -163,7 +165,7 @@ func (s AppShareDeviceService) ShareDeviceList(homeId string) ([]entitys.SharedD
 }
 
 // ShareUserList 共享用户列表
-func (s AppShareDeviceService) ShareUserList(devId, homeId string) ([]map[string]interface{}, error) {
+func (s *AppShareDeviceService) ShareUserList(devId, homeId string) ([]map[string]interface{}, error) {
 	deviceSharedResult, err := rpc.IotDeviceSharedService.Lists(context.Background(), &protosService.IotDeviceSharedListRequest{
 		Query: &protosService.IotDeviceShared{
 			HomeId:   iotutil.ToInt64(homeId),
@@ -243,7 +245,7 @@ func (s AppShareDeviceService) ShareUserList(devId, homeId string) ([]map[string
 }
 
 // CancelShare 取消共享
-func (s AppShareDeviceService) CancelShare(req entitys.CancelShare, userId, appKey, tenantId string) error {
+func (s *AppShareDeviceService) CancelShare(req entitys.CancelShare, userId, appKey, tenantId string) error {
 	var belongUserId, homeId int64
 	var deviceId string
 
@@ -318,7 +320,7 @@ func (s AppShareDeviceService) CancelShare(req entitys.CancelShare, userId, appK
 }
 
 // AddShared 添加共享设备
-func (s AppShareDeviceService) AddShared(belongUserId, appKey, tenantId string, regionServerId int64, req entitys.Addshared) (int, string) {
+func (s *AppShareDeviceService) AddShared(belongUserId, appKey, tenantId string, regionServerId int64, req entitys.Addshared) (int, string) {
 	var phone, email string
 
 	if req.Type == 1 {
@@ -484,7 +486,7 @@ func (s AppShareDeviceService) AddShared(belongUserId, appKey, tenantId string, 
 }
 
 // ReceiveSharedList 接收共享列表
-func (s AppShareDeviceService) ReceiveSharedList(userId int64) ([]entitys.ReceiveSharedDto, error) {
+func (s *AppShareDeviceService) ReceiveSharedList(userId int64, isAgreeData bool) ([]entitys.ReceiveSharedDto, error) {
 	deviceShareReceiveResult, err := rpc.IotDeviceShareReceiveService.Lists(context.Background(), &protosService.IotDeviceShareReceiveListRequest{
 		Query: &protosService.IotDeviceShareReceive{
 			UserId: userId,
@@ -501,6 +503,9 @@ func (s AppShareDeviceService) ReceiveSharedList(userId int64) ([]entitys.Receiv
 
 	receiveSharedDtoList := []entitys.ReceiveSharedDto{}
 	for _, info := range deviceShareReceiveResult.Data {
+		if isAgreeData && info.IsAgree != 1 {
+			continue
+		}
 		receiveSharedDtoList = append(receiveSharedDtoList, entitys.ReceiveSharedDto{
 			Id:             iotutil.ToString(info.Id),
 			DevName:        info.CustomName,
@@ -514,7 +519,7 @@ func (s AppShareDeviceService) ReceiveSharedList(userId int64) ([]entitys.Receiv
 }
 
 // ReceiveShare 接收共享
-func (s AppShareDeviceService) ReceiveShare(userId, id int64, appKey, tenantId string) error {
+func (s *AppShareDeviceService) ReceiveShare(userId, id int64, appKey, tenantId string) error {
 	result, err := rpc.IotDeviceShareReceiveService.FindById(context.Background(), &protosService.IotDeviceShareReceiveFilter{
 		Id: id,
 		//IsAgree: 2, //已同意
@@ -590,7 +595,102 @@ func (s AppShareDeviceService) ReceiveShare(userId, id int64, appKey, tenantId s
 	return nil
 }
 
-func (s AppShareDeviceService) expirationSetting(id int64) error {
+// ReceiveShareByCode 接收共享通过分享码
+func (s *AppShareDeviceService) ReceiveShareByCode(userId int64, userName string, account string, appKey, tenantId string, code string) (int, error) {
+	codeCmd := iotredis.GetClient().Get(context.Background(), iotconst.APP_DEVICE_SHARE_CODE+code)
+	if codeCmd.Val() == "" {
+		return ioterrs.ERROR_NOT_SHARE_YOURSELF.Code, nil
+	}
+	var codeInfo entitys.GenSharedCode
+	err := iotutil.JsonToStruct(codeCmd.Val(), &codeInfo)
+	if err != nil {
+		return ioterrs.ERROR_NOT_SHARE_YOURSELF.Code, err
+	}
+	// 检查是否已分享（防止重复共享）
+	err = s.checkShared(userId, codeInfo.DevId)
+	if err != nil {
+		return ioterrs.ERROR_NOT_SHARE_YOURSELF.Code, err
+	}
+	// 获取用户信息
+	userRes, err := rpc.TUcUserService.FindById(s.Ctx, &protosService.UcUserFilter{Id: userId})
+	if err != nil {
+		return -1, err
+	}
+	// 产品信息
+	proRes, err := rpc.ProductService.Find(context.Background(), &protosService.OpmProductFilter{ProductKey: codeInfo.ProductKey})
+	if err != nil {
+		return -1, err
+	}
+	proInfo := proRes.Data[0]
+	// 兼容逻辑
+	_, err = rpc.IotDeviceShareReceiveService.Create(context.Background(), &protosService.IotDeviceShareReceive{
+		Id:             iotutil.GetNextSeqInt64(),
+		CustomName:     codeInfo.DevName,
+		UserId:         userId,
+		UserName:       userName,
+		DeviceId:       codeInfo.DevId,
+		BelongUserId:   codeInfo.UserId,
+		BelongUserName: codeInfo.UserName,
+		HomeId:         codeInfo.HomeId,
+		ProductKey:     proInfo.ProductKey,
+		ProductId:      proInfo.Id,
+		ProductPic:     proInfo.ImageUrl,
+		Photo:          userRes.Data[0].Photo,
+		IsAgree:        2, //默认同意
+		SharedTime:     timestamppb.Now(),
+		CreatedAt:      timestamppb.Now(),
+		UpdatedAt:      timestamppb.Now(),
+	})
+	if err != nil {
+		return -1, err
+	}
+	_, err = rpc.IotDeviceSharedService.Create(context.Background(), &protosService.IotDeviceShared{
+		Id:             iotutil.GetNextSeqInt64(),
+		CustomName:     codeInfo.DevName,
+		UserId:         userId,
+		UserName:       userName,
+		BelongUserId:   codeInfo.UserId,
+		BelongUserName: codeInfo.UserName,
+		DeviceId:       codeInfo.DevId,
+		HomeId:         codeInfo.HomeId,
+		ProductKey:     proInfo.ProductKey,
+		ProductId:      proInfo.Id,
+		ProductPic:     proInfo.ImageUrl,
+		Sid:            0,
+		SharedTime:     timestamppb.Now(),
+		CreatedAt:      timestamppb.Now(),
+		UpdatedAt:      timestamppb.Now(),
+	})
+	if err != nil {
+		return -1, err
+	}
+	// 删除家庭详情缓存
+	services.ClearHomeCached(userId, false)
+	go services.SendReceiveShareMessage(userId, codeInfo.UserId, codeInfo.HomeId, codeInfo.DevId, appKey, tenantId)
+	return 0, nil
+}
+
+func (s *AppShareDeviceService) checkShared(userId int64, devId string) error {
+	//检查是否已分享
+	sharedRes, err := rpc.IotDeviceSharedService.Lists(s.Ctx, &protosService.IotDeviceSharedListRequest{
+		Query: &protosService.IotDeviceShared{
+			UserId:   userId,
+			DeviceId: devId,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if sharedRes.Code != 200 {
+		return errors.New(sharedRes.Message)
+	}
+	if len(sharedRes.Data) > 0 {
+		return errors.New("已存在分享")
+	}
+	return nil
+}
+
+func (s *AppShareDeviceService) expirationSetting(id int64) error {
 	//todo  还要把设备共享表中对应的数据删掉
 	deviceShareReceiveResult, err := rpc.IotDeviceShareReceiveService.Update(context.Background(), &protosService.IotDeviceShareReceive{
 		Id:      id,
@@ -608,7 +708,7 @@ func (s AppShareDeviceService) expirationSetting(id int64) error {
 }
 
 // CancelReceiveShared 取消接受共享
-func (s AppShareDeviceService) CancelReceiveShared(req entitys.CancelReceiveShared, userId, appKey, tenantId string) error {
+func (s *AppShareDeviceService) CancelReceiveShared(req entitys.CancelReceiveShared, userId, appKey, tenantId string) error {
 	result, err := rpc.IotDeviceShareReceiveService.FindById(context.Background(), &protosService.IotDeviceShareReceiveFilter{
 		Id: iotutil.ToInt64(req.Id),
 	})
@@ -644,4 +744,45 @@ func (s AppShareDeviceService) CancelReceiveShared(req entitys.CancelReceiveShar
 	go services.SendCancelReceiveSharedMessage(result.Data[0].UserId, iotutil.ToInt64(result.Data[0].BelongUserId),
 		iotutil.ToInt64(result.Data[0].HomeId), result.Data[0].DeviceId, appKey, tenantId)
 	return nil
+}
+
+// GenShareCode 生成分享码
+func (s *AppShareDeviceService) GenShareCode(req entitys.GenSharedCode) (string, error) {
+	var (
+		code       = ""
+		retryCount = 0
+		maxRetry   = 5
+	)
+
+Retry:
+	tempCode := strings.ToUpper(iotutil.GetRandomStringCombination(6))
+	resp := iotredis.GetClient().Get(context.Background(), iotconst.APP_DEVICE_SHARE_CODE+tempCode)
+	if resp.Val() == "" {
+		code = tempCode
+	} else {
+		//尝试5次生成
+		if retryCount < maxRetry {
+			retryCount++
+			goto Retry
+		} else {
+			return "", errors.New("生成分享码失败")
+		}
+	}
+	if code == "" {
+		return "", errors.New("分享码生成失败")
+	}
+	shareDev := map[string]interface{}{
+		"devId":      req.DevId,
+		"productKey": req.ProductKey,
+		"homeId":     iotutil.ToString(req.HomeId),
+		"roomId":     iotutil.ToString(req.HomeId),
+		"devName":    req.DevName,
+	}
+	//设置过期,有效期3天，60*60*24*2
+	res := iotredis.GetClient().Set(context.Background(), iotconst.APP_DEVICE_SHARE_CODE+code, iotutil.ToString(shareDev), 172800*time.Second) //有效期2天
+	if res.Err() != nil {
+		iotlogger.LogHelper.Errorf("缓存分享码失败:%s", res.Err().Error())
+		return "", errors.New("缓存分享码失败")
+	}
+	return code, nil
 }

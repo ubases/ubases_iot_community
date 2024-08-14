@@ -9,4 +9,9 @@ type BuildInfo struct {
 	Time      int64  `json:"time"`      //时间戳
 	BuildType int32  `json:"buildType"` //编译类型 = 2 APP面板编译
 	Type      int32  `json:"type"`      //方法类型 = 1 构建  =2 取消构建
+	Mode      int32  `json:"mode"`      //构建模式 = 1 第三方平台构建
+}
+type BuildApplyResponse struct {
+	Code int    `json:"code"` //错误码
+	Msg  string `json:"msg"`  //描述信息
 }

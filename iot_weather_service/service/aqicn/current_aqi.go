@@ -1,8 +1,8 @@
 package aqicn
 
 import (
-	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_weather_service/config"
+	"cloud_platform/iot_common/iotutil"
 	"encoding/json"
 	"errors"
 	"fmt"

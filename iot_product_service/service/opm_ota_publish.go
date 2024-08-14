@@ -419,6 +419,8 @@ type OtaPublishInfo struct {
 	OpmUpgradeOvertime *int32 `gorm:"column:opmUpgradeOvertime" json:"opmupgradeOvertime"` // 固件版本包大小
 	IsCustom           int32  `gorm:"column:isCustom" json:"isCustom"`                     //是否自定义固件
 	FirmwareType       int32  `gorm:"column:firmwareType" json:"frmwareType"`              //固件类似
+	OpmFirmwareKey       string  `gorm:"column:opmFirmwareKey" json:"opmFirmwareKey"`              //固件Key
+	FirmwareKey       string  `gorm:"column:firmwareKey" json:"firmwareKey"`              //固件Key
 	OpmIsMust          int32  `gorm:"column:opmIsMust" json:"opmIsMust"`                   //自定义固件是否必须
 }
 
@@ -451,7 +453,7 @@ type OtaPublishInfo struct {
 // "appUrl": oss永久有效的外链地址,
 // "md5":当前待升级的固件包文件的MD5值,
 // "mcuUrl":mcu的oss永久有效的外链地址。
-func (s *OpmOtaPublishSvc) CheckOtaVersion(req *proto.CheckOtaVersionRequest) (response *proto.CheckOtaVersionResponse, err error) {
+func (s *OpmOtaPublishSvc) CheckOtaVersion(req *proto.CheckOtaVersionRequest, firmwareKey string) (response *proto.CheckOtaVersionResponse, err error) {
 	response = &proto.CheckOtaVersionResponse{}
 	if req.ProductKey == "" {
 		return response, errors.New("产品Key不能为空")
@@ -496,6 +498,13 @@ func (s *OpmOtaPublishSvc) CheckOtaVersion(req *proto.CheckOtaVersionRequest) (r
 	//tPkg.Version.Gt(req.Version)
 	//field.Func.VersionOrder(tPublish.Version))
 
+	//如果传入固件Key需要使用固件Key进行过滤
+	if firmwareKey != "" {
+		fkdo := tPublish.WithContext(context.Background())
+		fkdo = fkdo.Where(tFirmware.FirmwareKey.Eq(firmwareKey)).Or(tOFirmware.FirmwareKey.Eq(firmwareKey))
+		do = do.Where(fkdo)
+	}
+
 	//err = do.Where(tPkg.ProductId.Eq(pro[0].Id), tPkg.Version.Gt(req.Version),
 	ver := field.GetVersionField(req.Version)
 	err = do.Where(tPkg.ProductId.Eq(pro[0].Id), tPkg.Version.GetVersionField().GtCol(ver),
@@ -504,10 +513,12 @@ func (s *OpmOtaPublishSvc) CheckOtaVersion(req *proto.CheckOtaVersionRequest) (r
 			tFirmwareVersion.FilePath, tFirmwareVersion.FileKey, tFirmwareVersion.FileSize,
 			tFirmwareVersion.IsMust.As("pmIsMust"),
 			tFirmware.UpgradeOvertime.As("upgradeOvertime"),
+			tFirmware.FirmwareKey.As("firmwareKey"),
 			tPkg.UpgradeDesc.As("otaUpgradeDesc"),
 			tPkg.IsCustomFirmware.As("isCustom"),
 			tPkg.FirmwareType.As("firmwareType"),
 			tOFirmware.Name.As("opmName"),
+			tOFirmware.FirmwareKey.As("opmFirmwareKey"),
 			tOFirmwareVersion.ProdFileName.As("opmFileName"),
 			tOFirmwareVersion.ProdFilePath.As("opmFilePath"),
 			tOFirmwareVersion.ProdFileKey.As("opmFileKey"),
@@ -515,8 +526,6 @@ func (s *OpmOtaPublishSvc) CheckOtaVersion(req *proto.CheckOtaVersionRequest) (r
 			tOFirmwareVersion.IsMust.As("opmIsMust"),
 			tOFirmware.UpgradeOvertime.As("opmUpgradeOvertime")).
 		Order(field.Func.VersionOrder(tPublish.Version).Desc()).Scan(&pvList)
-	// tPublish.CreatedAt.Desc()
-	//TODO 排序根据发布时间 tPublish.CreatedAt
 
 	if err != nil {
 		if err.Error() == "record not found" {
@@ -614,11 +623,18 @@ func setOtaPkg(productKey string, pv *OtaPublishInfo) *proto.OtaPkgInfo {
 		OtaType:      "module_ota_all", //custom = true 则otaType = module_mcu_all
 		Version:      pv.Version,
 		FirmwareType: pv.FirmwareType,
+		FirmwareKey:  iotutil.IfString(pv.IsCustom == 1, pv.OpmFirmwareKey, pv.FirmwareKey),
 	}
 	switch pv.FirmwareType {
 	case iotconst.FIRMWARE_TYPE_MODULE:
-		//模组升级
-	case iotconst.FIRMWARE_TYPE_BLE, iotconst.FIRMWARE_TYPE_ZIGBEE, iotconst.FIRMWARE_TYPE_EXTAND, iotconst.FIRMWARE_TYPE_MCU:
+		res.OtaType = "module_ota_all"
+	case iotconst.FIRMWARE_TYPE_BLE:
+		res.OtaType = "module_bt_all"
+	case iotconst.FIRMWARE_TYPE_ZIGBEE:
+		res.OtaType = "module_zigbee_all"
+	case iotconst.FIRMWARE_TYPE_EXTAND:
+		res.OtaType = "module_extend_all"
+	case iotconst.FIRMWARE_TYPE_MCU:
 		//如果是mcu模组，则推送mcu升级 module_mcu_all
 		res.OtaType = "module_mcu_all"
 		if pv.IsCustom == 1 {
@@ -630,13 +646,11 @@ func setOtaPkg(productKey string, pv *OtaPublishInfo) *proto.OtaPkgInfo {
 	//是否mcu升级
 	if pv.IsCustom == 1 {
 		res.Md5 = pv.OpmFileKey
-		res.FirmwareName = pv.OpmFileName
 		res.Size = *pv.OpmFileSize
 		res.AppUrl = pv.OpmFilePath
 		res.UpgradeOvertime = *pv.OpmUpgradeOvertime
 	} else {
 		res.Md5 = pv.FileKey
-		res.FirmwareName = pv.FileName
 		res.Size = *pv.FileSize
 		res.AppUrl = pv.FilePath
 		res.UpgradeOvertime = *pv.UpgradeOvertime

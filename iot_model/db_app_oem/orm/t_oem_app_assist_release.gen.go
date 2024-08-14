@@ -117,6 +117,8 @@ func (t *tOemAppAssistRelease) WithContext(ctx context.Context) *tOemAppAssistRe
 
 func (t tOemAppAssistRelease) TableName() string { return t.tOemAppAssistReleaseDo.TableName() }
 
+func (t tOemAppAssistRelease) Alias() string { return t.tOemAppAssistReleaseDo.Alias() }
+
 func (t *tOemAppAssistRelease) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

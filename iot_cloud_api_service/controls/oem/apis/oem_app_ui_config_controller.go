@@ -185,9 +185,13 @@ func (OemAppUiConfigController) SaveFunctionConfigThird(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
-	id, err := serviceUiConfig.SetContext(controls.WithOpenUserContext(c)).SaveFunctionConfigThird(req)
+	id, code, err := serviceUiConfig.SetContext(controls.WithOpenUserContext(c)).SaveFunctionConfigThird(req)
 	if err != nil {
-		iotgin.ResErrCli(c, err)
+		if code != 0 {
+			iotgin.ResErrCliCustomCode(c, err, code)
+		} else {
+			iotgin.ResErrCli(c, err)
+		}
 		return
 	}
 	iotgin.ResSuccess(c, id)

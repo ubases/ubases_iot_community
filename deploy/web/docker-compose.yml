@@ -4,6 +4,7 @@ services:
   nginx:
     image: nginx:1.21
     container_name: nginx
+    restart: always
     privileged: true
     ports:
       - 2885:2885  # 语音服务接口

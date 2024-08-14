@@ -7,6 +7,6 @@ go mod vendor
 
 for /d %%i in ("../iot_*_service") do (
   echo %%i
-  go build -tags="ce" ../%%i
+  go build -ldflags="-s -w" -tags="ce" ../%%i
 )
 pause

@@ -2,6 +2,7 @@ package services
 
 import (
 	"cloud_platform/iot_cloud_api_service/controls/oem/entitys"
+	"cloud_platform/iot_cloud_api_service/controls/oem/services/openData"
 	entitys2 "cloud_platform/iot_cloud_api_service/controls/system/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotutil"
@@ -51,7 +52,7 @@ func (s OemAppDocService) GetApps(tenantId string, docId string) ([]*entitys.Oem
 	var rs = make([]*entitys.OemAppDocApp, 0)
 
 	//编辑的时候. 需要把自己的app数据加入.
-	appKeyMaps, _ := GetAppMaps(s.Ctx, tenantId)
+	appKeyMaps, _ := openData.GetAppMaps(s.Ctx, tenantId)
 	if docId != "" {
 		detail, err := s.DetailDoc(docId)
 		if err != nil {
@@ -68,7 +69,6 @@ func (s OemAppDocService) GetApps(tenantId string, docId string) ([]*entitys.Oem
 			}
 		}
 	}
-
 	if res.Data != nil && len(res.Data) > 0 {
 		for _, v := range res.Data {
 			//默认该app没有关联过文档.
@@ -790,9 +790,22 @@ func (s OemAppDocService) DocList(tenantId string) ([]*entitys.OmeAppDocListRes,
 	}
 	rs = append(rs, pubDocs...)
 
+	appKeyMap, _ := openData.GetAppMaps(s.Ctx, tenantId)
+
 	if res.Data != nil && len(res.Data) > 0 {
 		for _, v := range res.Data {
 			t := entitys.OemAppDoc_pb2eList(v)
+			newApps := make([]entitys.OemAppDocApp, 0)
+			//排除不存在的APP
+			for _, app := range t.Apps {
+				if app.AppKey != "" {
+					if _, ok := appKeyMap[app.AppKey]; ok {
+						app.AppName = appKeyMap[app.AppKey]
+						newApps = append(newApps, app)
+					}
+				}
+			}
+			t.Apps = newApps
 			count, err := s.GetDocByAnswerCount(v.Id)
 			if err != nil {
 				return nil, err

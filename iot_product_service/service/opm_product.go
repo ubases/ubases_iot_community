@@ -6,9 +6,11 @@ package service
 
 import (
 	"cloud_platform/iot_common/iotconst"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_product_service/config"
 	"cloud_platform/iot_product_service/rpc/rpcClient"
 	"context"
 	"errors"
@@ -32,17 +34,23 @@ type OpmProductSvc struct {
 }
 
 // 创建OpmProduct，同时会将标准物模型绑定到产品下
-func (s *OpmProductSvc) CreateOpmProduct(req *proto.OpmProduct) (*proto.OpmProduct, error) {
+func (s *OpmProductSvc) CreateOpmProduct(req *proto.OpmProduct, isDemo bool) (*proto.OpmProduct, error) {
 	tenantId, err := CheckTenantId(s.Ctx)
 	if err != nil {
-		return nil, err
+		if req.TenantId == "" {
+			req.TenantId = tenantId
+		}
+		if req.TenantId == "" {
+			return nil, errors.New("租户Id不能为空")
+		}
+	} else {
+		req.TenantId = tenantId
 	}
 	userId, err := GetUserIdInt64(s.Ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	req.TenantId = tenantId
 	if req.Name == "" {
 		return nil, errors.New("产品名称不能为空")
 	}
@@ -58,7 +66,9 @@ func (s *OpmProductSvc) CreateOpmProduct(req *proto.OpmProduct) (*proto.OpmProdu
 	if req.WifiFlag == "" {
 		req.WifiFlag = iotutil.GetSecret(4)
 	}
-
+	if req.ProductKey == "" {
+		req.ProductKey = iotutil.GetSecret(8)
+	}
 	q := orm.Use(iotmodel.GetDB())
 	rePro, err := q.TPmProduct.WithContext(s.Ctx).Where(q.TPmProduct.Id.Eq(req.ProductId)).First()
 	if err != nil {
@@ -66,16 +76,17 @@ func (s *OpmProductSvc) CreateOpmProduct(req *proto.OpmProduct) (*proto.OpmProdu
 	}
 
 	var translates *iotstruct.TranslatePush
+	dbObj := convert.OpmProduct_pb2db(req)
 	err = q.Transaction(func(tx *orm.Query) error {
 		tProduct := tx.TOpmProduct
 		doProduct := tProduct.WithContext(context.Background())
-		dbObj := convert.OpmProduct_pb2db(req)
 		dbObj.WifiFlag = rePro.WifiFlag
 		dbObj.AttributeType = rePro.AttributeType
 		dbObj.DeviceNatureKey = rePro.AttributeType
 		dbObj.IsVirtualTest = rePro.IsVirtualTest
 		if dbObj.Id == 0 {
 			dbObj.Id = iotutil.GetNextSeqInt64()
+			req.Id = dbObj.Id
 		}
 		err = doProduct.Create(dbObj)
 		if err != nil {
@@ -94,7 +105,11 @@ func (s *OpmProductSvc) CreateOpmProduct(req *proto.OpmProduct) (*proto.OpmProdu
 			if err != nil {
 				return err
 			}
-			translates, err = s.setMustThingsModel(dbObj.Id, dbObj.ProductKey, rePro.ProductKey, newModelId, userId, tx)
+			if isDemo {
+				translates, err = s.setDemoMustThingsModel(dbObj.Id, dbObj.ProductKey, rePro.ProductKey, newModelId, userId, tx)
+			} else {
+				translates, err = s.setMustThingsModel(dbObj.Id, dbObj.ProductKey, rePro.ProductKey, newModelId, userId, tx)
+			}
 			if err != nil {
 				return err
 			}
@@ -102,9 +117,16 @@ func (s *OpmProductSvc) CreateOpmProduct(req *proto.OpmProduct) (*proto.OpmProdu
 
 		//新增配网引导
 		netWorkGuideSvc := OpmNetworkGuideSvc{}
-		err = netWorkGuideSvc.SetDefaultNetworkGuideByBaseProductId(tx, dbObj.Id, req.ProductId, tenantId, dbObj.ImageUrl)
+		err = netWorkGuideSvc.SetDefaultNetworkGuideByBaseProductId(tx, dbObj.Id, req.ProductId, req.TenantId, dbObj.ImageUrl)
 		if err != nil {
 			return err
+		}
+
+		if isDemo {
+			//生成默认模组硬件
+			s.RelModuleFirmware(dbObj.Id, dbObj.ProductKey, dbObj.BaseProductId, dbObj.ProductTypeId, tx)
+			//生成默认面板数据
+			//s.RelControl(dbObj.Id, dbObj.ControlPanelId, tx)
 		}
 
 		//创建业务数据库表
@@ -127,9 +149,21 @@ func (s *OpmProductSvc) CreateOpmProduct(req *proto.OpmProduct) (*proto.OpmProdu
 		logger.Errorf("CreateOpmProduct error : %s", err.Error())
 		return nil, err
 	}
+	//生成默认面板数据
+	if isDemo {
+		go func() {
+			defer iotutil.PanicHandler("自动关联面板：", dbObj.Id, dbObj.ControlPanelId)
+			s.RelControl(dbObj.Id, dbObj.ControlPanelId, q)
+		}()
+	}
 	//推送物模型翻译内容
 	if translates != nil {
-		GetJsPublisherMgr().PushData(&NatsPubData{
+		//GetJsPublisherMgr().PushData(&NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotutil.ToString(translates),
+		//})
+
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotutil.ToString(translates),
 		})
@@ -663,14 +697,17 @@ func (s *OpmProductSvc) GetListOpmProduct(req *proto.OpmProductListRequest) ([]*
 		if query.TenantId != "" { //字符串
 			do = do.Where(t.TenantId.Eq(query.TenantId))
 		}
-		if query.ControlPanelId != 0 { //字符串
+		if query.ControlPanelId != 0 {
 			do = do.Where(t.ControlPanelId.Eq(query.ControlPanelId))
 		}
-		if query.ModuleId != 0 { //字符串
+		if query.ModuleId != 0 {
 			do = do.Where(t.ModuleId.Eq(query.ModuleId))
 		}
-		if query.DeviceNatureKey != 0 { //字符串
+		if query.DeviceNatureKey != 0 {
 			do = do.Where(t.DeviceNatureKey.Eq(query.DeviceNatureKey))
+		}
+		if query.IsDemoProduct != 0 {
+			do = do.Where(t.IsDemoProduct.Eq(query.IsDemoProduct))
 		}
 	}
 
@@ -759,8 +796,22 @@ func (s *OpmProductSvc) GetListAppOpmProduct(req *proto.AppOpmProductListRequest
 	// fixme 请检查条件和校验参数
 	q := orm.Use(iotmodel.GetDB())
 	t := q.TOpmProduct
+	tProApp := q.TOpmProductAppRelation
+	doProApp := tProApp.WithContext(context.Background())
+	proApps, err := doProApp.Where(tProApp.AppKey.Eq(req.Query.AppKey)).Find()
+	if err != nil {
+		logger.Errorf("GetListOpmProduct error : %s", err.Error())
+		return nil, 0, err
+	}
+	productIds := []int64{}
+	for _, app := range proApps {
+		productIds = append(productIds, app.ProductId)
+	}
 	do := t.WithContext(context.Background())
 	do = do.Where(t.TenantId.Eq(tenantId))
+	if len(productIds) > 0 {
+		do = do.Where(t.Id.In(productIds...))
+	}
 	query := req.Query
 	if query != nil {
 		if query.Id != 0 { //整数
@@ -803,7 +854,15 @@ func (s *OpmProductSvc) GetListAppOpmProduct(req *proto.AppOpmProductListRequest
 		}
 	}
 
-	do = do.Where(t.TenantId.Eq(tenantId))
+	if req.Query.IsAppQuery && config.Global.PublicApp.TenantIds != nil && len(config.Global.PublicApp.TenantIds) > 0 {
+		if iotutil.InArray(tenantId, config.Global.PublicApp.TenantIds) {
+			//如果是公共租户，则不显示配网搜索
+		} else {
+			do = do.Where(t.TenantId.Eq(tenantId))
+		}
+	} else {
+		do = do.Where(t.TenantId.Eq(tenantId))
+	}
 
 	orderCol, ok := t.GetFieldByName(req.OrderKey)
 	if !ok {
@@ -891,10 +950,10 @@ func (s *OpmProductSvc) ModuleLists(req *proto.ModuleIdsRequest) (*proto.PmModul
 	q := orm.Use(iotmodel.GetDB())
 	t := q.TPmModule
 	tRelation := q.TPmProductModuleRelation
-	tFSdk := q.TPmFirmware
+	tf := q.TPmFirmware
 	do := t.WithContext(context.Background())
 	do = do.Join(tRelation, tRelation.ModuleId.EqCol(t.Id), tRelation.ProductId.Eq(req.ProductId))
-	do = do.LeftJoin(tFSdk, tFSdk.Id.EqCol(t.FirmwareId))
+	do = do.LeftJoin(tf, tf.Id.EqCol(t.FirmwareId))
 	//读取启用的
 	do = do.Where(t.Status.Eq(1))
 	if req.ModuleIds != nil && len(req.ModuleIds) > 0 {
@@ -902,10 +961,11 @@ func (s *OpmProductSvc) ModuleLists(req *proto.ModuleIdsRequest) (*proto.PmModul
 	}
 	list := []*struct {
 		model.TPmModule
-		FirmwareName string `gorm:"column:firmware_name" json:"firmwareName"`
-		FirmwareKey2 string `gorm:"column:firmware_key2" json:"firmwareKey2"`
+		FirmwareName   string `gorm:"column:firmware_name" json:"firmwareName"`
+		FirmwareNameEn string `gorm:"column:firmware_name_en" json:"firmwareNameEn"`
+		FirmwareKey2   string `gorm:"column:firmware_key2" json:"firmwareKey2"`
 	}{}
-	err = do.Distinct(t.ALL, tFSdk.Name.As("firmware_name"), tFSdk.FirmwareKey.As("firmware_key2")).Scan(&list)
+	err = do.Distinct(t.ALL, tf.Name.As("firmware_name"), tf.NameEn.As("firmware_name_en"), tf.FirmwareKey.As("firmware_key2")).Scan(&list)
 
 	if err != nil {
 		logger.Errorf("ModuleLists error : %s", err.Error())
@@ -929,19 +989,20 @@ func (s *OpmProductSvc) ModuleLists(req *proto.ModuleIdsRequest) (*proto.PmModul
 
 	for _, v := range list {
 		moduleVo := &protosService.PmModuleVo{
-			Id:           v.Id,
-			ModuleName:   v.ModuleName,
-			ModuleNameEn: v.ModuleNameEn,
-			FirmwareType: v.FirmwareType,
-			FirmwareFlag: v.FirmwareFlag,
-			FirmwareId:   v.FirmwareId,
-			ImgUrl:       v.ImgUrl,
-			FileUrl:      v.FileUrl,
-			Status:       v.Status,
-			Remark:       v.Remark,
-			FirmwareName: v.FirmwareName,
-			FirmwareKey:  v.FirmwareKey2,
-			Version:      v.DefaultVersion,
+			Id:             v.Id,
+			ModuleName:     v.ModuleName,
+			ModuleNameEn:   v.ModuleNameEn,
+			FirmwareType:   v.FirmwareType,
+			FirmwareFlag:   v.FirmwareFlag,
+			FirmwareId:     v.FirmwareId,
+			ImgUrl:         v.ImgUrl,
+			FileUrl:        v.FileUrl,
+			Status:         v.Status,
+			Remark:         v.Remark,
+			FirmwareName:   v.FirmwareName,
+			FirmwareNameEn: v.FirmwareNameEn,
+			FirmwareKey:    v.FirmwareKey2,
+			Version:        v.DefaultVersion,
 		}
 		if val, ok := modelFirmwareMap[fmt.Sprintf("%v_%v", v.Id, v.FirmwareId)]; ok {
 			moduleVo.Version = val.Value
@@ -954,25 +1015,28 @@ func (s *OpmProductSvc) ModuleLists(req *proto.ModuleIdsRequest) (*proto.PmModul
 
 type FirmwareVersionInfo struct {
 	model.TOpmProductModuleRelation
-	Name        string `json:"name"`        // 固件名称
-	Flag        string `json:"flag"`        // 固件标识
-	FirmwareKey string `json:"firmwareKey"` // 固件版本包大小
-	FileName    string `json:"fileName"`    // 文件名称
-	FilePath    string `json:"filePath"`    // 固件版本文件
-	FileKey     string `json:"fileKey"`     // 固件版本MD5值
-	FileSize    int32  `json:"fileSize"`    // 固件版本包大小
+	Name     string `gorm:"column:name" json:"name"`           // 固件名称
+	NameEn   string `gorm:"column:nameEn" json:"nameEn"`       // 固件名称
+	Flag     string `json:"gorm:"column:flag" flag"`           // 固件标识
+	IsCustom int32  `json:"gorm:"column:created_at" isCustom"` //固件类型
 
-	ZipFileName string `json:"zipFileName"` // 资源包名称
-	ZipFilePath string `json:"zipFilePath"` // 资源包文件
-	ZipFileKey  string `json:"zipFileKey"`  // 资源包MD5值
-	ZipFileSize int32  `json:"zipFileSize"` // 资源包包大小
+	FileName string `gorm:"column:fileName" json:"fileName"` // 文件名称
+	FilePath string `gorm:"column:filePath" json:"filePath"` // 固件版本文件
+	FileKey  string `gorm:"column:fileKey" json:"fileKey"`   // 固件版本MD5值
+	FileSize int32  `gorm:"column:fileSize" json:"fileSize"` // 固件版本包大小
 
-	OpmName     string `json:"opmName"`     // 固件名称
-	OpmFlag     string `json:"opmFlag"`     // 固件标识
-	OpmFileName string `json:"opmFileName"` // 文件名称
-	OpmFilePath string `json:"opmFilePath"` // 固件版本文件
-	OpmFileKey  string `json:"opmFileKey"`  // 固件版本MD5值
-	OpmFileSize int32  `json:"opmFileSize"` // 固件版本包大小
+	ZipFileName string `gorm:"column:zipFileName" json:"zipFileName"` // 资源包名称
+	ZipFilePath string `gorm:"column:zipFilePath" json:"zipFilePath"` // 资源包文件
+	ZipFileKey  string `gorm:"column:zipFileKey" json:"zipFileKey"`   // 资源包MD5值
+	ZipFileSize int32  `gorm:"column:zipFileSize" json:"zipFileSize"` // 资源包包大小
+
+	OpmName     string `gorm:"column:opmName" json:"opmName"`         // 固件名称
+	OpmNameEn   string `gorm:"column:opmNameEn" json:"opmNameEn"`     // 固件名称
+	OpmFlag     string `gorm:"column:opmFlag" json:"opmFlag"`         // 固件标识
+	OpmFileName string `gorm:"column:opmFileName" json:"opmFileName"` // 文件名称
+	OpmFilePath string `gorm:"column:opmFilePath" json:"opmFilePath"` // 固件版本文件
+	OpmFileKey  string `gorm:"column:opmFileKey" json:"opmFileKey"`   // 固件版本MD5值
+	OpmFileSize int32  `gorm:"column:opmFileSize" json:"opmFileSize"` // 固件版本包大小
 }
 
 // 根据数据库表主键查找OpmProduct
@@ -1080,14 +1144,15 @@ func (s *OpmProductSvc) FindProductAllDetaialById(req *proto.OpmProductPrimaryke
 
 // 获取自定义固件列表
 func (s *OpmProductSvc) getCustomFirmware(q *orm.Query, productId int64, ret *proto.OpmProductAllDetails) error {
-	tOFV := q.TOpmFirmware
-	tOV := q.TOpmFirmwareVersion
-	var customFirmwares []*FirmwareVersionInfo
+	tofv := q.TOpmFirmware
+	tov := q.TOpmFirmwareVersion
+	var customFirmwares []FirmwareVersionInfo
+
 	err := q.TOpmProductModuleRelation.WithContext(context.Background()).
-		Select(q.TOpmProductModuleRelation.ALL, tOFV.Name, tOFV.Flag,
-			tOV.ProdFileName, tOV.ProdFilePath, tOV.ProdFileKey, tOV.ProdFileSize).
-		LeftJoin(tOV, tOV.Id.EqCol(q.TOpmProductModuleRelation.FirmwareVersionId), q.TOpmProductModuleRelation.IsCustom.Eq(1)).
-		LeftJoin(tOFV, tOFV.Id.EqCol(tOV.FirmwareId)).
+		Select(q.TOpmProductModuleRelation.ALL, tofv.Name, tofv.NameEn.As("nameEn"), tofv.Flag,
+			tov.ProdFileName.As("fileName"), tov.ProdFilePath.As("filePath"), tov.ProdFileKey.As("fileKey"), tov.ProdFileSize.As("fileSize")).
+		LeftJoin(tov, tov.Id.EqCol(q.TOpmProductModuleRelation.FirmwareVersionId), q.TOpmProductModuleRelation.IsCustom.Eq(1)).
+		LeftJoin(tofv, tofv.Id.EqCol(q.TOpmProductModuleRelation.FirmwareId)).
 		Where(q.TOpmProductModuleRelation.ProductId.Eq(productId),
 			q.TOpmProductModuleRelation.IsCustom.Eq(1)).Scan(&customFirmwares)
 	if err != nil {
@@ -1116,21 +1181,23 @@ func (s *OpmProductSvc) getCustomFirmware(q *orm.Query, productId int64, ret *pr
 		}
 	}
 	for _, info := range customFirmwares {
-		var versionCount int32 = 1
+		var versionCount int32 = 0
 		if v, ok := firmwareCountMap[info.FirmwareId]; ok {
 			versionCount = v
 		}
 		ret.CustomFirmwares = append(ret.CustomFirmwares, &proto.OpmFirmwareSelectInfo{
-			Id:           info.Id,
-			FirmwareName: info.Name,
-			FirmwareFlag: info.Flag,
-			FirmwareType: info.FirmwareType,
-			FirmwareKey:  info.FirmwareKey,
-			Version:      info.FirmwareVersion,
-			VersionId:    info.FirmwareVersionId,
-			ProductId:    info.ProductId,
-			FirmwareId:   info.FirmwareId,
-			VersionCount: versionCount,
+			Id:             info.Id,
+			FirmwareName:   info.Name,
+			FirmwareNameEn: info.NameEn,
+			FirmwareFlag:   info.Flag,
+			FirmwareType:   info.FirmwareType,
+			FirmwareKey:    info.FirmwareKey,
+			Version:        info.FirmwareVersion,
+			VersionId:      info.FirmwareVersionId,
+			ProductId:      info.ProductId,
+			FirmwareId:     info.FirmwareId,
+			VersionCount:   versionCount,
+			IsCustom:       1,
 		})
 	}
 
@@ -1138,26 +1205,97 @@ func (s *OpmProductSvc) getCustomFirmware(q *orm.Query, productId int64, ret *pr
 }
 
 // 获取自定义固件列表
+func (s *OpmProductSvc) GetProductFirmwares(productId int64) ([]FirmwareVersionInfo, error) {
+	q := orm.Use(iotmodel.GetDB())
+	//查询产品配置的固件类型
+	cloudList, err := s.getCloudFirmareList(q, productId)
+	if err != nil {
+		logger.Errorf("GetProductFirmwares getCloudFirmareList error : %s", err.Error())
+		return nil, err
+	}
+	//读取自定义固件列表
+	customList, err := s.getCustomFirmwareList(q, productId)
+	if err != nil {
+		logger.Errorf("GetProductFirmwares getCustomFirmwareList error : %s", err.Error())
+		return nil, err
+	}
+	return append(cloudList, customList...), nil
+}
+
+// 获取客户自定义固件列表
+func (s *OpmProductSvc) getCustomFirmwareList(q *orm.Query, productId int64) ([]FirmwareVersionInfo, error) {
+	tOFV := q.TOpmFirmware
+	tOV := q.TOpmFirmwareVersion
+	var customFirmwares []FirmwareVersionInfo
+	err := q.TOpmProductModuleRelation.WithContext(context.Background()).
+		Select(q.TOpmProductModuleRelation.ALL, tOFV.Name, tOFV.NameEn.As("nameEn"), tOFV.Flag,
+			tOV.ProdFileName.As("fileName"),
+			tOV.ProdFilePath.As("filePath"),
+			tOV.ProdFileKey.As("fileKey"),
+			tOV.ProdFileSize.As("fileSize")).
+		LeftJoin(tOV, tOV.Id.EqCol(q.TOpmProductModuleRelation.FirmwareVersionId), q.TOpmProductModuleRelation.IsCustom.Eq(1)).
+		LeftJoin(tOFV, tOFV.Id.EqCol(q.TOpmProductModuleRelation.FirmwareId)).
+		Where(q.TOpmProductModuleRelation.ProductId.Eq(productId),
+			q.TOpmProductModuleRelation.IsCustom.Eq(1)).Scan(&customFirmwares)
+	if err != nil {
+		return nil, err
+	}
+	return customFirmwares, nil
+}
+
+// 获取云固件列表
+func (s *OpmProductSvc) getCloudFirmareList(q *orm.Query, productId int64) ([]FirmwareVersionInfo, error) {
+	tf := q.TPmFirmware
+	tfv := q.TPmFirmwareVersion
+	tpmr := q.TOpmProductModuleRelation
+	var cloudFirmwares []FirmwareVersionInfo
+	err := tpmr.WithContext(context.Background()).
+		Select(tpmr.ALL, tf.Name, tf.NameEn.As("nameEn"), tf.Flag, tf.FirmwareKey,
+			tfv.FileName.As("fileName"),
+			tfv.FilePath.As("filePath"),
+			tfv.FileKey.As("fileKey"),
+			tfv.FileSize.As("fileSize")).
+		LeftJoin(tfv, tfv.Id.EqCol(tpmr.FirmwareVersionId), tpmr.IsCustom.Eq(2)).
+		LeftJoin(tf, tf.Id.EqCol(tfv.FirmwareId)).
+		Where(tpmr.ProductId.Eq(productId), tpmr.IsCustom.Eq(2)).Scan(&cloudFirmwares)
+	if err != nil {
+		return nil, err
+	}
+	if len(cloudFirmwares) == 0 {
+		return nil, nil
+	}
+	return cloudFirmwares, nil
+}
+
+// 获取自定义固件列表
 func (s *OpmProductSvc) getProductModuleFirmware(q *orm.Query, productId int64, ret *proto.OpmProductAllDetails) error {
 	tf := q.TPmFirmware
 	tfv := q.TPmFirmwareVersion
 	tpmr := q.TOpmProductModuleRelation
-	var customFirmwares []*FirmwareVersionInfo
+	var cloudFirmwares []*FirmwareVersionInfo
 	err := tpmr.WithContext(context.Background()).
-		Select(tpmr.ALL, tf.Name, tf.Flag, tf.FirmwareKey,
-			tfv.FileName, tfv.FilePath, tfv.FileKey, tfv.FileSize,
-			tfv.ZipFileName, tfv.ZipFilePath, tfv.ZipFileKey, tfv.ZipFileSize).
+		Select(tpmr.ALL, tf.Name, tf.Flag, tf.FirmwareKey, tf.NameEn.As("nameEn"),
+			tfv.FileName.As("fileName"), tfv.FilePath.As("filePath"), tfv.FileKey.As("fileKey"), tfv.FileSize.As("fileSize"),
+			tfv.ZipFileName.As("zipFileName"), tfv.ZipFilePath.As("zipFilePath"),
+			tfv.ZipFileKey.As("zipFileKey"), tfv.ZipFileSize.As("zipFileSize")).
 		LeftJoin(tfv, tfv.Id.EqCol(tpmr.FirmwareVersionId), tpmr.IsCustom.Eq(2)).
 		LeftJoin(tf, tf.Id.EqCol(tfv.FirmwareId)).
-		Where(tpmr.ProductId.Eq(productId), tpmr.IsCustom.Eq(2)).Scan(&customFirmwares)
+		Where(tpmr.ProductId.Eq(productId), tpmr.IsCustom.Eq(2)).Scan(&cloudFirmwares)
 	if err != nil {
 		return err
 	}
-	if len(customFirmwares) == 0 {
+	if len(cloudFirmwares) == 0 {
 		return nil
 	}
-	firmware := customFirmwares[0]
-	moduleId := customFirmwares[0].ModuleId
+	firmware := cloudFirmwares[0]
+	moduleId := cloudFirmwares[0].ModuleId
+	for _, info := range cloudFirmwares {
+		if info.FirmwareType == iotconst.FIRMWARE_TYPE_MODULE {
+			firmware = info
+			moduleId = info.ModuleId
+			break
+		}
+	}
 	dbModules, err := q.TPmModule.WithContext(context.Background()).Where(q.TPmModule.Id.Eq(moduleId)).Find()
 	if err != nil {
 		return err
@@ -1166,17 +1304,18 @@ func (s *OpmProductSvc) getProductModuleFirmware(q *orm.Query, productId int64, 
 		return nil
 	}
 	dbModule := dbModules[0]
+
 	ret.Module = convert.PmModule_db2pb(dbModule)
 	ret.Module.FirmwareName = firmware.Name
+	ret.Module.FirmwareNameEn = firmware.NameEn
 	ret.Module.DefaultVersion = firmware.FirmwareVersion
 	ret.Module.FirmwareUrl = firmware.ZipFilePath
-	ret.Module.FirmwareName = firmware.Name
 	ret.Module.FirmwareFlag = firmware.Flag
 	ret.Module.FirmwareKey = firmware.FirmwareKey
 	ret.Module.FirmwareType = iotutil.ToString(firmware.FirmwareType)
 	ret.Module.FileName = firmware.FileName
 	ret.Module.FirmwareId = firmware.FirmwareId
-
+	ret.Module.RelationId = firmware.Id
 	//固件版本总数统计
 	tm := q.TPmModule
 	tRelation := q.TPmModuleFirmwareVersion
@@ -1187,6 +1326,49 @@ func (s *OpmProductSvc) getProductModuleFirmware(q *orm.Query, productId int64, 
 	versionCount, err := do.Count()
 	if err == nil {
 		ret.Module.VersionCount = int32(versionCount)
+	}
+
+	firmwareIds := make([]int64, 0)
+	for _, info := range cloudFirmwares {
+		firmwareIds = append(firmwareIds, info.FirmwareId)
+	}
+
+	//统计固件下的版本总数
+	firmwareCountMap := map[int64]int32{}
+	if len(firmwareIds) > 0 {
+		//查询租户自定义固件
+		var resultCount []*struct {
+			Id    int64
+			Count int32
+		}
+		err := q.TPmFirmwareVersion.WithContext(context.Background()).Where(q.TPmFirmwareVersion.FirmwareId.In(firmwareIds...)).
+			Select(q.TPmFirmwareVersion.FirmwareId.As("id"), q.TPmFirmwareVersion.FirmwareId.Count().As("count")).
+			Group(q.TPmFirmwareVersion.FirmwareId).Scan(&resultCount)
+		if err == nil {
+			for _, s2 := range resultCount {
+				firmwareCountMap[s2.Id] = s2.Count
+			}
+		}
+	}
+	for _, info := range cloudFirmwares {
+		var versionCount int32 = 1
+		if v, ok := firmwareCountMap[info.FirmwareId]; ok {
+			versionCount = v
+		}
+		ret.CustomFirmwares = append(ret.CustomFirmwares, &proto.OpmFirmwareSelectInfo{
+			Id:             info.Id,
+			FirmwareName:   info.Name,
+			FirmwareNameEn: info.NameEn,
+			FirmwareFlag:   info.Flag,
+			FirmwareType:   info.FirmwareType,
+			FirmwareKey:    info.FirmwareKey,
+			Version:        info.FirmwareVersion,
+			VersionId:      info.FirmwareVersionId,
+			ProductId:      info.ProductId,
+			FirmwareId:     info.FirmwareId,
+			VersionCount:   versionCount,
+			IsCustom:       0,
+		})
 	}
 	return nil
 }
@@ -1218,7 +1400,8 @@ func (s *OpmProductSvc) getProductModule(q *orm.Query, productId, moduleId, firm
 	tV := q.TPmFirmwareVersion
 	var binded []*FirmwareVersionInfo
 	err = q.TOpmProductModuleRelation.WithContext(context.Background()).
-		Select(q.TOpmProductModuleRelation.ALL, tV.FileName, tV.FilePath, tV.FileKey, tV.FileSize, tFV.Name, tFV.Flag).
+		Select(q.TOpmProductModuleRelation.ALL, tV.FileName.As("fileName"), tV.FilePath.As("filePath"),
+			tV.FileKey.As("fileKey"), tV.FileSize.As("fileSize"), tFV.Name, tFV.NameEn.As("nameEn"), tFV.Flag).
 		LeftJoin(tV, tV.Id.EqCol(q.TOpmProductModuleRelation.FirmwareVersionId), q.TOpmProductModuleRelation.IsCustom.Eq(2)).
 		LeftJoin(tFV, tFV.Id.EqCol(tV.FirmwareId)).
 		Where(q.TOpmProductModuleRelation.ProductId.Eq(productId), q.TOpmProductModuleRelation.IsCustom.Eq(2)).Scan(&binded)
@@ -1231,11 +1414,12 @@ func (s *OpmProductSvc) getProductModule(q *orm.Query, productId, moduleId, firm
 	}
 	if val, ok := modelFirmwareMap[fmt.Sprintf("%v_%v", moduleId, firmwareId)]; ok {
 		ret.Module.DefaultVersion = val.FirmwareVersion
-		ret.Module.FirmwareUrl = iotutil.MapGetStringVal(val.OpmFilePath, val.FilePath)
-		ret.Module.FirmwareName = iotutil.MapGetStringVal(val.OpmName, val.Name)
-		ret.Module.FirmwareFlag = iotutil.MapGetStringVal(val.FirmwareKey, val.FirmwareKey)
+		ret.Module.FirmwareUrl = val.FilePath
+		ret.Module.FirmwareName = val.Name
+		ret.Module.FirmwareNameEn = val.NameEn
+		ret.Module.FirmwareFlag = val.FirmwareKey
 		ret.Module.FirmwareType = iotutil.ToString(val.FirmwareType)
-		ret.Module.FileName = iotutil.MapGetStringVal(val.OpmFileName, val.FileName)
+		ret.Module.FileName = val.FileName
 		ret.Module.FirmwareId = firmwareId
 	}
 	return nil
@@ -1547,6 +1731,88 @@ func (s OpmProductSvc) setMustThingsModel(opmProductId int64, opmProductKey stri
 	return translates, nil
 }
 
+// setDemoMustThingsModel 设置必要的物模型数据
+func (s OpmProductSvc) setDemoMustThingsModel(opmProductId int64, opmProductKey string, pmProductKey string, opmModelId int64, userId int64, tx *orm.Query) (*iotstruct.TranslatePush, error) {
+	productId := iotutil.ToString(opmProductId)
+	tModel := tx.TPmThingModel
+	doModel := tModel.WithContext(context.Background())
+	//读取产品类型的物模型
+	tpsModel, err := doModel.Where(tModel.ProductKey.Eq(pmProductKey)).First()
+
+	translates := &iotstruct.TranslatePush{SourceTable: iotconst.LANG_PRODUCT_THINGS_MODEL}
+	//.SetContent(iotconst.LANG_PRODUCT_NAME, req.ProductKey, "name", req.Name, req.NameEn)
+
+	if err == nil {
+		tModelEvents := tx.TPmThingModelEvents
+		//将Valid=1 ModeId=product.ModelId的物模型转存给客户的产品
+		tpsModelEvents, err := tModelEvents.WithContext(context.Background()).Join(tModel, tModelEvents.ModelId.EqCol(tModel.Id), tModel.Id.Eq(tpsModel.Id)).Where(tModelEvents.ModelId.Eq(tpsModel.Id), tModelEvents.Valid.Eq(1)).Find()
+		if err != nil {
+			return nil, err
+		}
+		tModelProperties := tx.TPmThingModelProperties
+		tpsModelProperties, err := tModelProperties.WithContext(context.Background()).Join(tModel, tModelProperties.ModelId.EqCol(tModel.Id), tModel.Id.Eq(tpsModel.Id)).Where(tModelProperties.ModelId.Eq(tpsModel.Id), tModelProperties.Valid.Eq(1)).Find()
+		if err != nil {
+			return nil, err
+		}
+		tModelServices := tx.TPmThingModelServices
+		tpsModelServices, err := tModelServices.WithContext(context.Background()).Join(tModel, tModelServices.ModelId.EqCol(tModel.Id), tModel.Id.Eq(tpsModel.Id)).Where(tModelServices.ModelId.Eq(tpsModel.Id), tModelServices.Valid.Eq(1)).Find()
+		if err != nil {
+			return nil, err
+		}
+
+		//功能事件
+		tOpmModelEvents := tx.TOpmThingModelEvents
+		doOpmModelEvents := tOpmModelEvents.WithContext(context.Background())
+		saveEvents := make([]*model.TOpmThingModelEvents, 0)
+		for _, e := range tpsModelEvents {
+			tmEvent := convert.ThingModelEvents_Pm2Opm(e)
+			tmEvent.Id = iotutil.GetNextSeqInt64()
+			tmEvent.ProductId = productId
+			tmEvent.ProductKey = opmProductKey
+			tmEvent.ModelId = opmModelId
+			tmEvent.CreatedBy = userId
+			tmEvent.UpdatedBy = userId
+			saveEvents = append(saveEvents, tmEvent)
+		}
+		doOpmModelEvents.Create(saveEvents...)
+
+		//功能属性
+		tOpmModelProperties := tx.TOpmThingModelProperties
+		doOpmModelProperties := tOpmModelProperties.WithContext(context.Background())
+		saveProperties := make([]*model.TOpmThingModelProperties, 0)
+		for _, p := range tpsModelProperties {
+			tmPropery := convert.ThingModelProperties_Pm2Opm(p)
+			tmPropery.Id = iotutil.GetNextSeqInt64()
+			tmPropery.ProductId = productId
+			tmPropery.ProductKey = opmProductKey
+			tmPropery.ModelId = opmModelId
+			tmPropery.CreatedBy = userId
+			tmPropery.UpdatedBy = userId
+			saveProperties = append(saveProperties, tmPropery)
+			//sourceRowId string, fieldName string, name string, nameEn string
+			SetTranslatesContent(translates, tmPropery)
+		}
+		doOpmModelProperties.Create(saveProperties...)
+
+		//功能服务
+		tOpmModelServices := tx.TOpmThingModelServices
+		doOpmModelServices := tOpmModelServices.WithContext(context.Background())
+		saveServices := make([]*model.TOpmThingModelServices, 0)
+		for _, s := range tpsModelServices {
+			tmService := convert.ThingModelServices_Pm2Opm(s)
+			tmService.Id = iotutil.GetNextSeqInt64()
+			tmService.ProductId = productId
+			tmService.ProductKey = opmProductKey
+			tmService.ModelId = opmModelId
+			tmService.CreatedBy = userId
+			tmService.UpdatedBy = userId
+			saveServices = append(saveServices, tmService)
+		}
+		doOpmModelServices.Create(saveServices...)
+	}
+	return translates, nil
+}
+
 // 创建物模型Model数据
 func (s OpmProductSvc) createOpmThingsModel(productId int64, userId int64, standard int32, version, desc string, tx *orm.Query) (int64, error) {
 	//将物理模型保存到开发者的产品下
@@ -1619,4 +1885,117 @@ func (s OpmProductSvc) MergeProductThingsModel(productIds []string, productKeys 
 		}
 	}
 	return res, nil
+}
+
+// 生成默认的硬件数据
+func (s OpmProductSvc) RelModuleFirmware(productId int64, productKey string, baseProductId int64, productTypeId int64, tx *orm.Query) error {
+	moduleList, err := s.ModuleLists(&proto.ModuleIdsRequest{
+		ProductTypeId: productTypeId,
+		ProductId:     baseProductId,
+	})
+	if err != nil {
+		return err
+	}
+	mf := moduleList.Data[0]
+	versionId, _ := iotutil.ToInt64AndErr(mf.VersionId)
+	firmwareType, _ := iotutil.ToInt32Err(mf.FirmwareType)
+	rels := []*proto.OpmProductModuleRelation{
+		&proto.OpmProductModuleRelation{
+			ProductId:         productId,
+			ModuleId:          mf.Id,
+			IsCustom:          2,
+			FirmwareId:        mf.FirmwareId,
+			FirmwareVersionId: versionId,
+			FirmwareVersion:   mf.Version,
+			FirmwareKey:       mf.FirmwareKey,
+			FirmwareType:      firmwareType,
+			ProductKey:        productKey,
+			FirmwareName:      mf.FirmwareName,
+		},
+	}
+	pmr := &OpmProductModuleRelationSvc{}
+	_, err = pmr.BatchCreateOpmProductModuleRelationTran(&proto.OpmProductModuleRelationList{ProductModuleRelations: rels}, tx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 关联面板
+
+func (s OpmProductSvc) RelControl(productId int64, controlPanelId int64, tx *orm.Query) error {
+	relations := []*protosService.OpmProductPanelRelation{
+		&protosService.OpmProductPanelRelation{
+			ProductId:      productId,
+			ControlPanelId: controlPanelId,
+			AppPanelType:   1,
+		},
+	}
+	//创建开放平台该产品下的控制面板关联
+	pprSvc := OpmProductPanelRelationSvc{Ctx: s.Ctx}
+	_, err := pprSvc.BatchCreateOpmProductPanelRelation(&protosService.OpmProductPanelRelationList{
+		ProductPanelRelations: relations,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 获取产品绑定面板信息
+func (s *OpmProductSvc) PanelInfosByProducts(req *proto.ListsByProductIdsRequest) ([]*proto.ProductPanelInfoItem, error) {
+	if req.ProductIds == nil || len(req.ProductIds) == 0 {
+		return nil, errors.New("请传入产品编号集合")
+	}
+
+	var err error
+	q := orm.Use(iotmodel.GetDB())
+	resList := make([]*proto.ProductPanelInfoItem, 0)
+
+	var list []*struct {
+		ProductId                int64          `gorm:"column:productId" json:"productId"`                                 // 主键ID
+		ProductKey        string         `gorm:"column:productKey" json:"productKey"`                  // 产品唯一标识
+
+		PanelType int32 `gorm:"column:panelType" json:"panelType"` // 面板Key
+
+		PanelId string `gorm:"column:panelId" json:"panelId"` // 面板Id
+		PanelKey string `gorm:"column:panelKey" json:"panelKey"` // 面板Key
+		PanelCode string `gorm:"column:panelCode" json:"panelCode"` // 面板编码
+
+		DevPanelId string `gorm:"column:devPanelId" json:"devPanelId"` // 面板Id
+		DevPanelKey string `gorm:"column:devPanelKey" json:"devPanelKey"` // 面板Key
+		DevPanelCode string `gorm:"column:devPanelCode" json:"devPanelCode"` // 面板编码
+	}
+	tProduct := q.TOpmProduct
+	tPanel := q.TOpmPanel
+	tControlPanel := q.TPmControlPanels
+	tPanelRelations := q.TOpmProductPanelRelation
+	err = tPanelRelations.WithContext(context.Background()).
+		LeftJoin(tProduct, tProduct.Id.EqCol(tPanelRelations.ProductId)).
+		LeftJoin(tControlPanel,
+			tPanelRelations.AppPanelType.Eq(iotconst.APP_PANEL_PUBLIC), //公共面板
+			tControlPanel.Id.EqCol(tPanelRelations.ControlPanelId)).
+		LeftJoin(tPanel,
+			tPanelRelations.AppPanelType.Neq(iotconst.APP_PANEL_PUBLIC), //非公共面板
+			tPanel.Id.EqCol(tPanelRelations.ControlPanelId)).
+		Select(tProduct.ProductKey.As("productKey"), tProduct.Id.As("productId"), tPanelRelations.AppPanelType.As("panelType"),
+			tControlPanel.Id.As("panelId"), tControlPanel.PanelKey.As("panelKey"), tControlPanel.Code.As("panelCode"),
+			tPanel.Id.As("devPanelId"), tPanel.PanelKey.As("devPanelKey"), tPanel.Code.As("devPanelCode")).
+		Where(tPanelRelations.ProductId.In(req.ProductIds...)).Distinct().Scan(&list)
+
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range list {
+		var row = &proto.ProductPanelInfoItem{
+			ProductId:  v.ProductId,
+			ProductKey: v.ProductKey,
+			PanelType:  v.PanelType,
+			PanelId:    v.PanelId,
+			PanelKey:   v.PanelKey,
+			PanelCode:  v.PanelCode,
+		}
+		resList = append(resList, row)
+	}
+	return resList, nil
 }

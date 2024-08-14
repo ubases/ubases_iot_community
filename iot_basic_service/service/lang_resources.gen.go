@@ -338,6 +338,9 @@ func (s *LangResourcesSvc) GetListLangResources(req *proto.LangResourcesListRequ
 		if query.UpdatedBy != 0 { //整数
 			do = do.Where(t.UpdatedBy.Eq(query.UpdatedBy))
 		}
+		if query.PackageId != 0 { //整数
+			do = do.Where(t.PackageId.Eq(query.PackageId))
+		}
 	}
 	orderCol, ok := t.GetFieldByName(req.OrderKey)
 	if !ok {

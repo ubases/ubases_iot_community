@@ -6,6 +6,7 @@ import (
 	"cloud_platform/iot_cloud_api_service/cached"
 	"cloud_platform/iot_cloud_api_service/config"
 	"cloud_platform/iot_cloud_api_service/controls/common"
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	services2 "cloud_platform/iot_cloud_api_service/controls/global"
 	entitys3 "cloud_platform/iot_cloud_api_service/controls/lang/entitys"
 	"cloud_platform/iot_cloud_api_service/controls/lang/services"
@@ -18,6 +19,7 @@ import (
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"encoding/json"
@@ -139,8 +141,12 @@ func (s OpmProductService) GetCompleteDevelopDetail(id string) (*entitys.Complet
 	//验证固件选择数据
 	firmwareName := ""
 	firmwareValid := false
-	if req.Module != nil {
-		firmwareName = req.Module.FirmwareName
+	if req.CustomFirmwares != nil && len(req.CustomFirmwares) > 0 {
+		fns := make([]string, 0)
+		for _, firmware := range req.CustomFirmwares {
+			fns = append(fns, firmware.FirmwareName)
+		}
+		firmwareName = strings.Join(fns, "，")
 		firmwareValid = true
 	}
 	resObj.List = append(resObj.List, &entitys.CompleteDevelopDetailItems{
@@ -166,6 +172,19 @@ func (s OpmProductService) GetCompleteDevelopDetail(id string) (*entitys.Complet
 
 // QueryOpmProductList 产品列表
 func (s OpmProductService) QueryOpmProductList(filter entitys.OpmProductQuery) ([]*entitys.OpmProductEntitys, int64, error) {
+	//设置开发者的查询参数
+	if filter.Query.Developer != 0 {
+		devel, err := rpc.ClientOpenCompanyService.Find(context.Background(), &protosService.OpenCompanyFilter{
+			UserId: filter.Query.Developer,
+		})
+		if err != nil {
+			return nil, 0, err
+		}
+		if len(devel.Data) == 0 {
+			return nil, 0, nil
+		}
+		filter.Query.TenantId = devel.Data[0].TenantId
+	}
 	if err := filter.QueryCheck(); err != nil {
 		return nil, 0, err
 	}
@@ -182,11 +201,49 @@ func (s OpmProductService) QueryOpmProductList(filter entitys.OpmProductQuery) (
 	if rep.Code != 200 {
 		return nil, 0, errors.New(rep.Message)
 	}
+
+	productIds := make([]int64, 0)
+	for _, item := range rep.Data {
+		productIds = append(productIds, item.Id)
+	}
+
+	//查询关联APP信息
+	appRel := OpmProductAppRelationService{Ctx: s.Ctx}
+	_, relMap, _ := appRel.ProductRelationMap(productIds, filter.Query.TenantId)
+
 	var resultList = []*entitys.OpmProductEntitys{}
 	for _, item := range rep.Data {
-		resultList = append(resultList, entitys.OpmProduct_pb2e(item))
+		newItem := entitys.OpmProduct_pb2e(item)
+		newItem.AppList = relMap[item.Id]
+		resultList = append(resultList, newItem)
 	}
 	return resultList, rep.Total, err
+}
+
+func (s OpmProductService) CheckTanentIsHasProduct(tenantId string) (bool, *protosService.OpmProduct, error) {
+	rep, err := rpc.ClientOpmProductService.Lists(s.Ctx, &protosService.OpmProductListRequest{
+		Query: &protosService.OpmProduct{TenantId: tenantId, ProductId: config.Global.Service.GenTestDataProductId, IsDemoProduct: 1},
+	})
+	if err != nil {
+		return false, nil, err
+	}
+	if rep.Code != 200 {
+		return false, nil, errors.New(rep.Message)
+	}
+	if len(rep.Data) == 0 {
+		return false, nil, nil
+	}
+	var resPro *protosService.OpmProduct
+	for _, d := range rep.Data {
+		if d.ProductId == config.Global.Service.GenTestDataProductId {
+			resPro = d
+			break
+		}
+	}
+	if resPro == nil {
+		return false, nil, nil
+	}
+	return true, resPro, nil
 }
 
 // AddOpmProduct 新增产品
@@ -241,6 +298,7 @@ func (s OpmProductService) AddOpmProduct(req entitys.OpmProductEntitys) (string,
 	if resp.Code != ioterrs.Success {
 		return "", errors.New(resp.Message)
 	}
+	commonGlobal.SetAttachmentStatus(model.TableNameTOpmProduct, iotutil.ToString(req.Id), req.ImageUrl)
 	return iotutil.ToString(saveObj.Id), err
 }
 
@@ -300,6 +358,10 @@ func (s OpmProductService) UpdateOpmProduct(req entitys.OpmProductEntitys) (stri
 	if resp.Code != ioterrs.Success {
 		return "", errors.New(resp.Message)
 	}
+	//设置上传图片对应业务是否成功
+	if req.ImageUrl != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmProduct, iotutil.ToString(req.Id), req.ImageUrl)
+	}
 	return iotutil.ToString(req.Id), err
 }
 
@@ -335,7 +397,7 @@ func (s OpmProductService) UpdateOpmProductPanelInfo(req entitys.OpmProductEntit
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
 	}
-	//设备缓存
+	//设置缓存
 	if cerr := iotredis.GetClient().HMSet(context.Background(), fmt.Sprintf(iotconst.PANEL_RULE_SETTINGS_DATA, productKey, req.PanelId), map[string]interface{}{
 		"panelProImg":  req.PanelProImg,
 		"isShowImg":    iotutil.IfInt32(req.IsShowImg, 1, 2),
@@ -343,6 +405,12 @@ func (s OpmProductService) UpdateOpmProductPanelInfo(req entitys.OpmProductEntit
 	}).Err(); cerr != nil {
 		iotlogger.LogHelper.Errorf("面板和产品绑定设置缓存失败，Err：%v", cerr.Error())
 	}
+
+	//面板产品图片
+	if req.PanelProImg != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmProduct+"_panelProImg", iotutil.ToString(req.Id), req.PanelProImg)
+	}
+
 	return iotutil.ToString(req.Id), err
 }
 
@@ -352,6 +420,16 @@ func (s OpmProductService) RefreshUpdateTime(req entitys.OpmProductEntitys) {
 		Fields: []string{"updated_at"},
 		Data: &protosService.OpmProduct{
 			Id:        iotutil.ToInt64(req.Id),
+			UpdatedAt: timestamppb.New(time.Now()),
+		},
+	})
+}
+
+func (s OpmProductService) RefreshUpdateTimeById(productId int64) {
+	rpc.ClientOpmProductService.UpdateFields(s.Ctx, &protosService.OpmProductUpdateFieldsRequest{
+		Fields: []string{"updated_at"},
+		Data: &protosService.OpmProduct{
+			Id:        productId,
 			UpdatedAt: timestamppb.New(time.Now()),
 		},
 	})
@@ -453,7 +531,16 @@ func (s OpmProductService) createLogTable(productId int64) error {
 	thingModelInfo["name"] = productRes.Product.Name
 	thingModelInfo["nameEn"] = productRes.Product.NameEn
 	thingModelInfo["wifiFlag"] = productRes.Product.WifiFlag
-	thingModelInfo["firmwareId"] = iotutil.ToString(productRes.Module.FirmwareId)
+	if productRes.Module != nil {
+		thingModelInfo["firmwareId"] = iotutil.ToString(productRes.Module.FirmwareId)
+	} else {
+		for _, firmware := range productRes.CustomFirmwares {
+			if firmware.FirmwareType == iotconst.FIRMWARE_TYPE_MODULE {
+				thingModelInfo["firmwareId"] = iotutil.ToString(firmware.FirmwareId)
+			}
+		}
+	}
+	thingModelInfo["tenantId"] = productRes.Product.TenantId
 	for _, property := range productRes.ThingModes.Properties {
 		thingModels[property.Identifier] = property.DataType
 		//缓存物模型的内容
@@ -565,8 +652,16 @@ func (s OpmProductService) QueryProductDefaultNetworkGuide(id string, networkGui
 // SaveProductNetworkGuide 新增产品
 func (s OpmProductService) SaveProductNetworkGuide(req entitys.OpmNetworkGuideEntitys) (string, error) {
 	steps := []*protosService.OpmNetworkGuideStep{}
+	images := []string{}
+	videos := []string{}
 	for _, step := range req.Steps {
 		steps = append(steps, entitys.OpmNetworkGuideStep_e2pb(step))
+		if step.ImageUrl != "" {
+			images = append(images, step.ImageUrl)
+		}
+		if step.VideoUrl != "" {
+			videos = append(videos, step.VideoUrl)
+		}
 	}
 	saveObj := &protosService.OpmNetworkGuide{
 		Id:        req.Id,
@@ -586,6 +681,13 @@ func (s OpmProductService) SaveProductNetworkGuide(req entitys.OpmNetworkGuideEn
 	//刷新产品更新时间
 	if req.ProductId != 0 {
 		rpc.ClientOpmProductService.Update(s.Ctx, &protosService.OpmProduct{Id: req.ProductId})
+	}
+	//设置上传图片对应业务是否成功
+	if len(images) > 0 {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmNetworkGuide, iotutil.ToString(req.Id), images...)
+	}
+	if len(videos) > 0 {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmNetworkGuide, iotutil.ToString(req.Id), videos...)
 	}
 	return iotutil.ToString(saveObj.Id), err
 }
@@ -614,9 +716,6 @@ func (s OpmProductService) QueryProductThingModel(productId string, isCustom int
 	result := new(entitys.OpmThingModelList)
 	tenantId, _ := metadata.Get(s.Ctx, "tenantId")
 	lang, _ := metadata.Get(s.Ctx, "lang")
-	//if tenantId == "" {
-	//	return nil, errors.New("租户不存在")
-	//}
 	if lang == "" {
 		lang = "zh"
 	}
@@ -682,6 +781,51 @@ func (s OpmProductService) QueryProductThingModel(productId string, isCustom int
 	//if err != nil {
 	//	return result, err
 	//}
+	return result, err
+}
+
+// QueryProductThingModel 开放平台-获取产品基础物模型数据
+func (s OpmProductService) QueryProductFaultThingModel(productId string, isCustom int32) ([]*entitys.OpmThingModelPropertiesSimpleData, error) {
+	if productId == "" {
+		return nil, errors.New("产品编号不存在")
+	}
+	result := make([]*entitys.OpmThingModelPropertiesSimpleData, 0)
+	tenantId, _ := metadata.Get(s.Ctx, "tenantId")
+	lang, _ := metadata.Get(s.Ctx, "lang")
+	if lang == "" {
+		lang = "zh"
+	}
+	productIdInt := iotutil.ToInt64(productId)
+	//兼容云管平台查询
+	if tenantId == "" {
+		proRes, err := rpc.ClientOpmProductService.FindById(context.Background(), &protosService.OpmProductFilter{Id: productIdInt})
+		if err != nil {
+			return nil, err
+		}
+		tenantId = proRes.Data[0].TenantId
+	}
+
+	req, err := rpc.ClientOpmThingModelService.ProductThingModel(s.Ctx, &protosService.OpmThingModelByProductRequest{
+		ProductId: productIdInt,
+		DataType:  "FAULT",
+		Custom:    isCustom,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if req.Code != 200 {
+		return nil, errors.New(req.Message)
+	}
+
+	cacheKey := fmt.Sprintf("%s_%s", tenantId, iotconst.HKEY_LANGUAGE_DATA_PREFIX+iotconst.LANG_PRODUCT_THINGS_MODEL)
+	langMap, err := iotredis.GetClient().HGetAll(context.Background(), cacheKey).Result()
+
+	for _, property := range req.Data.Properties {
+		properties := entitys.OpmThingModelPropertiesSimple_pb2e(property)
+		properties.Name = iotutil.MapGetStringVal(langMap[fmt.Sprintf("%s_%s_%s_name", lang, property.ProductKey, property.Identifier)], property.Name)
+		_, properties.DataSpecsList = ConvertJsonByLangV2(lang, property.ProductKey, property.Identifier, property.DataSpecsList, langMap)
+		result = append(result, properties)
+	}
 	return result, err
 }
 
@@ -911,29 +1055,10 @@ func (s OpmProductService) DeleteOpmThingModel(req entitys.OpmThingModelProperti
 
 // 开放平台-根据产品类型ID获取模组SDK列表
 func (s OpmProductService) GetOpenModuleListByProductId(productId int64) ([]*entitys2.PmModuleEntitys, error) {
-	////查询产品类型ID关联模组列表
-	//productModuleRelationObj, err := rpc.ClientProductModuleRelationService.Lists(context.Background(), &protosService.PmProductModuleRelationListRequest{
-	//	Page:     1,
-	//	PageSize: 100,
-	//	Query:    &protosService.PmProductModuleRelation{ProductId: productId},
-	//})
-	//if err != nil {
-	//	logger.Errorf("GetOpenModuleListByProductId error : %s", err.Error())
-	//	return nil, err
-	//}
-	//if len(productModuleRelationObj.Data) <= 0 {
-	//	return nil, errors.New("不存在关联模组")
-	//}
-	//
-	//var ids = make([]int64, len(productModuleRelationObj.Data))
-	//for index, relation := range productModuleRelationObj.Data {
-	//	ids[index] = relation.ModuleId
-	//}
 	if productId == 0 {
 		return nil, errors.New("产品编号异常")
 	}
 	ret, err := rpc.ClientOpmProductService.ModuleLists(context.Background(), &protosService.ModuleIdsRequest{
-		//ModuleIds: ids,
 		ProductId: productId,
 	})
 	if err != nil {
@@ -990,15 +1115,15 @@ func (s OpmProductService) GetOpenControlPanelsListByProductId(baseProductId int
 		result = append(result, item)
 	}
 
-	//productId
+	//TODO productId
 	rep, err := rpc.ClientOpmPanelService.Lists(s.Ctx, &protosService.OpmPanelListRequest{
 		OrderDesc: "desc",
 		OrderKey:  "updated_at",
 		Query: &protosService.OpmPanel{
-			ProductId: productId,
-			PanelType: 1, //自定义面板
-			TenantId:  tenantId,
-			Status:    3, //已发布固件
+			//BaseProductId: productId,
+			PanelTypes: []int32{1, 3},
+			TenantId:   tenantId,
+			Status:     3, //已发布固件
 		},
 	})
 	if err != nil {
@@ -1011,8 +1136,17 @@ func (s OpmProductService) GetOpenControlPanelsListByProductId(baseProductId int
 		if item.PanelType == 2 {
 			continue
 		}
+		if item.ProductId != productId && item.BaseProductId != baseProductId {
+			continue
+		}
 		panelInfo := entitys.OpmPanels_pb2panels(item)
-		panelInfo.AppPanelType = 2
+		//=1 APP控制面板 =2嵌入式面板 =3线上面板
+		switch item.PanelType {
+		case 1:
+			panelInfo.AppPanelType = 2
+		case 3:
+			panelInfo.AppPanelType = 3
+		}
 		result = append(result, panelInfo)
 	}
 	return result, err
@@ -1081,6 +1215,39 @@ func (s OpmProductService) SaveOpenProductAndCustomFirmwareRelation(req entitys.
 	//刷新产品更新时间
 	rpc.ClientOpmProductService.Update(s.Ctx, &protosService.OpmProduct{Id: req.ProductId})
 	return err
+}
+
+// 开放平台-保存产品与控制面板关系
+func (s OpmProductService) ControlPanelRelationUpdateCreatedAt(req entitys.OpmProductPanelRelationEntitys) error {
+	//查询产品信息
+	proInfoRes, err := rpc.ClientOpmProductService.FindById(s.Ctx, &protosService.OpmProductFilter{Id: req.ProductId})
+	if err != nil {
+		logger.Errorf("SaveOpenProductAndControlPanelRelation ClientOpmProductService.FindById error : %s", err.Error())
+		return err
+	}
+	if proInfoRes.Code != 200 {
+		logger.Errorf("SaveOpenProductAndControlPanelRelation ClientOpmProductService.FindById error : %s", proInfoRes.Message)
+		return errors.New(proInfoRes.Message)
+	}
+	ppr, err := rpc.ClientOpmProductPanelRelationService.Find(s.Ctx, &protosService.OpmProductPanelRelationFilter{
+		ProductId:      req.ProductId,
+		ControlPanelId: req.ControlPanelId,
+		AppPanelType:   iotutil.GetInt32AndDef(req.AppPanelType, 1),
+	})
+	if err != nil {
+		logger.Errorf("ControlPanelRelationUpdateCreatedAt ClientOpmProductPanelRelationService.Find error : %s", err.Error())
+		return err
+	}
+	//创建开放平台该产品下的控制面板关联
+	_, err = rpc.ClientOpmProductPanelRelationService.Update(s.Ctx, &protosService.OpmProductPanelRelation{
+		Id:            ppr.Data[0].Id,
+		EditCreatedAt: true,
+	})
+	if err != nil {
+		logger.Errorf("ControlPanelRelationUpdateCreatedAt ClientOpmProductPanelRelationService.Update error : %s", err.Error())
+		return err
+	}
+	return nil
 }
 
 // 开放平台-保存产品与控制面板关系
@@ -1492,12 +1659,14 @@ func (OpmProductService) transformPropertyAttributeDesc(dataType string, space s
 			rets = append(rets, fmt.Sprintf("默认值: %v", data.DefaultValue))
 		}
 		ret = strings.Join(rets, ", ")
-	case "ENUM", "BOOL":
+	case "ENUM", "BOOL", "FAULT":
 		var (
 			buff bytes.Buffer
 		)
 		if dataType == "ENUM" {
 			buff.WriteString("枚举值：")
+		} else if dataType == "FAULT" {
+			buff.WriteString("故障码：")
 		} else {
 			buff.WriteString("布尔值：")
 		}
@@ -1665,6 +1834,7 @@ func execMcuSdkScript(mcuSdkDir, productKey string) error {
 	go read(ctx, &wg, stdout)
 	err = c.Start()
 	wg.Wait()
+	_, err = c.Process.Wait()
 	return err
 }
 
@@ -1799,9 +1969,10 @@ func (s OpmProductService) GetTaskOrWhereByProduct(productId int64, condType str
 	return thingsModel, nil
 }
 
-func ConvertJsonByLang(lang string, productKey string, identifier string, jsonStr string, langMap map[string]string) string {
+func ConvertJsonByLangV2(lang string, productKey string, identifier string, jsonStr string, langMap map[string]string) (string, []map[string]interface{}) {
+	jsonMap := make([]map[string]interface{}, 0)
 	if jsonStr == "" {
-		return jsonStr
+		return jsonStr, jsonMap
 	}
 	var resObj []map[string]interface{}
 	err := json.Unmarshal([]byte(jsonStr), &resObj)
@@ -1809,7 +1980,7 @@ func ConvertJsonByLang(lang string, productKey string, identifier string, jsonSt
 		panic(err)
 	}
 	if resObj == nil {
-		return jsonStr
+		return jsonStr, jsonMap
 	}
 	for i, item := range resObj {
 		val := iotutil.ToString(item["value"])
@@ -1843,7 +2014,12 @@ func ConvertJsonByLang(lang string, productKey string, identifier string, jsonSt
 		}
 		resObj[i]["value"] = item["value"]
 	}
-	return iotutil.ToString(resObj)
+	return iotutil.ToString(resObj), resObj
+}
+
+func ConvertJsonByLang(lang string, productKey string, identifier string, jsonStr string, langMap map[string]string) string {
+	str, _ := ConvertJsonByLangV2(lang, productKey, identifier, jsonStr, langMap)
+	return str
 }
 
 // Export 导出

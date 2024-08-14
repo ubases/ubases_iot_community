@@ -14,6 +14,7 @@ type CodeInput struct {
 	PhoneType string `json:"phoneType"`
 	Lang      string `json:"lang"`
 	Template  string `json:"template"`
+	RecordId  int64  `json:"recordId"` //记录Id，用于更新消息发送结果
 }
 
 // 短信和邮件用，异地登录支持的变量

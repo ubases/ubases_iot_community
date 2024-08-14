@@ -60,6 +60,9 @@ func newTUcUser(db *gorm.DB) tUcUser {
 	_tUcUser.ContactArea = field.NewString(tableName, "contact_area")
 	_tUcUser.Birthday = field.NewTime(tableName, "birthday")
 	_tUcUser.RegionServerId = field.NewInt64(tableName, "region_server_id")
+	_tUcUser.UserSalt = field.NewString(tableName, "user_salt")
+	_tUcUser.AgreementFlag = field.NewInt32(tableName, "agreement_flag")
+	_tUcUser.RegisterRegionId = field.NewInt64(tableName, "register_region_id")
 
 	_tUcUser.fillFieldMap()
 
@@ -105,6 +108,9 @@ type tUcUser struct {
 	ContactArea      field.String
 	Birthday         field.Time
 	RegionServerId   field.Int64
+	UserSalt         field.String
+	AgreementFlag    field.Int32
+	RegisterRegionId field.Int64
 
 	fieldMap map[string]field.Expr
 }
@@ -156,6 +162,9 @@ func (t *tUcUser) updateTableName(table string) *tUcUser {
 	t.ContactArea = field.NewString(table, "contact_area")
 	t.Birthday = field.NewTime(table, "birthday")
 	t.RegionServerId = field.NewInt64(table, "region_server_id")
+	t.UserSalt = field.NewString(table, "user_salt")
+	t.AgreementFlag = field.NewInt32(table, "agreement_flag")
+	t.RegisterRegionId = field.NewInt64(table, "register_region_id")
 
 	t.fillFieldMap()
 
@@ -178,7 +187,7 @@ func (t *tUcUser) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (t *tUcUser) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 35)
+	t.fieldMap = make(map[string]field.Expr, 38)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["uid"] = t.Uid
 	t.fieldMap["nick_name"] = t.NickName
@@ -214,6 +223,9 @@ func (t *tUcUser) fillFieldMap() {
 	t.fieldMap["contact_area"] = t.ContactArea
 	t.fieldMap["birthday"] = t.Birthday
 	t.fieldMap["region_server_id"] = t.RegionServerId
+	t.fieldMap["user_salt"] = t.UserSalt
+	t.fieldMap["agreement_flag"] = t.AgreementFlag
+	t.fieldMap["register_region_id"] = t.RegisterRegionId
 }
 
 func (t tUcUser) clone(db *gorm.DB) tUcUser {

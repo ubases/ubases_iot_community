@@ -339,7 +339,6 @@ func (s *ProductHelpDocSvc) GetListProductHelpDoc(req *proto.ProductHelpDocListR
 	q := orm.Use(iotmodel.GetDB())
 	t := q.TProductHelpDoc
 	tDir := q.TProductHelpConf
-
 	do := t.WithContext(context.Background()).LeftJoin(tDir, tDir.ProductKey.EqCol(t.ProductKey))
 	query := req.Query
 	if query != nil {

@@ -34,6 +34,10 @@ message OpmProductPanelRelation {
 
     //APP面板类型（=1 公版面板 =2 Studio面板 =3 自定义面板）
     int32 appPanelType = 104;
+
+    bool editCreatedAt = 105;
+
+    string productKey = 106;
 }
 
 message OpmProductPanelRelationFilter {

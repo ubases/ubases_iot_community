@@ -17,6 +17,8 @@ type AndroidNotice struct {
 	UriActivity string                 `json:"uri_activity,omitempty"`
 	UriAction   string                 `json:"uri_action,omitempty"`
 	Extras      map[string]interface{} `json:"extras,omitempty"`
+	BadgeAddNum int                    `json:"badge_add_num,omitempty"`
+	BadgeClass  string                 `json:"badge_class,omitempty"`
 }
 
 type IOSNotice struct {

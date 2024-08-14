@@ -12,6 +12,7 @@ import (
 	"cloud_platform/iot_common/iotgin"
 	"cloud_platform/iot_common/iotgincache/persist"
 	"cloud_platform/iot_common/iotlogger"
+	"cloud_platform/iot_common/iotoss/file_store"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotutil"
 	proto "cloud_platform/iot_proto/protos/protosService"
@@ -99,6 +100,62 @@ func (CommonController) UploadLocalFile(c *gin.Context) {
 		return
 	}
 	iotgin.ResSuccess(c, filename)
+}
+
+func (CommonController) UploadOssUpload(c *gin.Context) {
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		iotgin.ResFailCode(c, "upload image failed ", -1)
+		return
+	}
+	//network_guide
+	bucket := c.PostForm("bucket")
+	dir := c.PostForm("dir")
+
+	//获取文件后缀
+	headerFileName := header.Filename
+	ext := path.Ext(headerFileName)
+
+	var buffer bytes.Buffer
+	buffer.WriteString(iotutil.Uuid())
+	buffer.WriteString(ext)
+	filename := buffer.String()
+
+	//创建目录
+	var tmpPath = fmt.Sprintf("%s%s/", imageSavePath, dir)
+	var savePath = fmt.Sprintf("%s/%s", dir, filename)
+	iotutil.CheckAndCreateFolder(tmpPath)
+
+	var filepath = fmt.Sprintf("%s%s", tmpPath, filename)
+	out, err := os.Create(filepath)
+	if err != nil {
+		iotgin.ResFailCode(c, "upload images failed，"+err.Error(), -1)
+		return
+	}
+	defer out.Close()
+	_, err = io.Copy(out, file)
+	if err != nil {
+		iotgin.ResFailCode(c, "copy failed copy  file failed", -1)
+		return
+	}
+
+	oxs := file_store.OXS{
+		Endpoint:        "rab4kk5ki.hn-bkt.clouddn.com",
+		AccessKeyID:     "_SRlsiDrTatwIIKLM84nINyCg0T25sA99B8GfTRF",
+		AccessKeySecret: "VnW3PHcMtPMST7XOT2R0yROgsjiQjcULVQ7Az8Co",
+		BucketName:      bucket,
+	}
+	ossType := oxs.Setup(file_store.QiNiuKodo)
+	err = ossType.UpLoad(savePath, filepath)
+	if err != nil {
+		iotgin.ResBadRequest(c, err.Error())
+		return
+	}
+	iotgin.ResSuccess(c, savePath)
+}
+
+func (CommonController) UploadConifg(c *gin.Context) {
+	iotgin.ResSuccessMsg(c)
 }
 
 // RegionList 区域列表
@@ -211,8 +268,7 @@ func (s *CommonController) CustomResourceExport(c *gin.Context) {
 	//优先下载自己的资源
 	crs, err := rpc.ClientLangCustomResourceService.Lists(ctx, &proto.LangCustomResourcesListRequest{
 		Query: &proto.LangCustomResources{
-			BelongType: 3,
-			AppKey:     appKey,
+			AppKey: appKey,
 		},
 	})
 	if err == nil && crs.Code == 200 && crs.Data != nil && len(crs.Data) > 0 {
@@ -228,26 +284,27 @@ func (s *CommonController) CustomResourceExport(c *gin.Context) {
 		}
 		iotgin.ResSuccess(c, res)
 	} else {
-		res := s.loadCommonResources(appKey, key, ctx, c)
-		iotgin.ResSuccess(c, res)
+		res, err := s.loadCommonResources(appKey, key, ctx, c)
+		if err != nil {
+			iotgin.ResErrCli(c, err)
+		} else {
+			iotgin.ResSuccess(c, res)
+		}
 	}
 }
 
 // 加载APP的基础翻译数据
-func (s CommonController) loadCommonResources(appKey string, verifyKey string, ctx context.Context, c *gin.Context) interface{} {
+func (s CommonController) loadCommonResources(appKey string, verifyKey string, ctx context.Context, c *gin.Context) (interface{}, error) {
 	//查询APP信息
 	appRes, err := rpc.ClientOemAppService.Find(ctx, &proto.OemAppFilter{AppKey: appKey})
 	if err != nil {
-		iotgin.ResErrCli(c, err)
-		return nil
+		return nil, err
 	}
 	if appRes.Code != 200 {
-		iotgin.ResErrCli(c, errors.New(appRes.Message))
-		return nil
+		return nil, err
 	}
 	if len(appRes.Data) == 0 {
-		iotgin.ResErrCli(c, errors.New("参数异常"))
-		return nil
+		return nil, err
 	}
 
 	appTemplateId := appRes.Data[0].AppTemplateId
@@ -259,9 +316,9 @@ func (s CommonController) loadCommonResources(appKey string, verifyKey string, c
 		err := json.Unmarshal([]byte(dataCachedCmd.Val()), &result)
 		if err == nil {
 			if verifyKey != "" && verifyKey == iotutil.ToString(result["verifyKey"]) {
-				return nil
+				return nil, nil
 			}
-			return result
+			return result, nil
 		}
 	}
 
@@ -269,12 +326,10 @@ func (s CommonController) loadCommonResources(appKey string, verifyKey string, c
 		Query: &proto.LangResources{BelongType: 3, AppTemplateId: appTemplateId},
 	})
 	if err != nil {
-		iotgin.ResErrCli(c, err)
-		return nil
+		return nil, err
 	}
 	if rep.Code != 200 {
-		iotgin.ResErrCli(c, errors.New(rep.Message))
-		return nil
+		return nil, err
 	}
 	resLang := commonService.LangResultConvert(rep.Data)
 	res := map[string]interface{}{}
@@ -285,9 +340,9 @@ func (s CommonController) loadCommonResources(appKey string, verifyKey string, c
 
 	//不需要设置redis的过期时间，当用户重新上传了之后删除缓存即可；
 	if err := iotredis.GetClient().Set(ctx, cachedKey, iotutil.ToString(res), 0).Err(); err != nil {
-		return resLang
+		return resLang, nil
 	}
-	return res
+	return res, nil
 }
 
 // PanelCustomResourceExport 导出自定义资源（如果不存在自定义资源，则导出基础app资源）

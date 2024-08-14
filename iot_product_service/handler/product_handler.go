@@ -2,16 +2,17 @@ package handler
 
 import (
 	"bytes"
+	"cloud_platform/iot_common/iotconst"
+	"cloud_platform/iot_common/iotlogger"
+	"cloud_platform/iot_common/iotnatsjs"
+	"cloud_platform/iot_common/iotstruct"
+	"cloud_platform/iot_common/iotutil"
 	iotmodel "cloud_platform/iot_model"
 	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_model/db_product/orm"
 	"cloud_platform/iot_product_service/convert"
 	"cloud_platform/iot_product_service/service"
 	_ "cloud_platform/iot_product_service/service"
-	"cloud_platform/iot_common/iotconst"
-	"cloud_platform/iot_common/iotlogger"
-	"cloud_platform/iot_common/iotstruct"
-	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
@@ -391,7 +392,11 @@ func (s TPmProductHandler) CreateTPmProduct(ctx context.Context, request *protos
 	response.Data = &protosService.TPmProductRequest{Id: saveObj.Id}
 
 	//通知设置多语言
-	service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+	//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+	//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+	//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_PRODUCT_NAME, saveObj.Id, "name", saveObj.Name, saveObj.NameEn),
+	//})
+	iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 		Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 		Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_PRODUCT_NAME, saveObj.Id, "name", saveObj.Name, saveObj.NameEn),
 	})
@@ -438,7 +443,11 @@ func (s TPmProductHandler) UpdateTPmProduct(ctx context.Context, request *protos
 	q := orm.Use(iotmodel.GetDB())
 	err = q.Transaction(func(tx *orm.Query) error {
 		err = s.updateBaseInfo(tx, request)
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_PRODUCT_NAME, request.Id, "name", request.Name, request.NameEn),
+		//})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_PRODUCT_NAME, request.Id, "name", request.Name, request.NameEn),
 		})
@@ -790,20 +799,20 @@ func (TPmProductHandler) GetByIdTPmProduct(ctx context.Context, request *protosS
 
 // CreateTPmProduct create
 func (TPmProductHandler) UploadControlPanel(ctx context.Context, request *protosService.PmControlPanelObj, response *protosService.TPmProductResponse) error {
-	var (
-		saveObj = model.TPmControlPanel{}
-	)
-	t := orm.Use(iotmodel.GetDB()).TPmControlPanel
-	do := t.WithContext(context.Background())
-	mapstructure.WeakDecode(request, &saveObj)
-	err := do.Create(&saveObj)
-	if err != nil {
-		logger.Errorf("UploadControlPanel error : %s", err.Error())
-		return err
-	}
-
-	response.Code = 200
-	response.Data = &protosService.TPmProductRequest{Id: saveObj.Id}
+	//var (
+	//	saveObj = model.TPmControlPanel{}
+	//)
+	//t := orm.Use(iotmodel.GetDB()).TPmControlPanels
+	//do := t.WithContext(context.Background())
+	//mapstructure.WeakDecode(request, &saveObj)
+	//err := do.Create(&saveObj)
+	//if err != nil {
+	//	logger.Errorf("UploadControlPanel error : %s", err.Error())
+	//	return err
+	//}
+	//
+	//response.Code = 200
+	//response.Data = &protosService.TPmProductRequest{Id: saveObj.Id}
 	return nil
 }
 
@@ -1504,4 +1513,15 @@ func (s TPmProductHandler) hasThingsModels(list []*protosService.ThingModelInfo)
 		}
 	}
 	return len(newList) > 0
+}
+
+func (TPmProductHandler) GetBaseProductInfo(baseProductId int64) (*model.TPmProduct, error) {
+	t := orm.Use(iotmodel.GetDB()).TPmProduct
+	do := t.WithContext(context.Background())
+	do = do.Where(t.Id.Eq(baseProductId))
+	info, err := do.First()
+	if err != nil {
+		return info, err
+	}
+	return info, nil
 }

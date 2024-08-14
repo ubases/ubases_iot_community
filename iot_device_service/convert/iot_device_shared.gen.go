@@ -32,8 +32,6 @@ func IotDeviceShared_pb2db(src *proto.IotDeviceShared) *model.TIotDeviceShared {
 		ProductKey:     src.ProductKey,
 		ProductPic:     src.ProductPic,
 		SharedTime:     src.SharedTime.AsTime(),
-		CreatedAt:      src.CreatedAt.AsTime(),
-		UpdatedAt:      src.UpdatedAt.AsTime(),
 	}
 	return &dbObj
 }

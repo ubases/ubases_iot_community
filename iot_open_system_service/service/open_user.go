@@ -165,6 +165,31 @@ func (s *OpenUserSvc) RegisterUser(req *proto.OpenUserRegisterRequest) (int64, e
 			return err
 		}
 
+		//开放平台账号类型（=1 企业 =2 个人）
+		var count int32 = 50
+		switch req.UserType {
+		case iotconst.OPEN_USER_ENTERPRISE_ACCOUNT:
+			count = 100
+		case iotconst.OPEN_USER_PERSONAL_ACCOUNT:
+			count = 50
+		}
+		//根据用户类型授权三元组梳理
+		authQuantity := &model.TOpenAuthQuantity{
+			Id:           iotutil.GetNextSeqInt64(),
+			UserId:       userId,
+			CompanyId:    companyInfo.Id,
+			TenantId:     tenantId,
+			AuthCode:     "default", //切换角色类型，通过default替换
+			AuthQuantity: count,
+			AuthDate:     time.Now(),
+			Status:       1,
+		}
+		tOpenAuthQuantity := q.TOpenAuthQuantity
+		doOpenAuthQuantity := tOpenAuthQuantity.WithContext(context.Background())
+		err = doOpenAuthQuantity.Create(authQuantity)
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -243,7 +268,8 @@ func (s *OpenUserSvc) AddUser(req *proto.DeveloperEntitys) (int64, error) {
 			UserId:      userId, //todo 这个字段是否可以取消
 			Name:        req.CompanyName,
 			Status:      1, //状态（=1 未提交 ,=2 认证中,   =3 已认证, =4 禁用
-			AccountType: 2, //账号类型 1 企业账号, 2 个人账号
+			//AccountType: 2, //账号类型 1 企业账号, 2 个人账号
+			AccountType:   req.AccountType,
 			Email:       email,
 			IsRealName:  2,
 			UserName:    req.Account,
@@ -580,6 +606,9 @@ func (s *OpenUserSvc) UpdateOpenUser(req *proto.OpenUser) (*proto.OpenUser, erro
 	if req.UpdatedBy != 0 { //整数
 		updateField = append(updateField, t.UpdatedBy)
 	}
+	if req.HasGuided != 0 { //整数
+		updateField = append(updateField, t.HasGuided)
+	}
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}
@@ -632,6 +661,7 @@ func (s *OpenUserSvc) UpdateAllOpenUser(req *proto.OpenUser) (*proto.OpenUser, e
 	updateField = append(updateField, t.CompanyName)
 	updateField = append(updateField, t.CreatedBy)
 	updateField = append(updateField, t.UpdatedBy)
+	updateField = append(updateField, t.HasGuided)
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}

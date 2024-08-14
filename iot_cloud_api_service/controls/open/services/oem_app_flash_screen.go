@@ -1,10 +1,12 @@
 package services
 
 import (
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/open/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/ioterrs"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_app_oem/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"time"
@@ -47,6 +49,14 @@ func (s OemAppFlashScreenService) CreateFlashScreen(obj *entitys.OemAppFlashScre
 	if err != nil {
 		return err
 	}
+
+	if obj.PutinImgUrls != nil && len(obj.PutinImgUrls) > 0 {
+		var imgs = []string{}
+		for _, p := range obj.PutinImgUrls {
+			imgs = append(imgs, p.ImageUrl)
+		}
+		commonGlobal.SetAttachmentStatus(model.TableNameTOemAppFlashScreen+"_prod", iotutil.ToString(req.Id), imgs...)
+	}
 	return nil
 }
 
@@ -76,6 +86,13 @@ func (s OemAppFlashScreenService) UpdateFlashScreen(obj *entitys.OemAppFlashScre
 	_, err = rpc.ClientOemAppFlashScreenUserService.CreateBatch(s.Ctx, reqBatch)
 	if err != nil {
 		return err
+	}
+	if obj.PutinImgUrls != nil && len(obj.PutinImgUrls) > 0 {
+		var imgs = []string{}
+		for _, p := range obj.PutinImgUrls {
+			imgs = append(imgs, p.ImageUrl)
+		}
+		commonGlobal.SetAttachmentStatus(model.TableNameTOemAppFlashScreen+"_prod", iotutil.ToString(req.Id), imgs...)
 	}
 	return nil
 }

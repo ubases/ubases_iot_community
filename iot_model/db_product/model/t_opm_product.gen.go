@@ -50,6 +50,7 @@ type TOpmProduct struct {
 	StyleLinkage      string         `gorm:"column:style_linkage" json:"styleLinkage"`                       // 颜色与模式的样式联动
 	AppPanelType      int32          `gorm:"column:app_panel_type" json:"appPanelType"`                      // APP面板类型（=1 公版面板 =2 Studio面板 =3 自定义面板）
 	TslUpdatedAt      time.Time      `gorm:"column:tsl_updated_at" json:"tslUpdatedAt"`                      // 物模型更新时间
+	IsDemoProduct     int32          `gorm:"column:is_demo_product" json:"isDemoProduct"`                    // 是否demo产品
 }
 
 // TableName TOpmProduct's table name

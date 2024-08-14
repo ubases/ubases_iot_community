@@ -7,9 +7,11 @@ import (
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotgin"
 	"cloud_platform/iot_common/iotredis"
+	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 )
@@ -68,6 +70,85 @@ func (s *OtaController) CheckOtaVersion(c *gin.Context) {
 	otaInfo := entitys.CheckOtaVersion_Pd2E(ret, lang)
 	otaInfo.IsAutoUpgrade = isAutoUpgrade
 	iotgin.ResSuccess(c, otaInfo)
+}
+
+// CheckOtaUpgradeList 检查设备所有固件升级记录，并返回给前端
+func (s *OtaController) CheckOtaUpgradeList(c *gin.Context) {
+	var (
+		productKey = c.DefaultQuery("productKey", "") //产品Key
+		deviceId   = c.DefaultQuery("deviceId", "")   //设备Id
+	)
+	if productKey == "" {
+		iotgin.ResBadRequest(c, "productKey")
+		return
+	}
+	if deviceId == "" {
+		iotgin.ResBadRequest(c, "deviceId")
+		return
+	}
+
+	//调用服务获取升级信息
+	ret, err := rpc.ClientOtaPublishService.CheckOtaUpgradeList(controls.WithUserContext(c), &protosService.CheckOtaVersionRequest{
+		ProductKey: productKey,
+		DeviceId:   deviceId,
+	})
+	if err != nil {
+		iotgin.ResErrSrv(c)
+		return
+	}
+
+	//获取是否自动升级
+	var (
+		lang                 = controls.GetLang(c)
+		isAutoUpgrade        = false
+		otaState      string = ""
+		progress      int32  = 0
+	)
+	devStatus := iotredis.GetClient().HGetAll(context.Background(), iotconst.HKEY_DEV_DATA_PREFIX+deviceId)
+	if devStatus.Err() == nil {
+		isAutoUpgrade = devStatus.Val()[iotconst.FIELD_IS_AUTH_UPGRADE] == "true"
+		if val, ok := devStatus.Val()[iotconst.FIELD_UPGRADE_STATE]; ok && val != "" {
+			otaState = iotutil.ToString(val)
+		}
+		if val, ok := devStatus.Val()[iotconst.FIELD_UPGRADE_PROGRESS]; ok && val != "" {
+			progress, _ = iotutil.ToInt32Err(val)
+		}
+	}
+	//根据固件类型分组固件列表
+	firmwareGroup := make(map[int32][]*protosService.CheckOtaVersionResponse)
+	for _, response := range ret.UpgradeList {
+		if _, ok := firmwareGroup[response.OtaPkg.FirmwareType]; !ok {
+			firmwareGroup[response.OtaPkg.FirmwareType] = make([]*protosService.CheckOtaVersionResponse, 0)
+		}
+		firmwareGroup[response.OtaPkg.FirmwareType] = append(firmwareGroup[response.OtaPkg.FirmwareType], response)
+	}
+	list := make([]*entitys.CheckOtaFirmwares, 0)
+	hasUpdate := false
+	for firmwareType, firmwares := range firmwareGroup {
+		f := new(entitys.CheckOtaFirmwares)
+		f.FirmwareType = firmwareType
+		f.FirmwareList = make([]*entitys.CheckOtaVersionResponse, 0)
+		for _, firmware := range firmwares {
+			otaInfo := entitys.CheckOtaVersion_Pd2E(firmware, lang)
+			if otaInfo.HasUpdate {
+				f.HasUpdate = true
+				hasUpdate = true
+			}
+			f.FirmwareList = append(f.FirmwareList, otaInfo)
+		}
+		list = append(list, f)
+	}
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].FirmwareType < list[j].FirmwareType
+	})
+	iotgin.ResSuccess(c, map[string]interface{}{
+		"isAuto":        true,
+		"hasUpdate":     hasUpdate,
+		"isAutoUpgrade": isAutoUpgrade,
+		"otaState":      otaState,
+		"progress":      progress,
+		"list":          list,
+	})
 }
 
 // SetAutoUpgradeSwitch 设置自动升级授权

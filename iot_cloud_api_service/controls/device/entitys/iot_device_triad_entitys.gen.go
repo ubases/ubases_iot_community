@@ -8,6 +8,7 @@ import (
 	"cloud_platform/iot_common/iotutil"
 	proto "cloud_platform/iot_proto/protos/protosService"
 	"errors"
+	"strings"
 )
 
 // 增、删、改及查询返回
@@ -26,6 +27,7 @@ type IotDeviceTriadEntitys struct {
 	UpdatedBy    int64  `json:"updatedBy"`
 	CreatedAt    int64  `json:"createdAt"`
 	UpdatedAt    int64  `json:"updatedAt"`
+	ExportList []string `json:"exportList"`
 }
 
 // 查询条件
@@ -99,6 +101,12 @@ func IotDeviceTriad_pb2e(src *proto.IotDeviceTriad) *IotDeviceTriadEntitys {
 		CreatedAt:    src.CreatedAt.AsTime().Unix(),
 		UpdatedAt:    src.UpdatedAt.AsTime().Unix(),
 	}
+	if src.ExportTimeList!="" {
+		//通过逗号分割ExportList
+		var timeList = strings.Split(src.ExportTimeList, ",")
+		//排除ExportList中的空值字符串
+		entitysObj.ExportList = iotutil.RemoveEmptyString(timeList)
+	}
 	return &entitysObj
 }
 
@@ -118,8 +126,10 @@ type GenerateDeviceTriad struct {
 	AccountType      int32              `json:"accountType"`
 	UserAccount      string             `json:"userAccount"`
 	AppKey           string             `json:"appKey"`
-	RegionServerId   int64              `json:"regionServerId"` //区域服务器Id
+	RegionId   int64              `json:"regionServerId,string"` //区域Id, regionServerId 兼容前端历史绑定，不修改json的名称
+	RegionServerId   int64              `json:"sid"` //区域服务器Id
 	Devices          []DeviceImportData `json:"serialNumbers"`
+	PlatformCode string `json:"platformCode"`
 }
 
 type DeviceImportData struct {
@@ -164,10 +174,12 @@ type IotDeviceTriad struct {
 type AddAppAccountEntity struct {
 	Account        string `json:"account"`          //账号
 	ProductId      int64  `json:"productId,string"` //产品编号
+	ProductName      string  `json:"productName"` //产品名称
 	AppKey         string `json:"appKey"`           //产品Model
 	DeviceId       string `json:"deviceId"`         //设备编号
 	TenantId       string `json:"tenantId"`         //产品Model
-	RegionServerId int64  `json:"regionServerId"`   //区域服务器Id
+	RegionId int64  `json:"regionServerId"`   //区域Id 兼容前端regionServerId，不修改json的名称
+	RegionServerId int64  `json:"sid"`   //区域服务器Id
 	PanelId        int64  `json:"panelId"`          //预览面板
 	AppPanelType   int32  `json:"appPanelType"`     //预览面板类型
 	DeviceName     string `json:"deviceName"`       //设备名称
@@ -183,6 +195,7 @@ type VirtualDeviceItem struct {
 	UserId         string `json:"userId"`      // 用户编号，用户ID
 	DeviceUserName string `json:"deviceUserName"`
 	DevicePassword string `json:"devicePassword"`
+	RegionServerId string `json:"regionServerId"` //区域服务Id
 }
 
 // 查询条件
@@ -191,4 +204,5 @@ type VirtualDeviceQuery struct {
 	Limit     uint64 `json:"limit,omitempty"`
 	ProductId int64  `json:"productId,string"`
 	IsVirtual int32  `json:"isVirtual"`
+	TenantId  string `json:"tenantId"`
 }

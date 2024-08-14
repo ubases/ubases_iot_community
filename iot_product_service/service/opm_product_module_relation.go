@@ -5,6 +5,7 @@
 package service
 
 import (
+	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotutil"
 	"context"
 	"errors"
@@ -51,73 +52,94 @@ func (s *OpmProductModuleRelationSvc) BatchCreateOpmProductModuleRelation(req *p
 		return nil, errors.New("ModuleId不能为空")
 	}
 	q := orm.Use(iotmodel.GetDB())
-	t := q.TOpmProductModuleRelation
+	return s.BatchCreateOpmProductModuleRelationTran(req, q)
+}
+
+func (s *OpmProductModuleRelationSvc) BatchCreateOpmProductModuleRelationTran(req *proto.OpmProductModuleRelationList, tx *orm.Query) (*proto.OpmProductModuleRelation, error) {
+	if len(req.ProductModuleRelations) == 0 {
+		return nil, errors.New("ModuleId不能为空")
+	}
+	t := tx.TOpmProductModuleRelation
 	do := t.WithContext(context.Background())
 
 	relationModule := convert.OpmProductModuleRelation_pb2db(req.ProductModuleRelations[0])
 	relationModule.Id = iotutil.GetNextSeqInt64()
 	var (
 		moduleId int64 = relationModule.ModuleId
-		//productId      int64 = relationModule.ProductId
 		firmwareId int64 = relationModule.FirmwareId
-		//lastVersionNum string
-		//lastVersionId  int64
-		//lastFirmwareId int64
 	)
 	if moduleId == 0 && firmwareId == 0 {
 		return nil, errors.New("参数异常ModuleId,firmwareId")
 	}
 
-	//是否报错固件
+	//是否自定义固件
 	isSaveCustomFirmware := moduleId == 0
 	if isSaveCustomFirmware {
 		//查询自定自定义固件
-		tVersion := q.TOpmFirmwareVersion
-		tf := q.TOpmFirmware
+		tVersion := tx.TOpmFirmwareVersion
+		tf := tx.TOpmFirmware
+
+		firmwareInfo, err := tf.WithContext(context.Background()).Where(tf.Id.Eq(firmwareId)).First()
+		if err != nil {
+			return nil, err
+		}
 		var lastVersion TempFirmwareVersionInfo
-		err := tVersion.WithContext(context.Background()).
+		err = tVersion.WithContext(context.Background()).
 			Join(tf, tf.Id.EqCol(tVersion.FirmwareId)).
-			Where(tVersion.FirmwareId.Eq(firmwareId)).                                                                   //, tVersion.Status.Eq(1)
+			Where(tVersion.FirmwareId.Eq(firmwareId), tVersion.Status.Eq(1)).                                                     //, tVersion.Status.Eq(1)
 			Select(tVersion.Id, tVersion.Version, tf.FirmwareKey, tf.Id.As("firmware_id"), tf.Type.As("firmware_type")). //, tf..As("firmware_key")
 			Order(field.Func.VersionOrder(tVersion.Version).Desc()).Scan(&lastVersion)
 		if err != nil {
 			return nil, err
 		}
-		relationModule.FirmwareType = lastVersion.FirmwareType //lastVersion.firmwareType
+		if lastVersion.Id != 0 {
+			relationModule.FirmwareVersionId = lastVersion.Id
+			relationModule.FirmwareVersion = lastVersion.Version
+		}
+		relationModule.FirmwareType, _ = iotutil.ToInt32Err(firmwareInfo.Type) //lastVersion.firmwareType
+		relationModule.FirmwareKey = firmwareInfo.FirmwareKey
 		relationModule.FirmwareId = firmwareId
-		relationModule.FirmwareVersionId = lastVersion.Id
-		relationModule.FirmwareVersion = lastVersion.Version
-		relationModule.FirmwareKey = lastVersion.FirmwareKey
 		relationModule.IsCustom = 1
 
-		//判断固件类型是否重复
-		count, err := do.Where(t.ProductId.Eq(relationModule.ProductId),
-			t.FirmwareType.Eq(relationModule.FirmwareType)).Count()
-		if err != nil {
-			return nil, err
-		}
-		//选用云管平台固件，只容许出现一个，并且选择的固件类型不能与自定义固件重复，所以此处只要与自定义固件判断重复即可
-		if count > 0 {
-			return nil, errors.New("请解除关联自定义固件-模组通讯固件类型，才能选择模组。")
+		if relationModule.FirmwareType != iotconst.FIRMWARE_TYPE_EXTAND {
+			//判断固件类型是否重复
+			count, err := do.Where(t.ProductId.Eq(relationModule.ProductId),
+				t.FirmwareType.Eq(relationModule.FirmwareType)).Count()
+			if err != nil {
+				return nil, err
+			}
+			//选用云管平台固件，只容许出现一个，并且选择的固件类型不能与自定义固件重复，所以此处只要与自定义固件判断重复即可
+			if count > 0 {
+				return nil, errors.New("请解除关联自定义固件-模组通讯固件类型，才能选择模组。")
+			}
+		} else {
+			//删除之前的固件，替换为新的固件
+			//_, err = do.Where(t.ProductId.Eq(relationModule.ProductId), t.FirmwareType.Eq(relationModule.FirmwareType)).Delete()
+			//if err != nil {
+			//	return nil, err
+			//}
 		}
 
-		//删除之前的固件，替换为新的固件
-		_, err = do.Where(t.ProductId.Eq(relationModule.ProductId), t.FirmwareType.Eq(relationModule.FirmwareType)).Delete()
-		if err != nil {
-			return nil, err
-		}
 	} else {
 		//TODO 获取模组对应固件版本和固件版本号，如果从外部传入此处可以省略
 		//获取模组信息
-		tModule := q.TPmModule
+		tModule := tx.TPmModule
 		doModule := tModule.WithContext(context.Background())
 		moduleInfo, err := doModule.Where(tModule.Id.Eq(moduleId)).First()
 		if err != nil {
 			return nil, err
 		}
 		//获取版本（这里应该是获取默认版本
-		tVersion := q.TPmFirmwareVersion
-		tFirmware := q.TPmFirmware
+		tVersion := tx.TPmFirmwareVersion
+		tFirmware := tx.TPmFirmware
+
+		firmwareInfo, err := tFirmware.WithContext(context.Background()).Where(tFirmware.Id.Eq(firmwareId)).First()
+		if err != nil {
+			return nil, err
+		}
+		relationModule.FirmwareId = moduleInfo.FirmwareId
+		relationModule.FirmwareType, _ = iotutil.ToInt32Err(firmwareInfo.Type)
+		relationModule.FirmwareKey = firmwareInfo.FirmwareKey
 		//tVersion.Version.In(moduleInfo.DefaultVersion),
 		var lastVersions []*TempFirmwareVersionInfo
 
@@ -133,7 +155,7 @@ func (s *OpmProductModuleRelationSvc) BatchCreateOpmProductModuleRelation(req *p
 		var lastVersion *TempFirmwareVersionInfo
 		//如果默认版本禁用了，则加载当前最新版本
 		if len(lastVersions) == 0 {
-			mfv := q.TPmModuleFirmwareVersion
+			mfv := tx.TPmModuleFirmwareVersion
 			var versions []*TempFirmwareVersionInfo
 			err := mfv.WithContext(context.Background()).
 				Join(tVersion, mfv.VersionId.EqCol(tVersion.Id)). //), tVersion.Status.Eq(1)v
@@ -146,9 +168,12 @@ func (s *OpmProductModuleRelationSvc) BatchCreateOpmProductModuleRelation(req *p
 				return nil, err
 			}
 			if len(versions) == 0 {
-				return nil, errors.New("当前模组未配置固件版本，无法选择！")
+				return nil, errors.New("固件未配置初始版本")
 			}
 			lastVersion = versions[0]
+			//return nil, errors.New("当前模组未配置固件版本，无法选择！")
+			relationModule.FirmwareVersionId = lastVersion.Id
+			relationModule.FirmwareVersion = lastVersion.Version
 		} else {
 			fw := lastVersions[0]
 			lastVersion = &TempFirmwareVersionInfo{
@@ -158,29 +183,28 @@ func (s *OpmProductModuleRelationSvc) BatchCreateOpmProductModuleRelation(req *p
 				FirmwareType: fw.FirmwareType,
 				Version:      fw.Version,
 			}
+			relationModule.FirmwareVersionId = fw.Id
+			relationModule.FirmwareVersion = fw.Version
 		}
-		relationModule.FirmwareType, _ = iotutil.ToInt32Err(moduleInfo.FirmwareType)
-		relationModule.FirmwareId = moduleInfo.FirmwareId
-		relationModule.FirmwareVersionId = lastVersion.Id
-		relationModule.FirmwareVersion = lastVersion.Version
-		relationModule.FirmwareKey = lastVersion.FirmwareKey
 		relationModule.IsCustom = 2
 
-		//判断固件类型是否重复
-		count, err := do.Where(t.ProductId.Eq(relationModule.ProductId),
-			t.FirmwareType.Eq(relationModule.FirmwareType), t.IsCustom.Eq(1)).Count()
-		if err != nil {
-			return nil, err
-		}
-		//选用云管平台固件，只容许出现一个，并且选择的固件类型不能与自定义固件重复，所以此处只要与自定义固件判断重复即可
-		if count > 0 {
-			return nil, errors.New("请解除关联同类固件类型关系。")
-		}
-
-		//删除之前的固件，替换为新的固件
-		_, err = do.Where(t.ProductId.Eq(relationModule.ProductId), t.IsCustom.Eq(2)).Delete()
-		if err != nil {
-			return nil, err
+		// 只有扩展固件支持多个固件
+		if relationModule.FirmwareType != iotconst.FIRMWARE_TYPE_EXTAND {
+			//判断固件类型是否重复
+			count, err := do.Where(t.ProductId.Eq(relationModule.ProductId),
+				t.FirmwareType.Eq(relationModule.FirmwareType), t.IsCustom.Eq(1)).Count()
+			if err != nil {
+				return nil, err
+			}
+			//选用云管平台固件，只容许出现一个，并且选择的固件类型不能与自定义固件重复，所以此处只要与自定义固件判断重复即可
+			if count > 0 {
+				return nil, errors.New("请解除关联同类固件类型关系。")
+			}
+			//切换的逻辑是直接删除原来的选择模组，再新增
+			_, err = do.Where(t.ProductId.Eq(relationModule.ProductId), t.IsCustom.Neq(1)).Delete()
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -203,6 +227,8 @@ func (s *OpmProductModuleRelationSvc) BatchCreateOpmProductModuleRelation(req *p
 	//}
 	return nil, err
 }
+
+
 
 // 切换版本
 func (s *OpmProductModuleRelationSvc) ChangeOpmProductModuleRelation(req *proto.OpmProductModuleRelationChangeVersion) (*proto.OpmProductModuleRelation, error) {
@@ -560,8 +586,9 @@ func (s *OpmProductModuleRelationSvc) QueryProductFirmwareVersionList(req *proto
 	q := orm.Use(iotmodel.GetDB())
 	list := make([]*proto.ProductFirmwareItem, 0)
 	if req.IsCustom == 1 {
-		fvList, err := q.TOpmFirmwareVersion.WithContext(context.Background()).
-			Where(q.TOpmFirmwareVersion.FirmwareId.Eq(req.FirmwareId), q.TOpmFirmwareVersion.Status.Eq(1)).Find()
+		t := q.TOpmFirmwareVersion
+		fvList, err := t.WithContext(context.Background()).
+			Where(t.FirmwareId.Eq(req.FirmwareId), t.Status.Eq(1)).Order(field.Func.VersionOrder(t.Version)).Find()
 		if err != nil {
 			return nil, err
 		}
@@ -580,7 +607,8 @@ func (s *OpmProductModuleRelationSvc) QueryProductFirmwareVersionList(req *proto
 		fvList, err := tFv.WithContext(context.Background()).
 			Join(tMfv, tFv.Id.EqCol(tMfv.VersionId)).
 			Join(tM, tM.Id.EqCol(tMfv.ModuleId)).
-			Where(tM.FirmwareId.Eq(req.FirmwareId), tFv.Status.Eq(1)).Select(tFv.ALL).Find()
+			Where(tM.FirmwareId.Eq(req.FirmwareId), tM.Id.Eq(req.ModuleId),
+				tFv.Status.Eq(1)).Select(tFv.ALL).Order(field.Func.VersionOrder(tFv.Version)).Find()
 		if err != nil {
 			return nil, err
 		}

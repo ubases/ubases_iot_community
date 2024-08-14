@@ -146,6 +146,12 @@ message IotDeviceInfo {
     map<string, string> funcDescMap = 135;
 
     repeated string developerTenantIds = 136; //开发者租户集合
+
+    int32 useType = 137;//使用类型（=1 虚拟测试设备）
+
+    int64 activeUserId = 138;//激活用户信息
+
+    string regionServerId = 139;
 }
 
 message IotDeviceInfoFilter {
@@ -278,6 +284,8 @@ message IotDeviceInfoFilter {
 
     // @inject_tag: json:"productKey" gorm:"default:产品key;comment:产品key;size:14;"
     string productKey = 132;
+
+    int64 activeUserId = 133;//激活用户信息
 }
 
 message IotDeviceInfoListRequest {

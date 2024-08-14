@@ -10,11 +10,11 @@ import (
 
 	"gorm.io/gen/field"
 
+	"cloud_platform/iot_common/iotlogger"
+	"cloud_platform/iot_common/iotutil"
 	iotmodel "cloud_platform/iot_model"
 	"cloud_platform/iot_model/db_open_system/model"
 	"cloud_platform/iot_model/db_open_system/orm"
-	"cloud_platform/iot_common/iotlogger"
-	"cloud_platform/iot_common/iotutil"
 	proto "cloud_platform/iot_proto/protos/protosService"
 
 	"go-micro.dev/v4/logger"
@@ -152,8 +152,8 @@ func (d DeveloperSvc) Edit(req *proto.DeveloperEntitys) (*proto.Response, error)
 	}
 	var ocs OpenCompanySvc
 	reqCompany := proto.OpenCompanyUpdateFieldsRequest{
-		Fields: []string{"name"},
-		Data:   &proto.OpenCompany{Id: req.CompanyId, Name: req.CompanyName},
+		Fields: []string{"name", "account_type"},
+		Data:   &proto.OpenCompany{Id: req.CompanyId, Name: req.CompanyName, AccountType: req.AccountType},
 	}
 	_, err = ocs.UpdateFieldsOpenCompany(&reqCompany)
 	if err != nil {
@@ -180,7 +180,7 @@ func (d DeveloperSvc) Detail(req *proto.DeveloperFilterReq) (*proto.DeveloperEnt
 		Where(tOpenAuthQuantity.Status.Gt(0)).Group(field.NewField(tOpenAuthQuantity.TableName(),
 		"user_id")).As("tmp")
 	do := tOpenUser.WithContext(ctx).Select(tOpenUser.Id, tOpenUser.UserName, tOpenUser.UserNickname,
-		tOpenUser.Mobile, tOpenUser.UserEmail, tOpenUser.UserStatus, tOpenUser.Address, tOpenUser.AccountOrigin, tOpenUser.AccountType,
+		tOpenUser.Mobile, tOpenUser.UserEmail, tOpenUser.UserStatus, tOpenUser.Address, tOpenUser.AccountOrigin, tOpenCompany.AccountType,
 		tOpenCompany.Id.As("CompanyId"), tOpenCompany.Name.As("CompanyName"),
 		field.NewField("tmp", "Quantity")).LeftJoin(tOpenCompany,
 		tOpenUser.Id.EqCol(tOpenCompany.UserId))

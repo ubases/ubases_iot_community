@@ -9,9 +9,9 @@ const TableNameTOemAppDocRelation = "t_oem_app_doc_relation"
 // TOemAppDocRelation mapped from table <t_oem_app_doc_relation>
 type TOemAppDocRelation struct {
 	Id     int64  `gorm:"column:id;primaryKey" json:"id"` // 关联id
-	DocId  int64  `gorm:"column:doc_id" json:"doc_id"`    // 文档id
-	AppId  int64  `gorm:"column:app_id" json:"app_id"`    // appid
-	AppKey string `gorm:"column:app_key" json:"app_key"`  // app的key
+	DocId  int64  `gorm:"column:doc_id" json:"docId"`     // 文档id
+	AppId  int64  `gorm:"column:app_id" json:"appId"`     // appid
+	AppKey string `gorm:"column:app_key" json:"appKey"`   // app的key
 }
 
 // TableName TOemAppDocRelation's table name

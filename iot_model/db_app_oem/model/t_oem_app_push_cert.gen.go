@@ -9,7 +9,7 @@ const TableNameTOemAppPushCert = "t_oem_app_push_cert"
 // TOemAppPushCert mapped from table <t_oem_app_push_cert>
 type TOemAppPushCert struct {
 	Id      int64  `gorm:"column:id;primaryKey" json:"id"`
-	AppId   int64  `gorm:"column:app_id" json:"app_id"`   // t_opm_app主键id
+	AppId   int64  `gorm:"column:app_id" json:"appId"`    // t_opm_app主键id
 	Version string `gorm:"column:version" json:"version"` // 版本
 	Apns    string `gorm:"column:apns" json:"apns"`       // apns证书，iOS专用
 	Jpush   string `gorm:"column:jpush" json:"jpush"`     // 极光推送配置，存json
@@ -18,6 +18,7 @@ type TOemAppPushCert struct {
 	Xiaomi  string `gorm:"column:xiaomi" json:"xiaomi"`   // 小米推送配置，存json
 	Vivo    string `gorm:"column:vivo" json:"vivo"`       // vivo推送配置，存json
 	Oppo    string `gorm:"column:oppo" json:"oppo"`       // oppo推送配置，存json
+	Honor   string `gorm:"column:honor" json:"honor"`     // honer推送配置，存json
 }
 
 // TableName TOemAppPushCert's table name

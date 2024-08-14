@@ -4,6 +4,7 @@
 package protosService
 
 import (
+	// _ "/api"
 	fmt "fmt"
 	proto "google.golang.org/protobuf/proto"
 	math "math"
@@ -101,6 +102,13 @@ func NewOemAppCustomRecordServiceEndpoints() []*api.Endpoint {
 			Body:    "*",
 			Handler: "rpc",
 		},
+		{
+			Name:    "OemAppCustomRecordService.GetLastVersion",
+			Path:    []string{"/v1/oemAppCustomRecord/getLastVersion"},
+			Method:  []string{"POST"},
+			Body:    "*",
+			Handler: "rpc",
+		},
 	}
 }
 
@@ -127,6 +135,8 @@ type OemAppCustomRecordService interface {
 	Find(ctx context.Context, in *OemAppCustomRecordFilter, opts ...client.CallOption) (*OemAppCustomRecordResponse, error)
 	//查找，支持分页，可返回多条数据
 	Lists(ctx context.Context, in *OemAppCustomRecordListRequest, opts ...client.CallOption) (*OemAppCustomRecordResponse, error)
+	//获取app最新得版本信息
+	GetLastVersion(ctx context.Context, in *OemAppCustomRecordFilter, opts ...client.CallOption) (*OemAppCustomRecordResponse, error)
 }
 
 type oemAppCustomRecordService struct {
@@ -241,6 +251,16 @@ func (c *oemAppCustomRecordService) Lists(ctx context.Context, in *OemAppCustomR
 	return out, nil
 }
 
+func (c *oemAppCustomRecordService) GetLastVersion(ctx context.Context, in *OemAppCustomRecordFilter, opts ...client.CallOption) (*OemAppCustomRecordResponse, error) {
+	req := c.c.NewRequest(c.name, "OemAppCustomRecordService.GetLastVersion", in)
+	out := new(OemAppCustomRecordResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for OemAppCustomRecordService service
 
 type OemAppCustomRecordServiceHandler interface {
@@ -264,6 +284,8 @@ type OemAppCustomRecordServiceHandler interface {
 	Find(context.Context, *OemAppCustomRecordFilter, *OemAppCustomRecordResponse) error
 	//查找，支持分页，可返回多条数据
 	Lists(context.Context, *OemAppCustomRecordListRequest, *OemAppCustomRecordResponse) error
+	//获取app最新得版本信息
+	GetLastVersion(context.Context, *OemAppCustomRecordFilter, *OemAppCustomRecordResponse) error
 }
 
 func RegisterOemAppCustomRecordServiceHandler(s server.Server, hdlr OemAppCustomRecordServiceHandler, opts ...server.HandlerOption) error {
@@ -278,6 +300,7 @@ func RegisterOemAppCustomRecordServiceHandler(s server.Server, hdlr OemAppCustom
 		FindById(ctx context.Context, in *OemAppCustomRecordFilter, out *OemAppCustomRecordResponse) error
 		Find(ctx context.Context, in *OemAppCustomRecordFilter, out *OemAppCustomRecordResponse) error
 		Lists(ctx context.Context, in *OemAppCustomRecordListRequest, out *OemAppCustomRecordResponse) error
+		GetLastVersion(ctx context.Context, in *OemAppCustomRecordFilter, out *OemAppCustomRecordResponse) error
 	}
 	type OemAppCustomRecordService struct {
 		oemAppCustomRecordService
@@ -353,6 +376,13 @@ func RegisterOemAppCustomRecordServiceHandler(s server.Server, hdlr OemAppCustom
 		Body:    "*",
 		Handler: "rpc",
 	}))
+	opts = append(opts, api.WithEndpoint(&api.Endpoint{
+		Name:    "OemAppCustomRecordService.GetLastVersion",
+		Path:    []string{"/v1/oemAppCustomRecord/getLastVersion"},
+		Method:  []string{"POST"},
+		Body:    "*",
+		Handler: "rpc",
+	}))
 	return s.Handle(s.NewHandler(&OemAppCustomRecordService{h}, opts...))
 }
 
@@ -398,4 +428,8 @@ func (h *oemAppCustomRecordServiceHandler) Find(ctx context.Context, in *OemAppC
 
 func (h *oemAppCustomRecordServiceHandler) Lists(ctx context.Context, in *OemAppCustomRecordListRequest, out *OemAppCustomRecordResponse) error {
 	return h.OemAppCustomRecordServiceHandler.Lists(ctx, in, out)
+}
+
+func (h *oemAppCustomRecordServiceHandler) GetLastVersion(ctx context.Context, in *OemAppCustomRecordFilter, out *OemAppCustomRecordResponse) error {
+	return h.OemAppCustomRecordServiceHandler.GetLastVersion(ctx, in, out)
 }

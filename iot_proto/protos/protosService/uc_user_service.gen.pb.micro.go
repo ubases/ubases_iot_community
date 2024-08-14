@@ -4,7 +4,7 @@
 package protosService
 
 import (
-	
+	// _ "/api"
 	fmt "fmt"
 	proto "google.golang.org/protobuf/proto"
 	math "math"
@@ -137,6 +137,13 @@ func NewUcUserServiceEndpoints() []*api.Endpoint {
 			Body:    "*",
 			Handler: "rpc",
 		},
+		{
+			Name:    "UcUserService.UpdateAgreementFlag",
+			Path:    []string{"/v1/ucUser/updateAgreementFlag"},
+			Method:  []string{"POST"},
+			Body:    "*",
+			Handler: "rpc",
+		},
 	}
 }
 
@@ -173,6 +180,8 @@ type UcUserService interface {
 	GetUserByLogin(ctx context.Context, in *UcUserByLoginRequest, opts ...client.CallOption) (*UcUserResponse, error)
 	//查找，支持分页，可返回多条数据
 	LoginSuccess(ctx context.Context, in *UcUserLoginSuccessRequest, opts ...client.CallOption) (*Response, error)
+	//根据主键更新非空字段
+	UpdateAgreementFlag(ctx context.Context, in *UcUser, opts ...client.CallOption) (*Response, error)
 }
 
 type ucUserService struct {
@@ -337,6 +346,16 @@ func (c *ucUserService) LoginSuccess(ctx context.Context, in *UcUserLoginSuccess
 	return out, nil
 }
 
+func (c *ucUserService) UpdateAgreementFlag(ctx context.Context, in *UcUser, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "UcUserService.UpdateAgreementFlag", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for UcUserService service
 
 type UcUserServiceHandler interface {
@@ -370,6 +389,8 @@ type UcUserServiceHandler interface {
 	GetUserByLogin(context.Context, *UcUserByLoginRequest, *UcUserResponse) error
 	//查找，支持分页，可返回多条数据
 	LoginSuccess(context.Context, *UcUserLoginSuccessRequest, *Response) error
+	//根据主键更新非空字段
+	UpdateAgreementFlag(context.Context, *UcUser, *Response) error
 }
 
 func RegisterUcUserServiceHandler(s server.Server, hdlr UcUserServiceHandler, opts ...server.HandlerOption) error {
@@ -389,6 +410,7 @@ func RegisterUcUserServiceHandler(s server.Server, hdlr UcUserServiceHandler, op
 		HomeList(ctx context.Context, in *UcUser, out *UcUserHomeListResponse) error
 		GetUserByLogin(ctx context.Context, in *UcUserByLoginRequest, out *UcUserResponse) error
 		LoginSuccess(ctx context.Context, in *UcUserLoginSuccessRequest, out *Response) error
+		UpdateAgreementFlag(ctx context.Context, in *UcUser, out *Response) error
 	}
 	type UcUserService struct {
 		ucUserService
@@ -499,6 +521,13 @@ func RegisterUcUserServiceHandler(s server.Server, hdlr UcUserServiceHandler, op
 		Body:    "*",
 		Handler: "rpc",
 	}))
+	opts = append(opts, api.WithEndpoint(&api.Endpoint{
+		Name:    "UcUserService.UpdateAgreementFlag",
+		Path:    []string{"/v1/ucUser/updateAgreementFlag"},
+		Method:  []string{"POST"},
+		Body:    "*",
+		Handler: "rpc",
+	}))
 	return s.Handle(s.NewHandler(&UcUserService{h}, opts...))
 }
 
@@ -564,4 +593,8 @@ func (h *ucUserServiceHandler) GetUserByLogin(ctx context.Context, in *UcUserByL
 
 func (h *ucUserServiceHandler) LoginSuccess(ctx context.Context, in *UcUserLoginSuccessRequest, out *Response) error {
 	return h.UcUserServiceHandler.LoginSuccess(ctx, in, out)
+}
+
+func (h *ucUserServiceHandler) UpdateAgreementFlag(ctx context.Context, in *UcUser, out *Response) error {
+	return h.UcUserServiceHandler.UpdateAgreementFlag(ctx, in, out)
 }

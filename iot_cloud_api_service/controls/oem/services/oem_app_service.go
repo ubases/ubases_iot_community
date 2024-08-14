@@ -1,12 +1,13 @@
 package services
 
 import (
+	"cloud_platform/iot_cloud_api_service/config"
 	"cloud_platform/iot_cloud_api_service/controls/oem/entitys"
+	"cloud_platform/iot_cloud_api_service/controls/open/services"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/ioterrs"
 	"cloud_platform/iot_common/iotlogger"
-	"cloud_platform/iot_common/iotstrings"
 	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
@@ -38,8 +39,22 @@ func (s OemAppService) AddOemApp(req entitys.OemAppEntitysAddReq) (map[string]st
 	id := iotutil.GetNextSeqInt64()
 	version := "1.0.0"
 	req.AppType = 1
-	req.AppTemplateId = "0"
-	req.AppTemplateVersion = "1.0.0"
+	appTemplateRes, err := rpc.ClientOemAppTemplateService.Lists(s.Ctx, &protosService.OemAppTemplateListRequest{
+		Page:      1,
+		PageSize:  1,
+		OrderDesc: "desc",
+		OrderKey:  "version",
+		Query:     &protosService.OemAppTemplate{Status: 1, OpenRangeType: 1},
+	})
+	if err != nil {
+		return resMap, err
+	}
+	if len(appTemplateRes.Data) == 0 {
+		return resMap, errors.New("平台未配置默认模板")
+	}
+	appTemplateInfo := appTemplateRes.Data[0]
+	req.AppTemplateId = iotutil.ToString(appTemplateInfo.Id)
+	req.AppTemplateVersion = appTemplateInfo.Version
 	res, err := rpc.ClientOemAppService.Create(s.Ctx, &protosService.OemApp{
 		Id:                 id,
 		Name:               req.Name,
@@ -47,7 +62,6 @@ func (s OemAppService) AddOemApp(req entitys.OemAppEntitysAddReq) (map[string]st
 		Status:             1,
 		Channel:            req.Channel,
 		IosPkgName:         req.IosPkgName,
-		IosTeamId:          req.IosTeamId,
 		AndroidPkgName:     req.AndroidPkgName,
 		Region:             req.Region,
 		AppType:            req.AppType,
@@ -55,6 +69,7 @@ func (s OemAppService) AddOemApp(req entitys.OemAppEntitysAddReq) (map[string]st
 		AppTemplateVersion: req.AppTemplateVersion,
 		AppDevType:         req.AppDevType,
 		AppIconUrl:         req.AppIconUrl,
+		IosTeamId:          req.IosTeamId,
 	})
 	if err != nil {
 		return resMap, err
@@ -87,6 +102,42 @@ func (s OemAppService) ChangeOemAppName(req entitys.OemAppChangeNameReq) (string
 			AppIconUrl: req.AppIconUrl,
 			Id:         iotutil.ToInt64(req.Id),
 		}
+	}
+	res, err := rpc.ClientOemAppService.UpdateFields(s.Ctx, reqApp)
+	if err != nil {
+		return "", err
+	}
+	if res.Code != 200 {
+		return "", errors.New(res.Message)
+	}
+	return "success", err
+}
+
+func (s OemAppService) ChangeOemAppTeamId(req entitys.OemAppChangeNameReq) (string, error) {
+	reqApp := &protosService.OemAppUpdateFieldsRequest{}
+	// Oem App和自定义app更新的时候字段不一致，需做兼容处理
+	reqApp.Fields = []string{"ios_team_id"}
+	reqApp.Data = &protosService.OemApp{
+		IosTeamId: req.IosTeamId,
+		Id:        iotutil.ToInt64(req.Id),
+	}
+	res, err := rpc.ClientOemAppService.UpdateFields(s.Ctx, reqApp)
+	if err != nil {
+		return "", err
+	}
+	if res.Code != 200 {
+		return "", errors.New(res.Message)
+	}
+	return "success", err
+}
+
+func (s OemAppService) ChangeOemAppStatus(req entitys.OemAppChangeNameReq) (string, error) {
+	reqApp := &protosService.OemAppUpdateFieldsRequest{}
+	// Oem App和自定义app更新的时候字段不一致，需做兼容处理
+	reqApp.Fields = []string{"status"}
+	reqApp.Data = &protosService.OemApp{
+		Status: req.Status,
+		Id:     iotutil.ToInt64(req.Id),
 	}
 	res, err := rpc.ClientOemAppService.UpdateFields(s.Ctx, reqApp)
 	if err != nil {
@@ -138,9 +189,17 @@ func (s OemAppService) QueryOemAppList(filter entitys.OemAppQuery, tenantId stri
 		return nil, 0, errors.New(rep.Message)
 	}
 
+	appKeys := make([]string, 0)
+	for _, item := range rep.Data {
+		appKeys = append(appKeys, item.AppKey)
+	}
+
+	//查询关联APP信息
+	appRel := services.OpmProductAppRelationService{Ctx: s.Ctx}
+	_, relMap, _ := appRel.AppRelationMap(appKeys)
+
 	var resultList = []*entitys.OemAppEntityListRes{}
 	for _, item := range rep.Data {
-
 		tmp := entitys.OemApp_pb2eList(item)
 		resIcon, _ := rpc.ClientOemAppUiConfigService.Find(s.Ctx, &protosService.OemAppUiConfigFilter{
 			AppId:   item.Id,
@@ -149,6 +208,7 @@ func (s OemAppService) QueryOemAppList(filter entitys.OemAppQuery, tenantId stri
 		if resIcon != nil && len(resIcon.Data) > 0 {
 			tmp.IocnUrl = resIcon.Data[0].IconUrl
 		}
+		tmp.ProductList = relMap[item.AppKey]
 		resultList = append(resultList, tmp)
 	}
 	return resultList, rep.Total, err
@@ -364,6 +424,300 @@ func (s OemAppService) CheckMap(req entitys.OemAppCommonReq) (bool, error) {
 	return true, nil
 }
 
+// oemapp 检查
+func (s OemAppService) OemAppCheck(req entitys.OemAppCommonReq) (*entitys.OemAppCheckRes, error) {
+	var res = entitys.OemAppCheckRes{}
+	var certService = OemAppCertService{}
+	certService.Ctx = s.Ctx
+
+	appInfo, err := s.GetAppInfo(iotutil.ToInt64(req.AppId))
+	if err != nil {
+		return nil, err
+	}
+	//ios 证书检查开始
+	var iosCertCheck = entitys.CheckItemRes{}
+	iosCertCheck.IsPass = 1
+	iosCertCheck.Cause = "success"
+
+	resIosCert, errIosCert := certService.GetIosCert(req)
+	if errIosCert != nil {
+		return nil, errIosCert
+	}
+	if resIosCert.DistCert == "" {
+		iosCertCheck.Cause = "ios证书未上传"
+		iosCertCheck.Causes = append(iosCertCheck.Causes, iosCertCheck.Cause)
+		iosCertCheck.IsPass = 2
+	}
+	if resIosCert.DistCertSecret == "" {
+		iosCertCheck.Cause = "ios证书密码未填写"
+		iosCertCheck.Causes = append(iosCertCheck.Causes, iosCertCheck.Cause)
+		iosCertCheck.IsPass = 2
+	}
+	if resIosCert.DistProvision == "" {
+		iosCertCheck.Cause = "ios Mobileprovision 证书未上传"
+		iosCertCheck.Causes = append(iosCertCheck.Causes, iosCertCheck.Cause)
+		iosCertCheck.IsPass = 2
+	}
+
+	//检查证书有效性
+	tempIosCert := entitys.OemAppIosCertReq{}
+	tempIosCert.ToAppIosCertReq(resIosCert)
+	if _, err := CheckDistCert(&tempIosCert); err != nil {
+		iosCertCheck.Cause = err.Error()
+		iosCertCheck.Causes = append(iosCertCheck.Causes, err.Error())
+		iosCertCheck.IsPass = 2
+	}
+
+	//ios 证书检查结束
+	//ios push证书检查开始
+	resIosPushCert, errIosPushCert := certService.GetIosPushCert(req)
+	if errIosPushCert != nil {
+		return nil, errIosPushCert
+	}
+	if resIosPushCert.ApnsCert == "" {
+		iosCertCheck.Cause = "ios push 生产环境PUSH证书未上传"
+		iosCertCheck.Causes = append(iosCertCheck.Causes, iosCertCheck.Cause)
+		iosCertCheck.IsPass = 2
+	}
+	if resIosPushCert.ApnsSecret == "" {
+		iosCertCheck.Cause = "ios push 证书密码未填写"
+		iosCertCheck.Causes = append(iosCertCheck.Causes, iosCertCheck.Cause)
+		iosCertCheck.IsPass = 2
+	}
+	res.IosCert = iosCertCheck
+	//验证push证书的有效性
+	pushReq := entitys.OemAppIosPushCertSaveReq{
+		ApnsCert:   resIosPushCert.ApnsCert,
+		ApnsSecret: resIosPushCert.ApnsSecret,
+		AppId:      req.AppId,
+		Version:    req.Version,
+	}
+	if err := CheckPushCert(appInfo.IosPkgName, tempIosCert.DistCert, tempIosCert.DistCertSecret, &pushReq); err != nil {
+		iosCertCheck.Cause = err.Error()
+		iosCertCheck.Causes = append(iosCertCheck.Causes, iosCertCheck.Cause)
+		iosCertCheck.IsPass = 2
+	}
+	//ios push证书检查结束
+
+	//android 证书检查开始
+	var androidCertCheck = entitys.CheckItemRes{}
+	androidCertCheck.IsPass = 1
+	androidCertCheck.Cause = "success"
+	resAndroidCert, errAndroidCert := certService.GetAndroidCert(req)
+	if errAndroidCert != nil {
+		return nil, errAndroidCert
+	}
+	if resAndroidCert.CertSha256 == "" && resAndroidCert.Resign == 1 {
+		androidCertCheck.Cause = "Android证书 新增SHA256未填写"
+		androidCertCheck.Causes = append(androidCertCheck.Causes, androidCertCheck.Cause)
+		androidCertCheck.IsPass = 2
+	}
+
+	_, errAndroidPushCert := certService.GetAndroidPushCert(req)
+	if errAndroidPushCert != nil {
+		return nil, errAndroidPushCert
+	}
+	//if resAndroidPushCert.JpushKey == "" {
+	//	androidCertCheck.Cause = "Android push证书 极光推送通道APP Key未填写"
+	//	androidCertCheck.Causes = append(androidCertCheck.Causes, androidCertCheck.Cause)
+	//	androidCertCheck.IsPass = 2
+	//}
+	//if resAndroidPushCert.JpushSecret == "" {
+	//	androidCertCheck.Cause = "Android push证书 极光推送通道Master Secret未填写"
+	//	androidCertCheck.Causes = append(androidCertCheck.Causes, androidCertCheck.Cause)
+	//	androidCertCheck.IsPass = 2
+	//}
+	res.AndroidCert = androidCertCheck
+	//android 证书检查结束
+
+	var introduceService = OemAppIntroduceService{}
+	introduceService.Ctx = s.Ctx
+
+	//var uifun = OemAppUiConfigService{}
+	//uifun.Ctx = s.Ctx
+	//resUifun, _ := uifun.GetFunctionConfig(req)
+	var userPactCheck = entitys.CheckItemRes{}
+	//用户协议 开始
+	userPactCheck.IsPass = 2
+	userPactCheck.Cause = "用户协议未配置"
+	resUserPactList, _, errUserPactList := introduceService.OemAppIntroduceList(entitys.OemAppIntroduceListReq{
+		AppId:       req.AppId,
+		ContentType: 1,
+	})
+	if errUserPactList != nil {
+		return nil, errUserPactList
+	}
+	for _, v := range resUserPactList {
+		if v.Status == 1 {
+			userPactCheck.IsPass = 1
+			userPactCheck.Cause = "success"
+			break
+		}
+	}
+
+	res.UserPact = userPactCheck
+	//用户协议 结束
+
+	//隐私政策开始
+	var userPrivacyCheck = entitys.CheckItemRes{}
+	userPrivacyCheck.IsPass = 2
+	userPrivacyCheck.Cause = "隐私政策未配置"
+	resUserPrivacyList, _, errUserPrivacyList := introduceService.OemAppIntroduceList(entitys.OemAppIntroduceListReq{
+		AppId:       req.AppId,
+		ContentType: 2,
+	})
+	if errUserPrivacyList != nil {
+		return nil, errUserPrivacyList
+	}
+	for _, v := range resUserPrivacyList {
+		if v.Status == 1 {
+			userPrivacyCheck.IsPass = 1
+			userPrivacyCheck.Cause = "success"
+			break
+		}
+	}
+
+	res.UserPrivacy = userPrivacyCheck
+	//隐私政策结束
+
+	return &res, nil
+
+}
+
+// 检查Ios证书
+func (s OemAppService) checkIosCert(req entitys.OemAppBuildReq, appInfo *protosService.OemApp) error {
+	appCertSvc := OemAppCertService{Ctx: s.Ctx}
+	iosCertRes, err := appCertSvc.GetIosCert(entitys.OemAppCommonReq{
+		AppId:   req.AppId,
+		Version: req.Version,
+	})
+	if err != nil {
+		return errors.New("IOS证书异常")
+	}
+	iosCert := entitys.OemAppIosCertReq{}
+	iosCert.ToAppIosCertReq(iosCertRes)
+	if _, err := CheckDistCert(&iosCert); err != nil {
+		return err
+	}
+	//IOS推送证书
+	iosPushCertRes, err := appCertSvc.GetIosPushCert(entitys.OemAppCommonReq{AppId: req.AppId, Version: req.Version, Os: 1})
+	if err != nil {
+		return errors.New("推送证书异常")
+	}
+	//验证push证书的有效性
+	pushReq := entitys.OemAppIosPushCertSaveReq{
+		ApnsCert:   iosPushCertRes.ApnsCert,
+		ApnsSecret: iosPushCertRes.ApnsSecret,
+		AppId:      req.AppId,
+		Version:    req.Version,
+	}
+	if err := CheckPushCert(appInfo.IosPkgName, iosCert.DistCert, iosCert.DistCertSecret, &pushReq); err != nil {
+		return err
+	}
+	return nil
+}
+
+// 检查Android证书
+func (s OemAppService) checkAndroidCert(req entitys.OemAppBuildReq, appInfo *protosService.OemApp) error {
+	return nil
+}
+
+func (s OemAppService) checkCert(req entitys.OemAppBuildReq, appInfo *protosService.OemApp) error {
+	if len(req.Os) == 0 {
+		return errors.New("未指定os")
+	}
+	var err error
+	for _, o := range req.Os {
+		switch o {
+		case "1":
+			err = s.checkIosCert(req, appInfo)
+			if err != nil {
+				break
+			}
+		case "2", "3":
+			err = s.checkAndroidCert(req, appInfo)
+			if err != nil {
+				break
+			}
+		}
+	}
+	return err
+}
+
+// OemAppCertCheck 证书检查
+func (s OemAppService) OemAppCertCheck(req entitys.OemAppBuildReq) (string, error) {
+	appId, err := iotutil.ToInt64AndErr(req.AppId)
+	if err != nil {
+		return "", errors.New("appId参数错误，")
+	}
+	appInfo, err := s.GetAppInfo(appId)
+	if err != nil {
+		return "", err
+	}
+	//开始构建需要检查证书情况
+	if err := s.checkCert(req, appInfo); err != nil {
+		return "", err
+	}
+	return "success", nil
+}
+
+// 开始构建
+func (s OemAppService) OemAppBuild(req entitys.OemAppBuildReq) (string, error) {
+	appId, err := iotutil.ToInt64AndErr(req.AppId)
+	if err != nil {
+		return "", errors.New("appId参数错误，")
+	}
+	appInfo, err := s.GetAppInfo(appId)
+	if err != nil {
+		return "", err
+	}
+	//开始构建需要检查证书情况
+	if err := s.checkCert(req, appInfo); err != nil {
+		return "", err
+	}
+	res, err := rpc.ClientOemAppService.Build(s.Ctx, &protosService.OemAppBuildReq{
+		AppId:   req.AppId,
+		Os:      req.Os,
+		Version: req.Version,
+	})
+
+	if err != nil {
+		return "", err
+	}
+	if res.Code != 200 && res.Message != "record not found" {
+		return "", errors.New(res.Message)
+	}
+
+	_, errStep := s.ChangeOemAppCurrentStep(entitys.OemAppChangeCurrentStepReq{
+		Id:          req.AppId,
+		CurrentStep: 4,
+	})
+	if errStep != nil {
+		return "", errStep
+	}
+
+	s.UpdateLastBuildTime(iotutil.ToInt64(req.AppId))
+	return "success", nil
+}
+
+// 取消构建
+func (s OemAppService) OemAppCancelBuild(req entitys.OemAppBuildReq) (string, error) {
+	res, err := rpc.ClientOemAppService.CancelBuild(s.Ctx, &protosService.OemAppBuildReq{
+		AppId:   req.AppId,
+		Os:      req.Os,
+		Version: req.Version,
+		BuildId: req.BuildId,
+	})
+
+	if err != nil {
+		return "", err
+	}
+	if res.Code != 200 && res.Message != "record not found" {
+		return "", errors.New(res.Message)
+	}
+	return "success", nil
+}
+
 // 根据数据字典类型.获取数据值
 func GetBaseDataValue(dictType string, ctydiy context.Context) map[string]interface{} {
 	res, err := rpc.TConfigDictDataServerService.Lists(ctydiy, &protosService.ConfigDictDataListRequest{
@@ -400,18 +754,20 @@ func GetOemAppEnv() string {
 
 // 获取所有构建跑的二维码链接
 func (s OemAppService) OemAppBuildPackageQrCodeUrl(req entitys.OemAppCommonReq) (string, error) {
-	mp := GetBaseDataValue("oem_app_package_domain", s.Ctx)
+	//mp := GetBaseDataValue("oem_app_package_domain", s.Ctx)
 	//http://127.0.0.1:8080/v1/platform/web/open/oem
-	url := iotutil.ToString(mp[GetOemAppEnv()])
+	//url := iotutil.ToString(mp[GetOemAppEnv()])
+	url := config.Global.Service.OemAppPackageDomain
 	url += "/app/build/package/qrcode?appId=" + req.AppId + "&version=" + req.Version
 	return url, nil
 }
 
 // 获取自定义app的二维码链接
 func (s OemAppService) OemAppCustomPackageQrCodeUrl(req entitys.OemAppCommonReq) (string, error) {
-	mp := GetBaseDataValue("oem_app_package_domain", s.Ctx)
+	//mp := GetBaseDataValue("oem_app_package_domain", s.Ctx)
 	//http://127.0.0.1:8080/v1/platform/web/open/oem
-	url := iotutil.ToString(mp[GetOemAppEnv()])
+	//url := iotutil.ToString(mp[GetOemAppEnv()])
+	url := config.Global.Service.OemAppPackageDomain
 	url += "/app/custom/package/qrcode?appId=" + req.AppId + "&version=" + req.Version + "&os=" + iotutil.ToString(req.Os)
 	return url, nil
 }
@@ -753,7 +1109,7 @@ func (s OemAppService) SortBuildPackage(list []*entitys.OemAppBuildPackage) {
 	})
 }
 
-// OemAppUpdateStatus 上架APP [1.配置中  2.构建中  3.构建完成  4.上架中  5.已上架]
+// 上架APP [1.配置中  2.构建中  3.构建完成  4.上架中  5.已上架]
 func (s OemAppService) OemAppUpdateStatus(appId int64, status int32) (string, error) {
 	res, err := rpc.ClientOemAppService.UpdateFields(s.Ctx, &protosService.OemAppUpdateFieldsRequest{
 		Fields: []string{"status"},
@@ -771,7 +1127,7 @@ func (s OemAppService) OemAppUpdateStatus(appId int64, status int32) (string, er
 	return "success", err
 }
 
-// OemAppPublishing 上架APP
+// 上架APP
 func (s OemAppService) OemAppPublishing(req entitys.OemAppCommonReq) (string, error) {
 
 	var bu = OemAppBuildRecordService{}
@@ -800,7 +1156,7 @@ func (s OemAppService) OemAppPublishing(req entitys.OemAppCommonReq) (string, er
 	return "success", err
 }
 
-// OemAppPublish 上架APP
+// 上架APP
 func (s OemAppService) OemAppPublish(req entitys.OemAppCommonReq) (string, error) {
 	appId, _ := iotutil.ToInt64AndErr(req.AppId)
 	// 添加版本号必须要高于最新版本号
@@ -845,6 +1201,21 @@ func (s OemAppService) OemAppPublish(req entitys.OemAppCommonReq) (string, error
 			case iotconst.OS_ANDROID_CHINA:
 				pkgUrl = pkg.Url
 			}
+			//判断构建记录是否存在
+			recordList, _, err := versionSvc.GetOemAppCustomRecordList(&entitys.OemAppCustomRecordQuery{
+				Query: &entitys.OemAppCustomRecordFilter{
+					AppId:   appId,
+					Os:      pkg.Os,
+					Version: req.Version,
+				},
+			})
+			if err != nil {
+				return "", err
+			}
+			//如果已经存在上交记录，不需要再次上架
+			if len(recordList) > 0 {
+				continue
+			}
 			versionSvc.CreateOemAppCustomRecord(&entitys.OemAppCustomRecordEntitys{
 				AppId:       appId,
 				Version:     req.Version,
@@ -853,13 +1224,12 @@ func (s OemAppService) OemAppPublish(req entitys.OemAppCommonReq) (string, error
 				Os:          pkg.Os,
 				Status:      1,
 				Description: "",
-			})
+			}, false)
 		}
 	}
 	return "success", err
 }
 
-// SetAppVersionRecord 设置APP版本记录
 func (s OemAppService) SetAppVersionRecord(appInfo *protosService.OemApp, pkg *entitys.OemAppBuildPackage) error {
 	// 通过模板生成plist文件
 	var plistUrl string
@@ -901,7 +1271,7 @@ func (s OemAppService) SetAppVersionRecord(appInfo *protosService.OemApp, pkg *e
 	return err
 }
 
-// OemAppUpdateVersion 更新app版本
+// 更新app版本
 func (s OemAppService) OemAppUpdateVersion(req entitys.OemAppVersionUpdateReq) (string, error) {
 	appId := iotutil.ToInt64(req.AppId)
 	resFind, errFind := rpc.ClientOemAppService.FindById(s.Ctx, &protosService.OemAppFilter{
@@ -915,7 +1285,7 @@ func (s OemAppService) OemAppUpdateVersion(req entitys.OemAppVersionUpdateReq) (
 		return "", errors.New("原版本号参数不正确")
 	}
 
-	if !iotstrings.VersionCompared(req.NewVersion, oldVersion) {
+	if r, _ := iotutil.VerCompare(req.NewVersion, oldVersion); r == -1 {
 		return "", errors.New("更新版本号必须大于原版号")
 	}
 

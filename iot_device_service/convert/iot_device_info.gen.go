@@ -89,6 +89,7 @@ func IotDeviceInfo_db2pb(src *model.TIotDeviceInfo) *proto.IotDeviceInfo {
 		UpdatedBy:        src.UpdatedBy,
 		CreatedAt:        timestamppb.New(src.CreatedAt),
 		UpdatedAt:        timestamppb.New(src.UpdatedAt),
+		RegionServerId: src.RegionServerId,
 	}
 	return &pbObj
 }

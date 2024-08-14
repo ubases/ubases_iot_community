@@ -45,6 +45,7 @@ func OpmProduct_pb2db(src *proto.OpmProduct) *model.TOpmProduct {
 		PanelProImg:       src.PanelProImg,
 		IsShowImg:         src.IsShowImg,
 		StyleLinkage:      src.StyleLinkage,
+		IsDemoProduct: src.IsDemoProduct,
 	}
 	if src.TslUpdatedAt != nil {
 		dbObj.TslUpdatedAt = src.TslUpdatedAt.AsTime()
@@ -90,6 +91,7 @@ func OpmProduct_db2pb(src *model.TOpmProduct) *proto.OpmProduct {
 		IsShowImg:         src.IsShowImg,
 		StyleLinkage:      src.StyleLinkage,
 		TslUpdatedAt:      timestamppb.New(src.TslUpdatedAt),
+		IsDemoProduct: src.IsDemoProduct,
 	}
 	return &pbObj
 }

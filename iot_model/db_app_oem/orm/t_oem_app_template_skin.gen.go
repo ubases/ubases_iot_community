@@ -96,6 +96,8 @@ func (t *tOemAppTemplateSkin) WithContext(ctx context.Context) *tOemAppTemplateS
 
 func (t tOemAppTemplateSkin) TableName() string { return t.tOemAppTemplateSkinDo.TableName() }
 
+func (t tOemAppTemplateSkin) Alias() string { return t.tOemAppTemplateSkinDo.Alias() }
+
 func (t *tOemAppTemplateSkin) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

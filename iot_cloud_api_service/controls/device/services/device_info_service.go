@@ -60,8 +60,8 @@ func deviceListQueryToRequest(filter entitys.IotDeviceInfoQuery) (*protosService
 	var (
 		isOnline          int32 = -1 //是否在线
 		isActive          int32 = -1 //是否激活
-		queryStartTime    int64 = 0  //激活查询开始时间
-		queryEndTime      int64 = 0  //激活查询结束时间
+		queryStartTime    int64 = 0  //激活或者创建查询开始时间
+		queryEndTime      int64 = 0  //激活或者创建查询结束时间
 		batchId           int32 = 0  //批次编号
 		deviceNature            = "" //设备性质
 		err               error
@@ -108,7 +108,10 @@ func deviceListQueryToRequest(filter entitys.IotDeviceInfoQuery) (*protosService
 			SerialNumber:      filter.Query.SerialNumber,
 			ExportCount:       filter.Query.ExportCount,
 			IsExport:          filter.Query.IsExport,
+			IsQueryExport:     filter.Query.IsQueryExport,
 			EnableZeroBatchId: enableZeroBatchId,
+			PlatformCode:      filter.Query.PlatformCode,
+			IsPlatform:        filter.IsPlatform,
 			DeviceInfo: &protosService.IotDeviceInfo{
 				OnlineStatus:   isOnline,
 				DeviceNature:   deviceNature,
@@ -152,7 +155,7 @@ func (s *IotDeviceInfoService) getQueryProductIds(isPlatform bool, deviceName st
 }
 
 // QueryIotDeviceInfoList 设备信息列表
-func (s *IotDeviceInfoService) QueryIotDeviceInfoList(filter entitys.IotDeviceInfoQuery) ([]*entitys.IotDeviceInfoEntitys, int64, *protosService.IotDeviceTriadListRequest, error) {
+func (s *IotDeviceInfoService) QueryIotDeviceInfoList(filter entitys.IotDeviceInfoQuery, setPlatform func(string) string) ([]*entitys.IotDeviceInfoEntitys, int64, *protosService.IotDeviceTriadListRequest, error) {
 	resultList := make([]*entitys.IotDeviceInfoEntitys, 0) //返回数据结构
 	//获取租户编号集合
 	var tenantIds []string
@@ -282,6 +285,16 @@ func (s *IotDeviceInfoService) QueryIotDeviceInfoList(filter entitys.IotDeviceIn
 			if item.UpdatedAt.AsTime().Unix() < 0 {
 				info.UpdatedAt = 0
 			}
+		}
+		info.PlatformCode = item.PlatformCode
+		if setPlatform != nil {
+			info.PlatformName = setPlatform(item.PlatformCode)
+		}
+		if item.ExportTimeList != "" {
+			//通过逗号分割ExportList
+			var timeList = strings.Split(item.ExportTimeList, ",")
+			//排除ExportList中的空值字符串
+			info.ExportList = iotutil.RemoveEmptyString(timeList)
 		}
 		resultList = append(resultList, info)
 	}
@@ -421,10 +434,28 @@ func (s *IotDeviceInfoService) QueryIotDeviceDetails(lang, did string) (*entitys
 		}
 		tls = proRes.ThingModes
 	}
+
+	firmwareList := make([]*entitys.DeviceFirmwares, 0)
+	req, err := rpc.ClientOpmProductService.FindByAllDetails(s.Ctx, &protosService.OpmProductPrimarykey{Id: rep.Data.DeviceInfo.ProductId})
+	if err != nil {
+		return nil, err
+	}
+	if req.Code == 200 {
+		for _, v := range req.CustomFirmwares {
+			firmwareList = append(firmwareList, &entitys.DeviceFirmwares{
+				Name:    v.FirmwareName,
+				Type:    v.FirmwareType,
+				Key:     v.FirmwareKey,
+				Version: v.Version,
+			})
+		}
+	}
+
 	var res = &entitys.IotDeviceInfoDetails{
 		ActiveInfo:   entitys.IotDeviceInfo_activeInfo_pb2e(rep.Data.ActiveInfo),
 		DeviceInfo:   entitys.IotDeviceInfo_deviceInfo_pb2e(rep.Data.DeviceInfo),
 		DeviceStatus: convertDeviceStatus(rep.Data.DeviceInfo.TenantId, lang, rep.Data.DeviceInfo.ProductKey, rep.Data.DeviceStatus, tls),
+		FirmwareList: firmwareList,
 	}
 	if rep.Data.DeviceInfo != nil {
 		developer, _ := new(services.DeveloperCachedData).GetByTenantId(rep.Data.DeviceInfo.TenantId)
@@ -557,7 +588,7 @@ func (s *IotDeviceInfoService) Export(mode int, filter entitys.IotDeviceInfoQuer
 	cell.SetStyle(headerStyle)
 	cell.Value = "首次激活时间"
 
-	res, _, queryParams, err := s.QueryIotDeviceInfoList(filter)
+	res, _, queryParams, err := s.QueryIotDeviceInfoList(filter, nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -678,7 +709,7 @@ func (s *IotDeviceInfoService) ExportTriad(userId int64, filter entitys.IotDevic
 	cell.SetStyle(headerStyle)
 	cell.Value = "公司名称"
 
-	res, _, _, err := s.QueryIotDeviceInfoList(filter)
+	res, _, _, err := s.QueryIotDeviceInfoList(filter, nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -728,12 +759,20 @@ func (s *IotDeviceInfoService) ExportTriad(userId int64, filter entitys.IotDevic
 	return fileName, tempPathFile, nil
 }
 
-func (s *IotDeviceInfoService) ExportCsvTriad(userId int64, filter entitys.IotDeviceInfoQuery) (string, string, error) {
+func (s *IotDeviceInfoService) ExportCsvTriad(userId int64, filter entitys.IotDeviceInfoQuery, setPlatform func(string) string) (string, string, error) {
 	ocs := services2.OpenCompanyService{Ctx: context.Background()}
+	var (
+		tenantId     string
+		companyName  string
+		platformCode string
+	)
 	companyInfo, err := ocs.GetBaseInfo(userId)
 	if err != nil {
 		return "", "", errors.New("公司信息获取失败")
 	}
+	tenantId = companyInfo.TenantId
+	companyName = companyInfo.CompanyName
+	platformCode = config.Global.Service.PlatformCode
 
 	if filter.Query.StartTime == "" || filter.Query.EndTime == "" {
 		return "", "", errors.New("时间参数不能为空")
@@ -755,17 +794,15 @@ func (s *IotDeviceInfoService) ExportCsvTriad(userId int64, filter entitys.IotDe
 	//"产品Key", "WIFI标识",
 	w.Write([]string{"设备Id", "用户名", "密码", "设备SN", "所属私有云平台编码", "公司编码", "公司名称"})
 
-	res, _, _, err := s.QueryIotDeviceInfoList(filter)
+	res, _, _, err := s.QueryIotDeviceInfoList(filter, setPlatform)
 	if err != nil {
 		return "", "", err
 	}
 
 	for _, row := range res {
 		//row.ProductKey, row.WifiFlag,
-		w.Write([]string{
-			row.Did, row.UserName,
-			row.Passward, row.Sn, config.Global.Service.PlatformCode,
-			companyInfo.TenantId, companyInfo.CompanyName,
+		w.Write([]string{row.Did, row.UserName,
+			row.Passward, row.Sn, platformCode, tenantId, companyName,
 		})
 	}
 	w.Flush()

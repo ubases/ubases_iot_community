@@ -14,18 +14,18 @@ const TableNameTOemAppTemplateMenu = "t_oem_app_template_menu"
 type TOemAppTemplateMenu struct {
 	Id            int64     `gorm:"column:id;primaryKey" json:"id"`   // 主键唯一编号
 	Name          string    `gorm:"column:name;not null" json:"name"` // 菜单名称（中文）
-	NameEn        string    `gorm:"column:name_en" json:"name_en"`    // 菜单名称（英文）
+	NameEn        string    `gorm:"column:name_en" json:"nameEn"`     // 菜单名称（英文）
 	Code          string    `gorm:"column:code;not null" json:"code"` // 功能Key
 	Sort          int32     `gorm:"column:sort" json:"sort"`          // 展示序号
-	AppTemplateId int64     `gorm:"column:app_template_id;not null" json:"app_template_id"`
-	PagePath      string    `gorm:"column:page_path" json:"page_path"`         // 访问地址
-	Required      int32     `gorm:"column:required" json:"required"`           // 是否必填 =1 必填 =2 非必填
-	DefaultIcon   string    `gorm:"column:default_icon" json:"default_icon"`   // 默认图标
-	SelectedIcon  string    `gorm:"column:selected_icon" json:"selected_icon"` // 选择图标
-	CreatedBy     int64     `gorm:"column:created_by" json:"created_by"`       // 修改人
-	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"`       // 创建时间
-	UpdatedBy     int64     `gorm:"column:updated_by" json:"updated_by"`       // 修改人
-	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"`       // 修改时间
+	AppTemplateId int64     `gorm:"column:app_template_id;not null" json:"appTemplateId"`
+	PagePath      string    `gorm:"column:page_path" json:"pagePath"`         // 访问地址
+	Required      int32     `gorm:"column:required" json:"required"`          // 是否必填 =1 必填 =2 非必填
+	DefaultIcon   string    `gorm:"column:default_icon" json:"defaultIcon"`   // 默认图标
+	SelectedIcon  string    `gorm:"column:selected_icon" json:"selectedIcon"` // 选择图标
+	CreatedBy     int64     `gorm:"column:created_by" json:"createdBy"`       // 修改人
+	CreatedAt     time.Time `gorm:"column:created_at" json:"createdAt"`       // 创建时间
+	UpdatedBy     int64     `gorm:"column:updated_by" json:"updatedBy"`       // 修改人
+	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updatedAt"`       // 修改时间
 }
 
 // TableName TOemAppTemplateMenu's table name

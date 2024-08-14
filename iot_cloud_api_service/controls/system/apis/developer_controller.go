@@ -101,6 +101,9 @@ func (DeveloperController) Edit(c *gin.Context) {
 		iotgin.ResFailCode(c, resp.Message, 500)
 		return
 	}
+	if req.Status == 2 {
+		controls.ClearTokenByUserId(int64(id))
+	}
 	iotgin.ResSuccess(c, nil)
 }
 
@@ -145,6 +148,7 @@ func (DeveloperController) Delete(c *gin.Context) {
 		iotgin.ResErrSrv(c)
 		return
 	}
+	controls.ClearTokenByUserId(int64(id))
 	iotgin.ResSuccess(c, nil)
 }
 
@@ -165,6 +169,9 @@ func (DeveloperController) SetStatus(c *gin.Context) {
 	if err != nil {
 		iotgin.ResErrSrv(c)
 		return
+	}
+	if req.Status == 2 {
+		controls.ClearTokenByUserId(int64(id))
 	}
 	iotgin.ResSuccess(c, nil)
 }

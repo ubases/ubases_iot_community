@@ -148,7 +148,6 @@ func (ProductController) GetOpmProductList(c *gin.Context) {
 		iotgin.ResErrCli(c, err)
 		return
 	}
-
 	res, total, err := Productservices.SetContext(controls.WithUserContext(c)).GetOpmProductList(filter)
 	if err != nil {
 		iotgin.ResErrCli(c, err)

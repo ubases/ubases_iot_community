@@ -105,6 +105,8 @@ func (t *tOemAppTemplateMenu) WithContext(ctx context.Context) *tOemAppTemplateM
 
 func (t tOemAppTemplateMenu) TableName() string { return t.tOemAppTemplateMenuDo.TableName() }
 
+func (t tOemAppTemplateMenu) Alias() string { return t.tOemAppTemplateMenuDo.Alias() }
+
 func (t *tOemAppTemplateMenu) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

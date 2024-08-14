@@ -31,6 +31,9 @@ var (
 	IPService protosService.IPService
 	// 开放平台企业信息
 	//ClientCompanyService protosService.OpenCompanyService
+
+	ClientSysAttachmentService   protosService.SysAttachmentService
+	ClientSysRegionServerService protosService.SysRegionServerService
 )
 
 // 物联管理
@@ -101,7 +104,8 @@ var (
 	ClientMessageTemplateService  protosService.MpMessageTemplateService
 
 	//消息服务
-	ClientMessageService protosService.MpMessageService
+	ClientMessageService        protosService.MpMessageService
+	ClientMsNoticeRecordService protosService.MsNoticeRecordService
 
 	//OTA
 	ClientOtaPkgService           protosService.OpmOtaPkgService
@@ -139,7 +143,10 @@ var (
 	ClientOpmPanelFontAssetService  protosService.OpmPanelFontAssetService
 	ClientOpmPanelFontConfigService protosService.OpmPanelFontConfigService
 	ClientOpmDocumentsService       protosService.OpmDocumentsService
+
 	ClientProductTestAccountService protosService.OpmProductTestAccountService
+
+	ClientProductAppRelationService protosService.OpmProductAppRelationService
 )
 
 // 文档模板
@@ -203,6 +210,7 @@ var (
 	ClientFeedbackTypeService             protosService.OemFeedbackTypeService
 	ClientOemAppCustomRecordService       protosService.OemAppCustomRecordService
 	ClientOemAppDebuggerService           protosService.OemAppDebuggerService
+	ClientCloudAppBuildAuthService        protosService.CloudAppBuildAuthService
 )
 
 // 联系我们

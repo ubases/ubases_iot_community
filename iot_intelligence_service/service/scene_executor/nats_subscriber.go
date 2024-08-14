@@ -1,133 +1,64 @@
 package scene_executor
 
 import (
-	"cloud_platform/iot_intelligence_service/config"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
-	"cloud_platform/iot_common/iotnats/jetstream"
+	"cloud_platform/iot_common/iotnatsjs"
+	"cloud_platform/iot_common/iotprotocol"
 	"cloud_platform/iot_common/iotstruct"
-	"cloud_platform/iot_common/iotutil"
-	"cloud_platform/iot_proto/protos/protosService"
+	"cloud_platform/iot_intelligence_service/config"
 	"context"
-	"encoding/json"
-	"errors"
-	"strings"
-	"time"
 
-	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
+
+	"encoding/json"
 )
 
-// var WeatherChan chan protosService.WeatherData
-var WeatherChan2 chan protosService.WeatherData
-var DeviceChan2 chan iotstruct.DeviceRedisData
+var WeatherChan chan map[string]interface{} //protosService.WeatherData
+var DeviceChan chan iotstruct.DeviceRedisData
 
-//var DeviceChan chan iotstruct.MqttToNatsData
-//var DeviceChan chan protosService.DeviceData
-
-type Subscriber struct {
-	Subscribers []*DeviceSubscriber
+func init() {
+	WeatherChan = make(chan map[string]interface{}, 100)
+	DeviceChan = make(chan iotstruct.DeviceRedisData, 100000)
 }
 
-func InitSubscriber() (subOp *Subscriber, err error) {
-	subOp = new(Subscriber)
-	subOp.SetSubscriber(strings.Join([]string{"iot_intelligence_service", "data", "weather"}, "_"),
-		iotconst.NATS_WEATHER,
-		iotconst.NATS_SUBJECT_WEATHER_DATA)
-	subOp.SetSubscriber(strings.Join([]string{"iot_device_service", "device", "report"}, "_"),
-		iotconst.NATS_STREAM_DEVICE,
-		iotconst.NATS_SUBJECT_REPORT)
-	return
-}
-
-func (s *Subscriber) SetSubscriber(appName, stream, subject string) {
-	//TODO 临时增加panic
-	defer iotutil.PanicHandler()
-	sub, err := NewDeviceSubscriber(appName, stream, subject)
+func InitReportSub() {
+	ackCh := iotconst.HKEY_REPORT_DATA_PUB_PREFIX + ".>"
+	client, err := iotnatsjs.NewJsClient(config.Global.Nats.Addrs...)
 	if err != nil {
-		iotlogger.LogHelper.Errorf("创建订阅服务错误:", err.Error(), appName, stream, subject)
-		return
-	}
-	s.Subscribers = append(s.Subscribers, sub)
-}
-
-func (s *Subscriber) RunSub() {
-	for _, subscriberMap := range s.Subscribers {
-		go subscriberMap.Run()
-	}
-}
-
-func (s *Subscriber) CloseSub() {
-	for _, subscriberMap := range s.Subscribers {
-		go subscriberMap.Close()
-	}
-}
-
-type DeviceSubscriber struct {
-	suber      *jetstream.JSPullSubscriber
-	concurrent int
-	ctx        context.Context
-	cancel     context.CancelFunc
-}
-
-func NewDeviceSubscriber(appname string, stream string, subject string) (*DeviceSubscriber, error) {
-	suber, err := jetstream.NewJSPullSubscriber(appname, stream, subject, connerrhandler, config.Global.Nats.Addrs...)
-	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	Concurrent := 1
-	return &DeviceSubscriber{suber, Concurrent, ctx, cancel}, nil
-}
-
-func connerrhandler(conn *nats.Conn, err error) {
+	defer cancel()
+	defer client.Close()
+	err = client.CreateOrUpdateConsumer(ctx, iotconst.NATS_STREAM_ORIGINAL_REDIS, []string{ackCh}, "iot_intelligence_service_1")
 	if err != nil {
-		iotlogger.LogHelper.Errorf("nats连接错误:%s", err.Error())
+		panic(err)
 	}
-}
+	//client.PSubscribe(handlerRedisMessage, ackCh)
+	jsctx, err := client.Consume(func(msg jetstream.Msg) {
+		data := iotstruct.DeviceRedisData{}
+		if err := json.Unmarshal([]byte(msg.Data()), &data); err != nil {
+			iotlogger.LogHelper.Helper.Error("json unmarshal online error: ", err)
+			return
+		}
+		//非控制类回传通知消息，不处理 update by hogan 20240125
+		if data.Name != iotprotocol.REPORT_HEAD_NAME && data.Name != iotprotocol.CONTROL_HEAD_NAME {
+			return
+		}
+		DeviceChan <- data
+	}, func(consumeCtx jetstream.ConsumeContext, err error) {
 
-func (bs DeviceSubscriber) Run() {
+	})
+	if err != nil {
+		return
+	}
+
+	defer jsctx.Stop()
 	for {
-		if bs.ctx.Err() != nil {
-			break
-		}
-		msgList, err := bs.suber.FetchMessageEx(1)
-		if err != nil {
-			if errors.Is(err, nats.ErrConnectionClosed) {
-				iotlogger.LogHelper.Errorf("拉取消息失败,原因:%s", err.Error())
-				time.Sleep(3 * time.Second)
-			} else if !errors.Is(err, nats.ErrTimeout) {
-				iotlogger.LogHelper.Errorf("拉取消息失败,原因:%s", err.Error())
-			}
-			continue
-		}
-		for _, v := range msgList {
-			switch v.Subject {
-			case iotconst.NATS_SUBJECT_WEATHER_DATA:
-				info := protosService.WeatherData{}
-				err = json.Unmarshal(v.Data, &info)
-				if err != nil {
-					iotlogger.LogHelper.Errorf("解析天气失败,内容[%s],错误:%s", string(v.Data), err.Error())
-					continue
-				}
-				//天气变化
-				//WeatherChan <- info
-				iotlogger.LogHelper.Info("收到天气消息", string(v.Data))
-			case iotconst.NATS_SUBJECT_REPORT:
-				info := iotstruct.MqttToNatsData{}
-				err = json.Unmarshal(v.Data, &info)
-				if err != nil {
-					iotlogger.LogHelper.Errorf("解析设备上报消息失败,内容[%s],错误:%s", string(v.Data), err.Error())
-					continue
-				}
-				//设备状态变化
-				//DeviceChan <- info
-				iotlogger.LogHelper.Info("收到设备状态变化消息", string(v.Data))
-			}
+		select {
+		case <-ctx.Done():
+			return
 		}
 	}
-}
-
-func (bs DeviceSubscriber) Close() {
-	bs.cancel()
-	bs.suber.Close()
 }

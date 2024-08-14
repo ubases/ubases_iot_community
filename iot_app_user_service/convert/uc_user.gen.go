@@ -45,6 +45,8 @@ func UcUser_pb2db(src *proto.UcUser) *model.TUcUser {
 		UpdatedBy:        src.UpdatedBy,
 		CreatedAt:        src.CreatedAt.AsTime(),
 		UpdatedAt:        src.UpdatedAt.AsTime(),
+		UserSalt: src.UserSalt,
+		AgreementFlag: src.AgreementFlag,
 	}
 	return &dbObj
 }
@@ -84,6 +86,8 @@ func UcUser_db2pb(src *model.TUcUser) *proto.UcUser {
 		UpdatedBy:        src.UpdatedBy,
 		CreatedAt:        timestamppb.New(src.CreatedAt),
 		UpdatedAt:        timestamppb.New(src.UpdatedAt),
+		UserSalt: src.UserSalt,
+		AgreementFlag: src.AgreementFlag,
 	}
 	return &pbObj
 }

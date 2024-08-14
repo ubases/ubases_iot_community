@@ -1,9 +1,11 @@
 package services
 
 import (
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/product/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
@@ -85,6 +87,9 @@ func (s PmModuleService) AddPmModule(req entitys.PmModuleEntitys) (string, error
 		return "", errors.New(res.Message)
 	}
 	//services.SetDefaultTranslate(context.Background(), "t_pm_module", saveObj.Id, "name", req.ModuleName, req.ModuleNameEn)
+	if req.ImgUrl != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmModule, iotutil.ToString(saveObj.Id), req.ImgUrl)
+	}
 	return iotutil.ToString(saveObj.Id), err
 }
 
@@ -95,6 +100,25 @@ func (s PmModuleService) UpdatePmModule(req entitys.PmModuleEntitys) (string, er
 	}
 	//req.UpdatedAt = time.Now().Unix()
 	res, err := rpc.ClientModuleService.UpdateAll(context.Background(), entitys.PmModule_e2pb(&req))
+	if err != nil {
+		return "", err
+	}
+	if res.Code != 200 {
+		return "", errors.New(res.Message)
+	}
+	//services.SetDefaultTranslate(context.Background(), "t_pm_module", req.Id, "name", req.ModuleName, req.ModuleNameEn)
+	if req.ImgUrl != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmModule, iotutil.ToString(req.Id), req.ImgUrl)
+	}
+	return iotutil.ToString(req.Id), err
+}
+
+// 修改部分模组芯片数据，按需修改
+func (s PmModuleService) UpdatePartPmModule(req entitys.PmModuleEntitys) (string, error) {
+	if req.Id == "" {
+		return "", errors.New("模组芯片Id不能为空")
+	}
+	res, err := rpc.ClientModuleService.Update(context.Background(), entitys.PmModule_e2pb(&req))
 	if err != nil {
 		return "", err
 	}

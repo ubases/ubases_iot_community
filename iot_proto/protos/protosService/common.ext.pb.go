@@ -84,7 +84,7 @@ func (x *ResponseAndData) GetData() string {
 	return ""
 }
 
-//统一列表查询方式，支持分页和排序
+// 统一列表查询方式，支持分页和排序
 type RequestEx struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -164,7 +164,7 @@ func (x *RequestEx) GetOrderDesc() string {
 	return ""
 }
 
-//统一响应方式，data是单个对象
+// 统一响应方式，data是单个对象
 type ResponseEx struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -236,7 +236,7 @@ func (x *ResponseEx) GetMeta() *Meta {
 	return nil
 }
 
-//统一响应方式，data是多个对象
+// 统一响应方式，data是多个对象
 type ResponseExs struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

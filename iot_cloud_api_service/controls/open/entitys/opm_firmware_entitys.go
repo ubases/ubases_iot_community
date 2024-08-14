@@ -15,6 +15,8 @@ type OpmFirmwareEntitys struct {
 	Id              int64       `json:"id,string"`
 	TenantId        string      `json:"tenantId"`
 	Name            string      `json:"name"`
+	NameEn          string      `json:"nameEn"`
+	FirmwareNameEn          string      `json:"firmwareNameEn"`  //兼容前端显示
 	Flag            string      `json:"flag"`
 	Type            int32       `json:"type"`
 	FlashSize       interface{} `json:"flashSize"`
@@ -46,6 +48,9 @@ func (s *OpmFirmwareEntitys) AddCheck() error {
 	if s.Name == "" {
 		return errors.New("固件名称不能为空")
 	}
+	if s.NameEn == "" {
+		return errors.New("固件英文名称不能为空")
+	}
 	if s.Flag == "" {
 		return errors.New("固件标识不能为空")
 	}
@@ -68,6 +73,9 @@ func (s *OpmFirmwareEntitys) AddCheck() error {
 func (s *OpmFirmwareEntitys) UpdateCheck() error {
 	if s.Name == "" {
 		return errors.New("固件名称不能为空")
+	}
+	if s.NameEn == "" {
+		return errors.New("固件英文名称不能为空")
 	}
 	if s.Flag == "" {
 		return errors.New("固件标识不能为空")
@@ -156,6 +164,7 @@ func OpmFirmware_e2pb(src *OpmFirmwareEntitys) *proto.OpmFirmware {
 	pbObj := proto.OpmFirmware{
 		Id:              src.Id,
 		Name:            src.Name,
+		NameEn:            src.NameEn,
 		Flag:            src.Flag,
 		Type:            iotutil.ToString(src.Type),
 		FlashSize:       iotutil.ToInt32(src.FlashSize),
@@ -189,6 +198,8 @@ func OpmFirmware_pb2e(src *proto.OpmFirmware) *OpmFirmwareEntitys {
 	entitysObj := OpmFirmwareEntitys{
 		Id:              src.Id,
 		Name:            src.Name,
+		NameEn:            src.NameEn,
+		FirmwareNameEn:            src.NameEn,
 		Flag:            src.Flag,
 		Type:            iotutil.ToInt32(src.Type),
 		FlashSize:       src.FlashSize,

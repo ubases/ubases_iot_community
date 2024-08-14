@@ -253,3 +253,39 @@ func (ct *ProductController) CheckExists(c *gin.Context) {
 		return
 	}
 }
+
+// 通过产品类型Key获取故障物模型
+func (ct *ProductController) GetFaultType(c *gin.Context) {
+	var (
+		data       interface{}
+		productKey string
+		productId  int64
+		err        error
+	)
+	productKey = c.Query("productKey")
+	if c.Query("productId") != "" {
+		productId, _ = iotutil.ToInt64AndErr(c.Query("productId"))
+	}
+	if productId == 0 && productKey == "" {
+		err = fmt.Errorf("%s 不能为空", "productId/productKey")
+		return
+	}
+	if productId != 0 && productKey == "" {
+		ret, err := rpc.ClientProductService.GetByIdTPmProduct(context.Background(), &protosService.TPmProductFilterById{
+			Id: productId,
+		})
+		if err != nil {
+			iotgin.ResErrCli(c, err)
+			return
+		}
+		productKey = ret.Data.ProductKey
+	}
+	if data, err = productService.GetProductFaultThingModel(productKey); err != nil {
+		return
+	}
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, data)
+}

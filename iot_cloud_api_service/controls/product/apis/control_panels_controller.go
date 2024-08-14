@@ -2,6 +2,7 @@ package apis
 
 import (
 	"cloud_platform/iot_cloud_api_service/controls"
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	apis2 "cloud_platform/iot_cloud_api_service/controls/lang/apis"
 	"cloud_platform/iot_cloud_api_service/controls/product/entitys"
 	"cloud_platform/iot_common/iotconst"
@@ -9,6 +10,7 @@ import (
 	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"context"
 	"errors"
 	"strconv"
@@ -35,8 +37,11 @@ func (ct *ControlPanelsController) Add(c *gin.Context) {
 	productTypeIdStr := c.PostForm("productTypeId")
 	desc := c.PostForm("desc")
 	status := c.PostForm("status")
+	code := c.PostForm("code")
 	productId, _ := strconv.ParseInt(productIdStr, 10, 64)
 	productTypeId, err2 := iotutil.ToInt64AndErr(productTypeIdStr)
+	fileUrls := []string{}
+	//if err2 != nil || name == "" || productTypeId <= 0 {
 	if err2 != nil || name == "" {
 		iotgin.ResBadRequest(c, "")
 		return
@@ -79,6 +84,7 @@ func (ct *ControlPanelsController) Add(c *gin.Context) {
 			panelFileKey = f.Key
 			panelFileSize = int32(file.Size)
 			hasPanel = true
+			fileUrls = append(fileUrls, panelFile)
 			break
 		}
 	}
@@ -98,6 +104,7 @@ func (ct *ControlPanelsController) Add(c *gin.Context) {
 			previewName = f.Name
 			previewSize = int32(f.Size)
 			hasPreview = true
+			fileUrls = append(fileUrls, panelPreview)
 			break
 		}
 	}
@@ -122,6 +129,7 @@ func (ct *ControlPanelsController) Add(c *gin.Context) {
 		ProductId:     productId,
 		LangFileName:  langFileName,
 		CreatedBy:     controls.GetUserId(c),
+		Code:          code,
 	}
 	if status == "" {
 		req.Status = 2
@@ -137,6 +145,9 @@ func (ct *ControlPanelsController) Add(c *gin.Context) {
 		iotgin.ResErrCli(c, errors.New(rep.Message))
 		return
 	}
+	if panelPreview != "" && panelFile != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmControlPanel, iotutil.ToString(req.Id), fileUrls...)
+	}
 	//services.SetDefaultTranslate(context.Background(), "t_pm_control_panels", rep.Data, "name", name, nameEn)
 	iotgin.ResSuccessMsg(c)
 }
@@ -147,6 +158,7 @@ func (ct *ControlPanelsController) Update(c *gin.Context) {
 	name := c.PostForm("name")
 	nameEn := c.PostForm("nameEn")
 	desc := c.PostForm("desc")
+	code := c.PostForm("code")
 	var productId int64
 	var productTypeId int64
 	productIdStr := c.PostForm("productId")
@@ -174,6 +186,7 @@ func (ct *ControlPanelsController) Update(c *gin.Context) {
 		return
 	}
 
+	fileUrls := []string{}
 	//两个文件，一个面板文件，一个缩略图
 	panelFile := ""
 	panelFileName := ""
@@ -209,6 +222,7 @@ func (ct *ControlPanelsController) Update(c *gin.Context) {
 				panelFileName = file.Filename
 				panelFileKey = f.Key
 				panelFileSize = int32(file.Size)
+				fileUrls = append(fileUrls, panelFile)
 				break
 			}
 		}
@@ -222,6 +236,7 @@ func (ct *ControlPanelsController) Update(c *gin.Context) {
 				panelPreview = f.FullPath
 				previewName = f.Name
 				previewSize = int32(f.Size)
+				fileUrls = append(fileUrls, panelPreview)
 				break
 			}
 		}
@@ -244,6 +259,7 @@ func (ct *ControlPanelsController) Update(c *gin.Context) {
 		ProductId:     productId,
 		LangFileName:  langFileName,
 		UpdatedBy:     controls.GetUserId(c),
+		Code:          code,
 	}
 	rep, err := rpc.ClientControlPanelsService.Update(context.Background(), req)
 	if err != nil {
@@ -262,6 +278,10 @@ func (ct *ControlPanelsController) Update(c *gin.Context) {
 	//}
 	//清理所有使用该面板的产品面板缓存
 	go ct.ClearPanelCached(id)
+
+	if panelPreview != "" && panelFile != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTPmControlPanel, iotutil.ToString(req.Id), fileUrls...)
+	}
 	iotgin.ResSuccessMsg(c)
 }
 

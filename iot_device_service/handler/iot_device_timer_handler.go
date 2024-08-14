@@ -131,11 +131,13 @@ func (h *IotDeviceTimerHandler) Create(ctx context.Context, req *proto.IotDevice
 		}
 		reqJob.EndData = string(endDataBytes)
 	}
+
 	jobSvc := service.IotJobSvc{Ctx: ctx}
 	_, err = jobSvc.CreateIotJob(reqJob)
 	if err != nil {
 		return err
 	}
+
 	s := service.IotDeviceTimerSvc{Ctx: ctx}
 	_, err = s.CreateIotDeviceTimer(req)
 	if err != nil {

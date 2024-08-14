@@ -26,6 +26,7 @@ type OemAppIntroduceSaveReq struct {
 	Content     string `json:"content"`
 	VioceCode   string `json:"vioceCode"`
 	Abstract    string `json:"abstract"`
+	RemindMode int32 `json:"remindMode"` //更新提醒模式 =1 不提醒 =2 弹框提醒
 }
 
 // 详情请求
@@ -46,6 +47,7 @@ type OemAppIntroduceDetailRes struct {
 	Content     string `json:"content"`
 	VioceCode   string `json:"vioceCode"`
 	Abstract    string `json:"abstract"`
+	RemindMode int32 `json:"remindMode"` //更新提醒模式 =1 不提醒 =2 弹框提醒
 }
 
 type OemAppIntroduceStatusReq struct {
@@ -53,6 +55,12 @@ type OemAppIntroduceStatusReq struct {
 	Version     string `json:"version"`
 	ContentType int32  `json:"contentType"` //1 用户协议,2隐私政策,3关于我们
 	//Status int32 `json:"status"`
+}
+
+type OemAppIntroduceCopyReq struct {
+	AppId      int64  `json:"appId,string"`
+	OldVersion string `json:"oldVersion"`
+	NewVersion string `json:"newVersion"`
 }
 
 type OemAppIntroduceListReq struct {
@@ -68,6 +76,7 @@ type OemAppIntroduceListRes struct {
 	Status      int32  `json:"status"`
 	CreatedAt   int32  `json:"createdAt"`
 	UpdatedAt   int32  `json:"updatedAt"`
+	RemindMode int32 `json:"remindMode"`
 }
 
 // 协议模板链接响应参数

@@ -5,7 +5,6 @@
 package service
 
 import (
-	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_product_service/convert"
 	"context"
@@ -34,6 +33,9 @@ func (s *OpmFirmwareSvc) CreateOpmFirmware(req *proto.OpmFirmware) (*proto.OpmFi
 	//fixme 参数验证
 	if dbObj.Name == "" {
 		return nil, errors.New("固件名称不能为空")
+	}
+	if dbObj.NameEn == "" {
+		return nil, errors.New("固件英文名称不能为空")
 	}
 	if dbObj.Flag == "" {
 		return nil, errors.New("固件标识不能为空")
@@ -83,7 +85,6 @@ func (s *OpmFirmwareSvc) CreateAndInitVersion(req *proto.OpmFirmware) (*proto.Op
 		dbObj.Status = 2
 		dbObj.TenantId = tenantId
 		dbObj.FirmwareKey = iotutil.GetCustomFirmwareKeyRandomString()
-		dbObj.FirmwareKey = iotconst.FIRMWARE_KEY + iotutil.GetSecret(10)
 		err = do.Create(dbObj)
 		if err != nil {
 			return err
@@ -272,6 +273,9 @@ func (s *OpmFirmwareSvc) UpdateOpmFirmware(req *proto.OpmFirmware) (*proto.OpmFi
 	if req.Name != "" { //字符串
 		updateField = append(updateField, t.Name)
 	}
+	if req.NameEn != "" { //字符串
+		updateField = append(updateField, t.NameEn)
+	}
 	if req.Flag != "" { //字符串
 		updateField = append(updateField, t.Flag)
 	}
@@ -333,6 +337,7 @@ func (s *OpmFirmwareSvc) UpdateAllOpmFirmware(req *proto.OpmFirmware) (*proto.Op
 	var updateField []field.Expr
 
 	updateField = append(updateField, t.Name)
+	updateField = append(updateField, t.NameEn)
 	updateField = append(updateField, t.Flag)
 	updateField = append(updateField, t.Type)
 	updateField = append(updateField, t.FlashSize)
@@ -413,6 +418,9 @@ func (s *OpmFirmwareSvc) FindOpmFirmware(req *proto.OpmFirmwareFilter) (*proto.O
 	if req.Name != "" { //字符串
 		do = do.Where(t.Name.Eq(req.Name))
 	}
+	if req.NameEn != "" { //字符串
+		do = do.Where(t.NameEn.Eq(req.NameEn))
+	}
 	if req.Flag != "" { //字符串
 		do = do.Where(t.Flag.Eq(req.Flag))
 	}
@@ -488,7 +496,8 @@ func (s *OpmFirmwareSvc) GetListOpmFirmware(req *proto.OpmFirmwareListRequest) (
 			do = do.Where(t.Id.Eq(query.Id))
 		}
 		if query.Name != "" { //字符串
-			do = do.Where(t.Name.Like("%" + query.Name + "%"))
+			nameWhere := t.WithContext(context.Background()).Where(t.Name.Like("%" + query.Name + "%")).Or(t.NameEn.Like("%" + query.Name + "%"))
+			do = do.Where(nameWhere)
 		}
 		if query.Flag != "" { //字符串
 			do = do.Where(t.Flag.Eq(query.Flag))
@@ -531,8 +540,13 @@ func (s *OpmFirmwareSvc) GetListOpmFirmware(req *proto.OpmFirmwareListRequest) (
 			do = do.Order(orderCol)
 		}
 	}
-	do = do.LeftJoin(doVersion.Select(tVersion.FirmwareId, tVersion.Version.Max().As("version")).
-		Group(tVersion.FirmwareId).As("t_opm_firmware_version"), tVersion.FirmwareId.EqCol(t.Id))
+
+	doVersion = doVersion.Select(tVersion.FirmwareId, tVersion.Version.Max().As("version")).
+		Group(tVersion.FirmwareId)
+	if req.Query.IsQueryValidVersion {
+		doVersion = doVersion.Where(tVersion.Status.Eq(1))
+	}
+	do = do.LeftJoin(doVersion.As("t_opm_firmware_version"), tVersion.FirmwareId.EqCol(t.Id))
 	do = do.Select(t.ALL, tVersion.FirmwareId, tVersion.Version.As("lastVersion"))
 
 	var list = []struct {

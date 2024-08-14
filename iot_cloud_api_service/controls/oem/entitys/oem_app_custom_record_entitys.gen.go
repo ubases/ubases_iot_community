@@ -20,6 +20,9 @@ type OemAppCustomRecordEntitys struct {
 	Os            int32           `json:"os,omitempty"`
 	Status        int32           `json:"status,omitempty"`
 	Description   string          `json:"description,omitempty"`
+	RemindDesc   string          `json:"desc"` //提醒描述中文
+	RemindDescEn string          `json:"descEn"`//提醒描述英文
+	RemindMode int32 `json:"remindMode"` //更新提醒模式 =1 红点提醒 =2 弹框提醒 =3 强制升级提醒
 	CreatedBy     int64           `json:"createdBy,string,omitempty"`
 	CreatedAt     int64           `json:"createdAt,omitempty"`
 	UpdatedBy     int64           `json:"updatedBy,string,omitempty"`
@@ -90,6 +93,9 @@ func OemAppCustomRecord_e2pb(src *OemAppCustomRecordEntitys) *proto.OemAppCustom
 		Description: src.Description,
 		CreatedBy:   src.CreatedBy,
 		UpdatedBy:   src.UpdatedBy,
+		RemindMode: src.RemindMode,
+		RemindDesc: src.RemindDesc,
+		RemindDescEn: src.RemindDescEn,
 	}
 	if src.LaunchMarkets != nil {
 		pbObj.LaunchMarkets = iotutil.ToString(src.LaunchMarkets)
@@ -115,6 +121,9 @@ func OemAppCustomRecord_pb2e(src *proto.OemAppCustomRecord) *OemAppCustomRecordE
 		CreatedAt:   src.CreatedAt.AsTime().Unix(),
 		UpdatedBy:   src.UpdatedBy,
 		UpdatedAt:   src.UpdatedAt.AsTime().Unix(),
+		RemindMode: src.RemindMode,
+		RemindDesc: src.RemindDesc,
+		RemindDescEn: src.RemindDescEn,
 	}
 	//LaunchMarkets []*LaunchMarket `json:"launchMarkets"`
 	if src.LaunchMarkets != "" {

@@ -13,6 +13,7 @@ func RegisterRouter(e *gin.Engine) {
 	admin := e.Group(webApiPrefix)
 	admin.GET("/app/introduce/detail/:id/:lang", apis.OemAppIntroducecontroller.GetIntroduceByAppHtml)
 	admin.GET("/app/introduce/template/detail/:id/:lang", apis.OemAppIntroducecontroller.GetIntroduceTtemplateByAppHtml)
+
 	admin.POST("/app/buildFinishNotify", apis.OemAppBuildRecordcontroller.BuildFinishNotify)     //新版也在用，构建失败时调用，不传文件，后续会迁移完成并删除
 	admin.POST("/app/buildFinishNotifyEx", apis.OemAppBuildRecordcontroller.BuildFinishNotifyEx) //新版打包服务
 	admin.GET("/app/build/appIconUrl", apis.OemAppBuildRecordcontroller.GetBuildAppIconUrl)      //新版打包服务
@@ -30,6 +31,8 @@ func RegisterRouter(e *gin.Engine) {
 	admin.POST("/app/currentStep", apis.OemAppcontroller.UpdateCurrentStep)
 	admin.DELETE("/app", apis.OemAppcontroller.DeleteOemApp)
 	admin.POST("/app/delete", apis.OemAppcontroller.DeleteOemApp)
+	admin.POST("/app/editTeamId", apis.OemAppcontroller.ChangeOemAppTeamId)
+	admin.POST("/app/setStatus", apis.OemAppcontroller.ChangeOemAppTeamId)
 
 	//自定义app版本记录管理
 	admin.POST("/app/custom/version/add", apis.OemAppCustomRecordControl.CreateOemAppCustomRecord)
@@ -41,6 +44,7 @@ func RegisterRouter(e *gin.Engine) {
 
 	admin.POST("/app/custom/version/editRemark", apis.OemAppCustomRecordControl.SetRemark)
 	admin.POST("/app/custom/version/editLaunchMarkets", apis.OemAppCustomRecordControl.SetLaunchMarkets)
+	admin.POST("/app/custom/version/editRemindMode", apis.OemAppCustomRecordControl.SetRemindMode)
 
 	//获取自定义app包二维码链接
 	admin.GET("/app/custom/qrCodeUrl", apis.OemAppcontroller.OemAppCustomPackageQrCodeUrl)
@@ -97,6 +101,7 @@ func RegisterRouter(e *gin.Engine) {
 	admin.POST("/app/introduce", apis.OemAppIntroducecontroller.OemAppIntroduceAdd)
 	admin.PUT("/app/introduce", apis.OemAppIntroducecontroller.OemAppIntroduceUpdate)
 	admin.POST("/app/introduce/update", apis.OemAppIntroducecontroller.OemAppIntroduceUpdate)
+	admin.POST("/app/introduce/copy", apis.OemAppIntroducecontroller.OemAppIntroduceCopy)
 	admin.PUT("/app/introduce/statusEnable", apis.OemAppIntroducecontroller.OemAppIntroduceStatusEnable)
 	admin.POST("/app/introduce/statusEnable", apis.OemAppIntroducecontroller.OemAppIntroduceStatusEnable)
 	admin.GET("/app/introduce/detail", apis.OemAppIntroducecontroller.OemAppIntroduceDetail)
@@ -106,11 +111,28 @@ func RegisterRouter(e *gin.Engine) {
 	admin.GET("/app/introduce/link", apis.OemAppIntroducecontroller.OemAppIntroduceUrlList)
 	admin.GET("/app/introduce/template/link", apis.OemAppIntroducecontroller.OemAppIntroduceTemplateUrlList)
 
+	//证书
+	admin.POST("/app/iosCert", apis.OemAppCertcontroller.SaveIosCert)
+	admin.GET("/app/iosCert", apis.OemAppCertcontroller.GetIosCert)
+	admin.POST("/app/androidCert", apis.OemAppCertcontroller.SaveAndroidCert)
+	admin.GET("/app/androidCert", apis.OemAppCertcontroller.GetAndroidCert)
+	admin.GET("/app/downloadSignCert", apis.OemAppCertcontroller.DownloadSignCert)
+	admin.POST("/app/iosPush", apis.OemAppCertcontroller.SaveIosPushCert)
+	admin.GET("/app/iosPush", apis.OemAppCertcontroller.GetIosPushCert)
+	admin.POST("/app/androidPush", apis.OemAppCertcontroller.SaveAndroidPushCert)
+	admin.GET("/app/androidPush", apis.OemAppCertcontroller.GetAndroidPushCert)
+	admin.GET("/app/androidCert/regenerate", apis.OemAppCertcontroller.Regenerate)
+
+	//检查
+	admin.GET("/app/check", apis.OemAppcontroller.OemAppCheck)
+	//开始构建
+	admin.POST("/app/build", apis.OemAppcontroller.OemAppBuild)
 	admin.GET("/app/buildPackage", apis.OemAppcontroller.OemAppBuildPackage)
 	admin.GET("/app/publish", apis.OemAppcontroller.OemAppPublish)
 	admin.GET("/app/publishing", apis.OemAppcontroller.OemAppPublishing)
 	admin.GET("/app/updateVersion", apis.OemAppcontroller.OemAppUpdateVersion)
 	admin.GET("/app/build/qrCodeUrl", apis.OemAppcontroller.OemAppBuildPackageQrCodeUrl)
+	admin.POST("/app/buildCancel", apis.OemAppcontroller.OemAppCancelBuild)
 	// oem app版本列表
 	admin.POST("/app/version/list", apis.OemAppVersionRecordcontroller.GetOemAppVersionRecordList)
 
@@ -173,10 +195,101 @@ func RegisterRouter(e *gin.Engine) {
 	admin = e.Group(webApiPrefix)
 	admin.Use(controls.AuthCheck)
 
+	//APP基础界面配置/v1/platform/web/app/basicUISetting/list
+	admin.POST("/basicUISetting/list", apis.OemAppBasicUiSettingcontroller.List)
+	admin.GET("/basicUISetting/detail", apis.OemAppBasicUiSettingcontroller.Get)
+	admin.POST("basicUISetting/add", apis.OemAppBasicUiSettingcontroller.Add)
+	admin.PUT("/basicUISetting/update", apis.OemAppBasicUiSettingcontroller.Update)
+	admin.POST("/basicUISetting/update", apis.OemAppBasicUiSettingcontroller.Update)
+	admin.DELETE("/basicUISetting/delete", apis.OemAppBasicUiSettingcontroller.Delete)
+	admin.POST("/basicUISetting/delete", apis.OemAppBasicUiSettingcontroller.Delete)
+
+	//APP模板 /v1/platform/web/app/appTemplate/list
+	admin.POST("/appTemplate/list", apis.OemAppTemplatecontroller.List)
+	admin.GET("/appTemplate/detail/:id", apis.OemAppTemplatecontroller.Get)
+	admin.POST("appTemplate/add", apis.OemAppTemplatecontroller.Add)
+	admin.POST("appTemplate/copy", apis.OemAppTemplatecontroller.Copy)
+	admin.PUT("/appTemplate/edit", apis.OemAppTemplatecontroller.Update)
+	admin.POST("/appTemplate/edit", apis.OemAppTemplatecontroller.Update)
+	admin.DELETE("/appTemplate/delete/:id", apis.OemAppTemplatecontroller.Delete)
+	admin.POST("/appTemplate/delete/:id", apis.OemAppTemplatecontroller.Delete)
+	admin.POST("/appTemplate/setStatus", apis.OemAppTemplatecontroller.SetStatus)
+
+	//APP模板-界面配置 /v1/platform/web/app/appTemplate/uiSettingList
+	admin.POST("/appTemplate/uiSettingList", apis.OemAppTemplateUicontroller.List)
+	admin.GET("/appTemplate/uiSettingDetail/:id", apis.OemAppTemplateUicontroller.Get)
+	admin.POST("appTemplate/uiSettingAdd", apis.OemAppTemplateUicontroller.Add)
+	admin.PUT("/appTemplate/uiSettingEdit", apis.OemAppTemplateUicontroller.Update)
+	admin.POST("/appTemplate/uiSettingEdit", apis.OemAppTemplateUicontroller.Update)
+	admin.PUT("/appTemplate/uiSettingEditContent", apis.OemAppTemplateUicontroller.Update)
+	admin.POST("/appTemplate/uiSettingEditContent", apis.OemAppTemplateUicontroller.Update)
+	admin.DELETE("/appTemplate/uiSettingDel/:id", apis.OemAppTemplateUicontroller.Delete)
+	admin.POST("/appTemplate/uiSettingDel/:id", apis.OemAppTemplateUicontroller.Delete)
+
+	//APP模板-功能配置 /v1/platform/web/app/appTemplate/functionList
+	admin.POST("/appTemplate/functionList", apis.OemAppTemplateFunctioncontroller.List)
+	admin.GET("/appTemplate/functionDetail/:id", apis.OemAppTemplateFunctioncontroller.Get)
+	admin.POST("appTemplate/functionAdd", apis.OemAppTemplateFunctioncontroller.Add)
+	admin.PUT("/appTemplate/functionEdit", apis.OemAppTemplateFunctioncontroller.Update)
+	admin.POST("/appTemplate/functionEdit", apis.OemAppTemplateFunctioncontroller.Update)
+	admin.DELETE("/appTemplate/functionDel/:id", apis.OemAppTemplateFunctioncontroller.Delete)
+	admin.POST("/appTemplate/functionDel/:id", apis.OemAppTemplateFunctioncontroller.Delete)
+
+	//APP模板-菜单配置 /v1/platform/web/app/appTemplate/menuList
+	admin.POST("/appTemplate/menuList", apis.OemAppTemplateMenucontroller.List)
+	admin.GET("/appTemplate/menuDetail/:id", apis.OemAppTemplateMenucontroller.Get)
+	admin.POST("appTemplate/menuAdd", apis.OemAppTemplateMenucontroller.Add)
+	admin.PUT("/appTemplate/menuEdit", apis.OemAppTemplateMenucontroller.Update)
+	admin.POST("/appTemplate/menuEdit", apis.OemAppTemplateMenucontroller.Update)
+	admin.DELETE("/appTemplate/menuDel/:id", apis.OemAppTemplateMenucontroller.Delete)
+	admin.POST("/appTemplate/menuDel/:id", apis.OemAppTemplateMenucontroller.Delete)
+
+	//APP模板-第三方配置 /v1/platform/web/app/appTemplate/thirdPartyList
+	admin.POST("/appTemplate/thirdPartyList", apis.OemAppTemplateThirdPartycontroller.List)
+	admin.GET("/appTemplate/thirdPartyDetail/:id", apis.OemAppTemplateThirdPartycontroller.Get)
+	admin.POST("appTemplate/thirdPartyAdd", apis.OemAppTemplateThirdPartycontroller.Add)
+	admin.PUT("/appTemplate/thirdPartyEdit", apis.OemAppTemplateThirdPartycontroller.Update)
+	admin.POST("/appTemplate/thirdPartyEdit", apis.OemAppTemplateThirdPartycontroller.Update)
+	admin.DELETE("/appTemplate/thirdPartyDel/:id", apis.OemAppTemplateThirdPartycontroller.Delete)
+	admin.POST("/appTemplate/thirdPartyDel/:id", apis.OemAppTemplateThirdPartycontroller.Delete)
+
+	//APP模板-皮肤配置 /v1/platform/web/app/appTemplate/skinList
+	admin.POST("/appTemplate/skinList", apis.OemAppTemplateSkincontroller.List)
+	admin.GET("/appTemplate/skinDetail/:id", apis.OemAppTemplateSkincontroller.Get)
+	admin.POST("appTemplate/skinAdd", apis.OemAppTemplateSkincontroller.Add)
+	admin.PUT("/appTemplate/skinEdit", apis.OemAppTemplateSkincontroller.Update)
+	admin.POST("/appTemplate/skinEdit", apis.OemAppTemplateSkincontroller.Update)
+	admin.DELETE("/appTemplate/skinDel/:id", apis.OemAppTemplateSkincontroller.Delete)
+	admin.POST("/appTemplate/skinDel/:id", apis.OemAppTemplateSkincontroller.Delete)
+
+	//公版app版本管理 /v1/platform/web/app/publicVersion/add
+	admin.POST("/publicVersion/list", apis.PublicAppVersioncontroller.List)
+	admin.GET("/publicVersion/detail/:id", apis.PublicAppVersioncontroller.Get)
+	admin.POST("publicVersion/add", apis.PublicAppVersioncontroller.Add)
+	admin.PUT("/publicVersion/edit", apis.PublicAppVersioncontroller.Update)
+	admin.POST("/publicVersion/edit", apis.PublicAppVersioncontroller.Update)
+	admin.DELETE("/publicVersion/del/:id", apis.PublicAppVersioncontroller.Delete)
+	admin.POST("/publicVersion/del/:id", apis.PublicAppVersioncontroller.Delete)
+	admin.POST("/publicVersion/setStatus", apis.PublicAppVersioncontroller.SetStatus)
+
+	//APP辅助上架 /v1/platform/web/app/assistRelease/list
+	admin.POST("/assistRelease/list", apis.OemAppAssistReleasecontroller.List)
+	admin.GET("/assistRelease/detail/:id", apis.OemAppAssistReleasecontroller.Get)
+	admin.POST("assistRelease/add", apis.OemAppAssistReleasecontroller.Add)
+	admin.PUT("/assistRelease/edit", apis.OemAppAssistReleasecontroller.Update)
+	admin.POST("/assistRelease/edit", apis.OemAppAssistReleasecontroller.Update)
+	admin.DELETE("/assistRelease/del/:id", apis.OemAppAssistReleasecontroller.Delete)
+	admin.POST("/assistRelease/del/:id", apis.OemAppAssistReleasecontroller.Delete)
+	admin.POST("/assistRelease/setStatus", apis.OemAppAssistReleasecontroller.SetStatus)
+
+	//APP辅助上架 查询开发者信息 v1/platform/web/app/developer/appList
+	admin.GET("/developer/appList", apis.OemAppAssistReleasecontroller.DeveloperAppList)
+
 	//APP调试管理
 	admin.POST("/appDebugger/list", apis.OemAppDebuggercontroller.List)
 	admin.GET("/appDebugger/detail/:id", apis.OemAppDebuggercontroller.Get)
 	admin.POST("appDebugger/add", apis.OemAppDebuggercontroller.Add)
 	admin.POST("/appDebugger/edit", apis.OemAppDebuggercontroller.Update)
 	admin.POST("/appDebugger/delete/:id", apis.OemAppDebuggercontroller.Delete)
+
 }

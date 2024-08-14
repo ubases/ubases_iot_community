@@ -63,6 +63,10 @@ message OemAppCustomRecord {
 
     //已上架市场集合, JSON格式 [{code, name}]
     string launchMarkets = 113;
+
+    int32 remindMode = 115;//提醒方式
+    string remindDesc = 116;//升级描述
+    string remindDescEn = 117;//升级描述英文
 }
 
 message OemAppCustomRecordFilter {

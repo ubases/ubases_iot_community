@@ -4,7 +4,7 @@ import (
 	"cloud_platform/iot_app_api_service/controls"
 	"cloud_platform/iot_app_api_service/controls/user/apis"
 	"cloud_platform/iot_common/iotgin"
-	"cloud_platform/iot_common/iotnats/jetstream"
+	"cloud_platform/iot_common/iotnatsjs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +13,6 @@ func RegisterRouter(e *gin.Engine) {
 	webApiPrefix := "/v1/platform/app"
 	r := e.Group(webApiPrefix)
 	r.Use(controls.SetParams)
-	r.Use(iotgin.AppLogger(jetstream.GetJsPublisherMgr()))
 	r.POST("/user/refreshToken", apis.Usercontroller.RefreshToken)
 	r.POST("/user/login", apis.Usercontroller.Login)
 	r.POST("/user/register", apis.Usercontroller.Register)
@@ -24,6 +23,7 @@ func RegisterRouter(e *gin.Engine) {
 	r.POST("/user/checkAccount", apis.Usercontroller.CheckAccount)
 	r.POST("/user/forgetPassword", apis.Usercontroller.ForgetPassword)
 	r.POST("/user/channelAuth", apis.Usercontroller.ChannelAuth)
+	r.POST("/wechat/minprogram/login", apis.Usercontroller.MinprogramChannelAuth)
 	r.POST("/user/channelBind", apis.Usercontroller.ChannelBind)
 	r.POST("/user/getAppId", apis.Usercontroller.GetAppId)
 	r.GET("/user/convertMd5", apis.Usercontroller.ConvertToMd5)
@@ -32,6 +32,7 @@ func RegisterRouter(e *gin.Engine) {
 	r.Any("/user/logout", apis.Usercontroller.Logout)
 
 	r.Use(controls.AuthCheck)
+	r.Use(iotgin.AppLogger(iotnatsjs.GetJsClientPub()))
 	r.POST("/user/updateUser", apis.Usercontroller.UpdateUser)
 	r.POST("/user/setPassword", apis.Usercontroller.SetUserPassword)
 	//r.GET("/user/getAddress", apis.Usercontroller.GetAddress)
@@ -53,6 +54,8 @@ func RegisterRouter(e *gin.Engine) {
 	r.POST("/home/add", apis.Homecontroller.Add)
 	r.POST("/home/update/:id", apis.Homecontroller.Update)
 	r.POST("/home/delete/:id", apis.Homecontroller.Delete)
+	r.POST("/home/sendMsgTest/:id", apis.Homecontroller.SendMsgTest)
+
 	r.POST("/home/sendInvitationCode", apis.Homecontroller.SendInvitationCode)
 	r.POST("/home/joinHome", apis.Homecontroller.JoinHome)
 	r.POST("/home/setRole", apis.Homecontroller.SetRole)

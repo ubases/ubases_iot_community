@@ -33,10 +33,10 @@ func (OemAppCustomRecordController) CreateOemAppCustomRecord(c *gin.Context) {
 		ioterrs.Response(c, cached.RedisStore, goerrors.FromError(err).GetCode(), nil)
 		return
 	}
-	err = oemAppCustomRecord.SetContext(controls.WithOpenUserContext(c)).CreateOemAppCustomRecord(&req)
+	err = oemAppCustomRecord.SetContext(controls.WithOpenUserContext(c)).CreateOemAppCustomRecord(&req, true)
 	if err != nil {
 		iotlogger.LogHelper.Helper.Error("create custom app error: ", err)
-		ioterrs.Response(c, cached.RedisStore, goerrors.FromError(err).GetCode(), nil)
+		iotgin.ResErrCli(c, err)
 		return
 	}
 	ioterrs.Response(c, cached.RedisStore, ioterrs.Success, nil)
@@ -124,6 +124,36 @@ func (OemAppCustomRecordController) SetRemark(c *gin.Context) {
 		return
 	}
 	err = oemAppCustomRecord.SetContext(controls.WithOpenUserContext(c)).SetRemark(&req)
+	if err != nil {
+		iotlogger.LogHelper.Helper.Error("update custom app error: ", err)
+		ioterrs.Response(c, cached.RedisStore, goerrors.FromError(err).GetCode(), nil)
+		return
+	}
+	ioterrs.Response(c, cached.RedisStore, ioterrs.Success, nil)
+}
+
+// 更新提醒方式
+func (OemAppCustomRecordController) SetRemindMode(c *gin.Context) {
+	var req entitys.OemAppCustomRecordEntitys
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotlogger.LogHelper.Helper.Error("bind update custom app param error: ", err)
+		ioterrs.Response(c, cached.RedisStore, ioterrs.ErrShouldBindJSON, nil)
+		return
+	}
+	//if req.RemindDescEn == "" {
+	//	iotgin.ResBadRequest(c, "descEn")
+	//	return
+	//}
+	//if req.RemindDesc == "" {
+	//	iotgin.ResBadRequest(c, "desc")
+	//	return
+	//}
+	if req.RemindMode == 0 {
+		iotgin.ResBadRequest(c, "remindMode")
+		return
+	}
+	err = oemAppCustomRecord.SetContext(controls.WithOpenUserContext(c)).SetRemindMode(&req)
 	if err != nil {
 		iotlogger.LogHelper.Helper.Error("update custom app error: ", err)
 		ioterrs.Response(c, cached.RedisStore, goerrors.FromError(err).GetCode(), nil)

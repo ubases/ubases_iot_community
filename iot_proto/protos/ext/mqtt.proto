@@ -27,6 +27,7 @@ service MqttService {
 
     //校验三元组
     rpc VerifyTriad(VerifyTriadRequest) returns (VerifyTriadResponse){}
+
     //生成虚拟设备三元组
     rpc GenVirtualTriad(BatchGenTriadRequest) returns (BatchGenTriadResponse){}
 }

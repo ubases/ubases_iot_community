@@ -116,7 +116,7 @@ func (IotDeviceInfoController) QueryList(c *gin.Context) {
 		filter.Query = &entitys.IotDeviceInfoQueryObj{}
 	}
 	filter.Query.IsQueryTriadData = false
-	res, total, _, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).QueryIotDeviceInfoList(filter)
+	res, total, _, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).QueryIotDeviceInfoList(filter, nil)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
@@ -124,6 +124,7 @@ func (IotDeviceInfoController) QueryList(c *gin.Context) {
 	iotgin.ResPageSuccess(c, res, total, int(filter.Page))
 }
 
+// 获取开发者生产管理数据
 func (IotDeviceInfoController) QueryProduceList(c *gin.Context) {
 	var filter entitys.IotDeviceInfoQuery
 	err := c.ShouldBindJSON(&filter)
@@ -136,7 +137,29 @@ func (IotDeviceInfoController) QueryProduceList(c *gin.Context) {
 		filter.Query = &entitys.IotDeviceInfoQueryObj{}
 	}
 	filter.Query.IsQueryTriadData = true
-	res, total, _, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).QueryIotDeviceInfoList(filter)
+	res, total, _, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).QueryIotDeviceInfoList(filter, nil)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResPageSuccess(c, res, total, int(filter.Page))
+}
+
+// 获取云管平台生产管理数据
+func (IotDeviceInfoController) QueryProducePlatformList(c *gin.Context) {
+	var filter entitys.IotDeviceInfoQuery
+	err := c.ShouldBindJSON(&filter)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	filter.IsPlatform = true
+	if filter.Query == nil {
+		filter.Query = &entitys.IotDeviceInfoQueryObj{}
+	}
+	filter.Query.IsQueryTriadData = true
+
+	res, total, _, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).QueryIotDeviceInfoList(filter, nil)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
@@ -152,7 +175,7 @@ func (IotDeviceInfoController) PlatformQueryList(c *gin.Context) {
 		return
 	}
 	filter.IsPlatform = true
-	res, total, _, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).QueryIotDeviceInfoList(filter)
+	res, total, _, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).QueryIotDeviceInfoList(filter, nil)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
@@ -220,15 +243,22 @@ func (this *IotDeviceInfoController) GetExport(c *gin.Context, mode int) {
 // GetExport 导出的get方法
 func (this *IotDeviceInfoController) GetExportTriad(c *gin.Context) {
 	productId, err := iotutil.ToInt64AndErr(c.DefaultQuery("productId", "0"))
-	//deviceName := c.DefaultQuery("deviceName", "")
 	activeStatus, _ := iotutil.ToInt32Err(c.DefaultQuery("activeStatus", "-1"))
 	serialNumber := c.Query("serialNumber")
+	platformCode := c.Query("platformCode")
+	tenantId := controls.GetTenantId(c)
+	if tenantId == "" {
+		if platformCode != "" {
+			iotgin.ResBadRequest(c, "platformCode")
+			return
+		}
+	}
 	var filter = entitys.IotDeviceInfoQueryObj{
-		ProductId: productId,
-		//DeviceName:   deviceName,
+		ProductId:    productId,
 		ActiveStatus: &activeStatus,
 		BatchId:      c.Query("batch"),
 		SerialNumber: serialNumber,
+		PlatformCode: platformCode,
 	}
 	if filter.ActiveStatus != nil {
 		filter.IsActive = filter.ActiveStatus
@@ -237,7 +267,7 @@ func (this *IotDeviceInfoController) GetExportTriad(c *gin.Context) {
 	filter.IsExport = true
 	userId := controls.GetUserId(c)
 	fileName, tempPathFile, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).ExportCsvTriad(userId,
-		entitys.IotDeviceInfoQuery{SearchKey: filter.SearchKey, Query: &filter}) //
+		entitys.IotDeviceInfoQuery{SearchKey: filter.SearchKey, Query: &filter}, nil) //
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
@@ -260,19 +290,104 @@ func (this *IotDeviceInfoController) GetExportTriadCount(c *gin.Context) {
 	//deviceName := c.DefaultQuery("deviceName", "")
 	activeStatus, _ := iotutil.ToInt32Err(c.DefaultQuery("activeStatus", "-1"))
 	serialNumber := c.Query("serialNumber")
+	platformCode := c.Query("platformCode")
+	tenantId := controls.GetTenantId(c)
+	if tenantId == "" {
+		if platformCode != "" {
+			iotgin.ResBadRequest(c, "platformCode")
+			return
+		}
+	}
 	var filter = entitys.IotDeviceInfoQueryObj{
 		ProductId: productId,
 		//DeviceName:   deviceName,
 		ActiveStatus: &activeStatus,
 		BatchId:      c.Query("batch"),
 		SerialNumber: serialNumber,
+		PlatformCode: platformCode,
 	}
 	if filter.ActiveStatus != nil {
 		filter.IsActive = filter.ActiveStatus
 	}
 	filter.IsQueryTriadData = true
 	_, count, _, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).QueryIotDeviceInfoList(entitys.IotDeviceInfoQuery{
-		SearchKey: filter.SearchKey, Query: &filter, IsOnlyCount: 1}) //
+		SearchKey: filter.SearchKey, Query: &filter, IsOnlyCount: 1}, nil) //
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, count)
+}
+
+// GetExportTriadPlatform 云管平台导出的get方法
+func (this *IotDeviceInfoController) GetExportTriadPlatform(c *gin.Context) {
+	productId, err := iotutil.ToInt64AndErr(c.DefaultQuery("productId", "0"))
+	activeStatus, _ := iotutil.ToInt32Err(c.DefaultQuery("activeStatus", "-1"))
+	isQueryExport, _ := iotutil.ToInt32Err(c.DefaultQuery("isQueryExport", "0"))
+	serialNumber := c.Query("serialNumber")
+	platformCode := c.Query("platformCode")
+	if platformCode == "" {
+		iotgin.ResBadRequest(c, "platformCode")
+		return
+	}
+	var filter = entitys.IotDeviceInfoQueryObj{
+		ProductId:     productId,
+		ActiveStatus:  &activeStatus,
+		BatchId:       c.Query("batch"),
+		SerialNumber:  serialNumber,
+		PlatformCode:  platformCode,
+		IsQueryExport: isQueryExport,
+	}
+	if filter.ActiveStatus != nil {
+		filter.IsActive = filter.ActiveStatus
+	}
+	filter.IsQueryTriadData = true
+	filter.IsExport = true
+	userId := controls.GetUserId(c)
+	fileName, tempPathFile, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).ExportCsvTriad(userId,
+		entitys.IotDeviceInfoQuery{SearchKey: filter.SearchKey, Query: &filter, IsPlatform: true}, nil) //
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	c.Writer.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=%s", url.QueryEscape(fileName))) //fmt.Sprintf("attachment; filename=%s", filename)对下载的文件重命名
+	c.Writer.Header().Add("Content-Type", "application/octet-stream")
+	//发送文件
+	c.File(tempPathFile)
+}
+
+// GetExportTriadCountPlatform 云管平台导出数量的get方法
+func (this *IotDeviceInfoController) GetExportTriadCountPlatform(c *gin.Context) {
+	var inputFilter entitys.IotDeviceTriadExportQuery
+	err := c.ShouldBindQuery(&inputFilter)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	productId, err := iotutil.ToInt64AndErr(c.DefaultQuery("productId", "0"))
+	activeStatus, _ := iotutil.ToInt32Err(c.DefaultQuery("activeStatus", "-1"))
+	isQueryExport, _ := iotutil.ToInt32Err(c.DefaultQuery("isQueryExport", "0"))
+	serialNumber := c.Query("serialNumber")
+	platformCode := c.Query("platformCode")
+	if platformCode == "" {
+		iotgin.ResBadRequest(c, "platformCode")
+		return
+	}
+	var filter = entitys.IotDeviceInfoQueryObj{
+		ProductId: productId,
+		//DeviceName:   deviceName,
+		ActiveStatus:  &activeStatus,
+		BatchId:       c.Query("batch"),
+		SerialNumber:  serialNumber,
+		PlatformCode:  platformCode,
+		IsQueryExport: isQueryExport,
+	}
+	if filter.ActiveStatus != nil {
+		filter.IsActive = filter.ActiveStatus
+	}
+	filter.IsQueryTriadData = true
+	_, count, _, err := deviceInfoServices.SetContext(controls.WithUserContext(c)).QueryIotDeviceInfoList(entitys.IotDeviceInfoQuery{
+		SearchKey: filter.SearchKey, Query: &filter, IsOnlyCount: 1, IsPlatform: true}, nil) //
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return

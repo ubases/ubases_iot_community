@@ -53,6 +53,7 @@ func newTSceneIntelligence(db *gorm.DB) tSceneIntelligence {
 	_tSceneIntelligence.TenantId = field.NewString(tableName, "tenant_id")
 	_tSceneIntelligence.Timezone = field.NewString(tableName, "timezone")
 	_tSceneIntelligence.RegionServerId = field.NewInt64(tableName, "region_server_id")
+	_tSceneIntelligence.InstanceCode = field.NewString(tableName, "instance_code")
 
 	_tSceneIntelligence.fillFieldMap()
 
@@ -91,6 +92,7 @@ type tSceneIntelligence struct {
 	TenantId         field.String
 	Timezone         field.String
 	RegionServerId   field.Int64
+	InstanceCode         field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -135,6 +137,7 @@ func (t *tSceneIntelligence) updateTableName(table string) *tSceneIntelligence {
 	t.TenantId = field.NewString(table, "tenant_id")
 	t.Timezone = field.NewString(table, "timezone")
 	t.RegionServerId = field.NewInt64(table, "region_server_id")
+	t.InstanceCode = field.NewString(table, "instance_code")
 
 	t.fillFieldMap()
 
@@ -188,6 +191,7 @@ func (t *tSceneIntelligence) fillFieldMap() {
 	t.fieldMap["tenant_id"] = t.TenantId
 	t.fieldMap["timezone"] = t.Timezone
 	t.fieldMap["region_server_id"] = t.RegionServerId
+	t.fieldMap["instance_code"] = t.InstanceCode
 }
 
 func (t tSceneIntelligence) clone(db *gorm.DB) tSceneIntelligence {

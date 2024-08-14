@@ -19,6 +19,7 @@ message OpmProductTestAccount {
     // @inject_tag: json:"productId" gorm:"default:产品ID(t_pm_product.id);comment:产品ID(t_pm_product.id);size:19;"
     int64 productId = 101;
 
+
     // @inject_tag: json:"account" gorm:"default:控制面板ID(t_pm_control_panel.id);comment:控制面板ID(t_pm_control_panel.id);size:100;"
     string account = 103;
 
@@ -39,7 +40,6 @@ message OpmProductTestAccount {
     string tenantId= 108;
 
     int64 regionServerId = 109;
-
 }
 
 message OpmProductTestAccountFilter {

@@ -7,6 +7,7 @@ package service
 import (
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotredis"
+	"cloud_platform/iot_intelligence_service/config"
 	"cloud_platform/iot_intelligence_service/service/scene_executor"
 	"context"
 	"errors"
@@ -60,6 +61,7 @@ func (s *SceneIntelligenceSvc) CreateSceneIntelligence(req *proto.SceneIntellige
 		dbObj.Id = iotutil.GetNextSeqInt64()
 		dbObj.Status = 1
 		dbObj.UserId = userIdI
+		dbObj.InstanceCode = config.Global.Service.InstanceCode
 		err := db.Create(dbObj).Error
 		if err != nil {
 			logger.Errorf("CreateSceneIntelligence error : %s", err.Error())
@@ -69,7 +71,7 @@ func (s *SceneIntelligenceSvc) CreateSceneIntelligence(req *proto.SceneIntellige
 	} else {
 		//更新智能场景
 		dbObj.UpdatedBy = userIdI
-		err := db.Omit("created_at", "id").Updates(dbObj).Error
+		err := db.Omit("created_at", "id", "instance_code").Updates(dbObj).Error
 		if err != nil {
 			logger.Errorf("UpdateSceneIntelligence error : %s", err.Error())
 			db.Rollback()

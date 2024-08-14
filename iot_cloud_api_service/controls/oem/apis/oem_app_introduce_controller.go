@@ -70,6 +70,34 @@ func (OemAppIntroduceController) OemAppIntroduceUpdate(c *gin.Context) {
 	iotgin.ResSuccess(c, res)
 }
 
+// OemAppIntroduceCopy 用户协议,隐私政策,关于我们,复制
+func (OemAppIntroduceController) OemAppIntroduceCopy(c *gin.Context) {
+	var req entitys.OemAppIntroduceCopyReq
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	if req.AppId == 0 {
+		iotgin.ResBadRequest(c, "appId")
+		return
+	}
+	if req.NewVersion == "" {
+		iotgin.ResBadRequest(c, "newVersion")
+		return
+	}
+	if req.OldVersion == "" {
+		iotgin.ResBadRequest(c, "oldVersion")
+		return
+	}
+	err = serviceIntroduce.SetContext(controls.WithOpenUserContext(c)).OemAppIntroduceCopy(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccessMsg(c)
+}
+
 // 用户协议,隐私政策,关于我们,修改
 func (OemAppIntroduceController) OemAppIntroduceStatusEnable(c *gin.Context) {
 	var req entitys.OemAppIntroduceStatusReq

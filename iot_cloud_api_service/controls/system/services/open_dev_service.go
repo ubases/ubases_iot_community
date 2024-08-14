@@ -18,7 +18,7 @@ func (s OpenDevService) SetContext(ctx context.Context) OpenDevService {
 	return s
 }
 
-// QueryAuthRuleList 菜单列表
+// GetOpenDevList 开发者列表
 func (s OpenDevService) GetOpenDevList(req entitys.OpenDevListReq) ([]*entitys.OpenDevListEntityRes, int64, error) {
 	res, err := rpc.ClientOpenCompanyService.Lists(context.Background(), &protosService.OpenCompanyListRequest{
 		Page:      int64(req.PageNum),
@@ -47,7 +47,32 @@ func (s OpenDevService) GetOpenDevList(req entitys.OpenDevListReq) ([]*entitys.O
 		resList = append(resList, m)
 	}
 	return resList, res.Total, nil
+}
 
+// 获取开发者Map格式数据
+func (s OpenDevService) GetOpenDevMap(status int32) (map[string][]*entitys.OpenDevListEntityRes, error) {
+	res, err := rpc.ClientOpenCompanyService.Lists(context.Background(), &protosService.OpenCompanyListRequest{
+		Query: &protosService.OpenCompany{
+			Status: status,
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	if res.Code != 200 {
+		return nil, errors.New(res.Message)
+	}
+	if len(res.Data) == 0 {
+		return nil, nil
+	}
+
+	var resList map[string][]*entitys.OpenDevListEntityRes = make(map[string][]*entitys.OpenDevListEntityRes)
+	for _, v := range res.Data {
+		m := entitys.OpenCompanyToListReq(v)
+		resList[v.TenantId] = append(resList[v.TenantId], m)
+	}
+	return resList, nil
 }
 
 func (s OpenDevService) GetOpenDevDetail(id string) (*entitys.OpenDevDetailRes, error) {

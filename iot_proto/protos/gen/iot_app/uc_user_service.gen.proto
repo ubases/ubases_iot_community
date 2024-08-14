@@ -119,4 +119,11 @@ service UcUserService {
         body:"*"
     };
     }
+  //根据主键更新非空字段
+  rpc UpdateAgreementFlag(UcUser) returns (Response) {
+    option (google.api.http) = {
+      post:"/v1/ucUser/updateAgreementFlag"
+      body:"*"
+    };
+  }
 }

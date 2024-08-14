@@ -25,13 +25,25 @@ type OpmFirmwareVersionSvc struct {
 // 创建OpmFirmwareVersion
 func (s *OpmFirmwareVersionSvc) CreateOpmFirmwareVersion(req *proto.OpmFirmwareVersion) (*proto.OpmFirmwareVersion, error) {
 	// fixme 请在这里校验参数
-	t := orm.Use(iotmodel.GetDB()).TOpmFirmwareVersion
+	db := orm.Use(iotmodel.GetDB())
+	t := db.TOpmFirmwareVersion
 	do := t.WithContext(context.Background())
 	dbObj := convert.OpmFirmwareVersion_pb2db(req)
 	err := do.Create(dbObj)
 	if err != nil {
 		logger.Errorf("CreateOpmFirmwareVersion error : %s", err.Error())
 		return nil, err
+	}
+	//如果产品Id和关联记录Id
+	if req.ProductId != 0 && req.RelationId != 0 {
+		tRelation := db.TOpmProductModuleRelation
+		firmwareVersionId := field.NewInt64(tRelation.TableName(), tRelation.FirmwareVersionId.ColumnName().String())
+		firmwareVersion := field.NewString(tRelation.TableName(), tRelation.FirmwareVersion.ColumnName().String())
+		_, err := tRelation.WithContext(context.Background()).Where(tRelation.Id.Eq(req.RelationId)).
+			UpdateSimple(firmwareVersionId.Value(req.Id), firmwareVersion.Value(req.Version))
+		if err != nil {
+			logger.Errorf("CreateOpmFirmwareVersion update relation firmwareVersionId error : %s", err.Error())
+		}
 	}
 	return req, err
 }
@@ -345,7 +357,7 @@ func (s *OpmFirmwareVersionSvc) GetListOpmFirmwareVersion(req *proto.OpmFirmware
 	}
 	orderCol, ok := t.GetFieldByName(req.OrderKey)
 	if !ok {
-		do = do.Order(field.Func.VersionOrder(t.Version))
+		do = do.Order(field.Func.VersionOrder(t.Version).Desc())
 	} else {
 		if req.OrderDesc != "" {
 			do = do.Order(orderCol.Desc())

@@ -118,6 +118,16 @@ func (h *OemAppCustomRecordHandler) Lists(ctx context.Context, req *proto.OemApp
 	return nil
 }
 
+func (h *OemAppCustomRecordHandler) GetLastVersion(ctx context.Context, req *proto.OemAppCustomRecordFilter,resp *proto.OemAppCustomRecordResponse) error {
+	s := service.OemAppCustomRecordSvc{Ctx: ctx}
+	data, err := s.GetLastVersion(req)
+	if err != nil {
+		return goerrors.New("", err.Error(), ioterrs.ErrDBCustomAppVersionRecordList)
+	}
+	h.SetPageResponse(resp, data, 1)
+	return nil
+}
+
 
 func (h *OemAppCustomRecordHandler) SetResponse(resp *proto.OemAppCustomRecordResponse, data *proto.OemAppCustomRecord) {
 	resp.Code = ioterrs.Success

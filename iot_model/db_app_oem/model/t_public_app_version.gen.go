@@ -14,20 +14,20 @@ const TableNameTPublicAppVersion = "t_public_app_version"
 
 // TPublicAppVersion mapped from table <t_public_app_version>
 type TPublicAppVersion struct {
-	Id            int64          `gorm:"column:id;primaryKey" json:"id"`              // 唯一主键
-	TenantId      string         `gorm:"column:tenant_id" json:"tenant_id"`           // 租户Id
-	AppKey        string         `gorm:"column:app_key;not null" json:"app_key"`      // APP Key
-	ReleaseTime   time.Time      `gorm:"column:release_time" json:"release_time"`     // 发布时间
-	ReleaseMarket int32          `gorm:"column:release_market" json:"release_market"` // 发布市场
-	Version       string         `gorm:"column:version" json:"version"`               // 版本号
-	AppType       int32          `gorm:"column:app_type;not null" json:"app_type"`    // APP类型
-	Status        int32          `gorm:"column:status" json:"status"`                 // 状态（1=启用 2=禁用）
-	Remark        string         `gorm:"column:remark" json:"remark"`                 // 备注
-	CreatedBy     int64          `gorm:"column:created_by" json:"created_by"`         // 修改人
-	CreatedAt     time.Time      `gorm:"column:created_at" json:"created_at"`         // 创建时间
-	UpdatedBy     int64          `gorm:"column:updated_by" json:"updated_by"`         // 修改人
-	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updated_at"`         // 修改时间
-	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`         // 删除标识（0-正常 1-删除）
+	Id            int64          `gorm:"column:id;primaryKey" json:"id"`             // 唯一主键
+	TenantId      string         `gorm:"column:tenant_id" json:"tenantId"`           // 租户Id
+	AppKey        string         `gorm:"column:app_key;not null" json:"appKey"`      // APP Key
+	ReleaseTime   time.Time      `gorm:"column:release_time" json:"releaseTime"`     // 发布时间
+	ReleaseMarket int32          `gorm:"column:release_market" json:"releaseMarket"` // 发布市场
+	Version       string         `gorm:"column:version" json:"version"`              // 版本号
+	AppType       int32          `gorm:"column:app_type;not null" json:"appType"`    // APP类型
+	Status        int32          `gorm:"column:status" json:"status"`                // 状态（1=启用 2=禁用）
+	Remark        string         `gorm:"column:remark" json:"remark"`                // 备注
+	CreatedBy     int64          `gorm:"column:created_by" json:"createdBy"`         // 修改人
+	CreatedAt     time.Time      `gorm:"column:created_at" json:"createdAt"`         // 创建时间
+	UpdatedBy     int64          `gorm:"column:updated_by" json:"updatedBy"`         // 修改人
+	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updatedAt"`         // 修改时间
+	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"`         // 删除标识（0-正常 1-删除）
 }
 
 // TableName TPublicAppVersion's table name

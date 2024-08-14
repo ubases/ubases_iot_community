@@ -30,7 +30,7 @@ func (s *AppPushTokenUserSvc) CreateAppPushTokenUser(req *proto.AppPushTokenUser
 	do := t.WithContext(context.Background())
 	dbObj := convert.AppPushTokenUser_pb2db(req)
 	//先执行删除
-	do.Where(t.UserId.Eq(req.UserId), t.AppPushId.Eq(req.AppPushId)).Delete()
+	do.Where(t.AppPushId.Eq(req.AppPushId)).Delete()
 	//创建绑定关系
 	dbObj.Id = iotutil.GetNextSeqInt64()
 	err := do.Create(dbObj)

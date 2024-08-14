@@ -3,7 +3,6 @@ package service
 import (
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
-	"cloud_platform/iot_common/iotprotocol"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
@@ -77,13 +76,13 @@ func (s *OtaUpgradeDeviceSvc) OtaUpgradeDevice() {
 	//	return
 	//}
 	var (
-		//productKey string
-		userId   int64
-		homeId   int64
-		tenantId string
-		appKey   string
-		area     string
-		fwVer    string
+		productKey string
+		userId     int64
+		homeId     int64
+		tenantId   string
+		appKey     string
+		area       string
+		fwVer      string
 		//forceUpgradeVer string //强制升级版本
 		//hasOtaUpgrade   bool   //是否存在升级
 		//upgardeMode     int32  //是否强制升级
@@ -100,7 +99,7 @@ func (s *OtaUpgradeDeviceSvc) OtaUpgradeDevice() {
 		homeId, _ = iotutil.ToInt64AndErr(device["homeId"])
 		appKey = device["appKey"]
 		tenantId = device["tenantId"]
-		//productKey = device["productKey"]
+		productKey = device["productKey"]
 		area = device["country"]
 		fwVer = device["fwVer"]
 		//forceUpgradeVer = device[iotconst.FIELD_UPGRADE_FORCE_VER]
@@ -108,7 +107,7 @@ func (s *OtaUpgradeDeviceSvc) OtaUpgradeDevice() {
 		//upgardeMode, _ = iotutil.ToInt32Err(device[iotconst.FIELD_UPGRADE_MODE])
 	}
 	svc := IotOtaUpgradeRecordSvc{Ctx: context.Background()}
-	err = svc.ReportUpgradeResult(s.DevId, s.Data.ProductKey, version, tenantId, pubId, area, fwVer, state, code, progress)
+	err = svc.ReportUpgradeResult(s.DevId, productKey, version, tenantId, pubId, area, fwVer, state, code, progress)
 	if err != nil {
 		iotlogger.LogHelper.Error("修改进度失败", s.DevId, state, code, progress)
 		return
@@ -117,8 +116,8 @@ func (s *OtaUpgradeDeviceSvc) OtaUpgradeDevice() {
 	if err != nil {
 		//推送固件升级结果消息
 		s.sendAppMessage(appKey, tenantId, s.DevId, homeId, userId, false, map[string]string{})
-		//推送升级结果通知
-		s.batchPublishOtaResultNotice(s.Data.ProductKey, s.DevId, version, 2)
+		////推送升级结果通知
+		//s.batchPublishOtaResultNotice(s.Data.ProductKey, s.DevId, version, 2)
 	} else {
 		if isSuccess {
 			var needSetCached = true
@@ -140,7 +139,8 @@ func (s *OtaUpgradeDeviceSvc) OtaUpgradeDevice() {
 			} else {
 				//升级成功需要更新升级信息
 				s.setDeviceCached(map[string]string{
-					iotconst.FIELD_IS_FW_VER:        version,
+					//iotconst.FIELD_IS_FW_VER:        version,
+					iotconst.FIELD_UPGRADE_HAS:      "false",
 					iotconst.FIELD_UPGRADE_STATE:    "",
 					iotconst.FIELD_UPGRADE_PROGRESS: "0",
 					iotconst.FIELD_UPGRADE_RUNNING:  "false",
@@ -149,54 +149,57 @@ func (s *OtaUpgradeDeviceSvc) OtaUpgradeDevice() {
 			//推送固件升级结果消息
 			s.sendAppMessage(appKey, tenantId, s.DevId, homeId, userId, true, map[string]string{})
 			//推送升级成功
-			s.batchPublishOtaResultNotice(s.Data.ProductKey, s.DevId, version, 1)
+			//s.batchPublishOtaResultNotice(s.Data.ProductKey, s.DevId, version, 1)
 		} else {
 			if s.isUpgradeRunning(state, code) {
 				s.setDeviceCached(map[string]string{
-					iotconst.FIELD_UPGRADE_RUNNING: "true",
+					iotconst.FIELD_UPGRADE_HAS:      "true",
+					iotconst.FIELD_UPGRADE_PROGRESS: iotutil.ToString(progress),
+					iotconst.FIELD_UPGRADE_STATE:    state,
+					iotconst.FIELD_UPGRADE_RUNNING:  "true",
 				})
-				//推送升级成功
-				s.batchPublishOtaResultNotice(s.Data.ProductKey, s.DevId, version, 3)
+				////推送升级成功
+				//s.batchPublishOtaResultNotice(s.Data.ProductKey, s.DevId, version, 3)
 			}
 		}
 	}
 	return
 }
 
-func (s *OtaUpgradeDeviceSvc) batchPublishOtaResultNotice(productKey, deviceId, version string, code int32) error {
-	iotlogger.LogHelper.Debugf("开始推送OTA升级结果通知, productKey:%v, deviceId:%v, version:%v, code:%v", productKey, deviceId, version, code)
-	topics := make([]string, 0)
-	topics = append(topics, iotprotocol.GetTopic(iotprotocol.TP_E_NOTICE, productKey, deviceId))
-	//推送升级通知
-	var obj iotprotocol.PackNotice
-	dataMap := make(map[string]interface{})
-	dataMap["version"] = version
-	switch code {
-	case 1:
-		//升级成功
-		dataMap["otaUpgradeStatus"] = 0
-		dataMap["hasForceUpgrade"] = false
-	case 2:
-		//升级失败
-		dataMap["otaUpgradeStatus"] = 0
-		dataMap["hasForceUpgrade"] = false
-	case 3:
-		//升级中
-		dataMap["otaUpgradeStatus"] = 1
-	}
-	buf, _ := obj.Encode(iotprotocol.NOTICE_HEAD_UPGRADE_NOTICE_NAME, dataMap)
-	_, pubErr := rpcClient.ClientMqttService.BatchPublish(context.Background(), &proto.BatchPublishMessage{
-		TopicFullNameList: topics,
-		MessageContent:    string(buf),
-		Qos:               proto.Qos_ExactlyOnce,
-		Retained:          false,
-	})
-	if pubErr != nil {
-		iotlogger.LogHelper.Errorf("CreateIotOtaUpgradeRecord BatchPublish error : %s", pubErr.Error())
-		return pubErr
-	}
-	return nil
-}
+//func (s *OtaUpgradeDeviceSvc) batchPublishOtaResultNotice(productKey, deviceId, version string, code int32) error {
+//	iotlogger.LogHelper.Debugf("开始推送OTA升级结果通知, productKey:%v, deviceId:%v, version:%v, code:%v", productKey, deviceId, version, code)
+//	topics := make([]string, 0)
+//	topics = append(topics, iotprotocol.GetTopic(iotprotocol.TP_E_NOTICE, productKey, deviceId))
+//	//推送升级通知
+//	var obj iotprotocol.PackNotice
+//	dataMap := make(map[string]interface{})
+//	dataMap["version"] = version
+//	switch code {
+//	case 1:
+//		//升级成功
+//		dataMap["otaUpgradeStatus"] = 0
+//		dataMap["hasForceUpgrade"] = false
+//	case 2:
+//		//升级失败
+//		dataMap["otaUpgradeStatus"] = 0
+//		dataMap["hasForceUpgrade"] = false
+//	case 3:
+//		//升级中
+//		dataMap["otaUpgradeStatus"] = 1
+//	}
+//	buf, _ := obj.Encode(iotprotocol.NOTICE_HEAD_UPGRADE_NOTICE_NAME, dataMap)
+//	_, pubErr := rpcClient.ClientMqttService.BatchPublish(context.Background(), &proto.BatchPublishMessage{
+//		TopicFullNameList: topics,
+//		MessageContent:    string(buf),
+//		Qos:               proto.Qos_ExactlyOnce,
+//		Retained:          false,
+//	})
+//	if pubErr != nil {
+//		iotlogger.LogHelper.Errorf("CreateIotOtaUpgradeRecord BatchPublish error : %s", pubErr.Error())
+//		return pubErr
+//	}
+//	return nil
+//}
 
 func (s *OtaUpgradeDeviceSvc) isUpgradeRunning(otaState string, otaCode *int32) (isSuccess bool) {
 	//转换ota状态

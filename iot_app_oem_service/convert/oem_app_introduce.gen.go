@@ -31,6 +31,7 @@ func OemAppIntroduce_pb2db(src *proto.OemAppIntroduce) *model.TOemAppIntroduce {
 		CreatedAt:   src.CreatedAt.AsTime(),
 		UpdatedAt:   src.UpdatedAt.AsTime(),
 		Abstract:    src.Abstract,
+		RemindMode: src.RemindMode,
 	}
 	return &dbObj
 }
@@ -55,6 +56,7 @@ func OemAppIntroduce_db2pb(src *model.TOemAppIntroduce) *proto.OemAppIntroduce {
 		CreatedAt:   timestamppb.New(src.CreatedAt),
 		UpdatedAt:   timestamppb.New(src.UpdatedAt),
 		Abstract:    src.Abstract,
+		RemindMode: src.RemindMode,
 	}
 	return &pbObj
 }

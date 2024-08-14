@@ -17,4 +17,6 @@ var (
 	PlatformIos = 7
 	// PlatFormAndroid constant is 2 for Android
 	PlatformAndroid = 8
+	//
+	PlatformWechat = 9
 )

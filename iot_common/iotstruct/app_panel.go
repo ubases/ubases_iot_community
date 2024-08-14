@@ -72,8 +72,9 @@ type FunctionPropsItemExt struct {
 // 样式连接规则
 type StyleLinkageItem struct {
 	RuleName  string    `json:"ruleName"`
-	IfSpecs   IfSpecs   `json:"ifSpecs"`
-	ThenSpecs ThenSpecs `json:"thenSpecs"`
+	ConditionType interface{} `json:"conditionType"` // 1 满足所有条件   2 满足单一条件",
+	IfSpecs       interface{} `json:"ifSpecs"`
+	ThenSpecs     interface{} `json:"thenSpecs"`
 }
 
 type IfSpecs struct {

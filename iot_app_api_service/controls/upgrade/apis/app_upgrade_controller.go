@@ -1,10 +1,10 @@
 package apis
 
 import (
+	"cloud_platform/iot_app_api_service/controls"
 	"cloud_platform/iot_app_api_service/controls/upgrade/entitys"
 	"cloud_platform/iot_app_api_service/controls/upgrade/services"
 	"cloud_platform/iot_common/iotgin"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,13 +23,39 @@ var AppUpgradeService = services.AppUpgradeService{}
 // @Success 200 object iotgin.ResponseModel 成功返回值
 // @Router /v1/platform/app/appVersion/get [post]
 func (AppUpgradeController) GetLatestApp(c *gin.Context) {
-	appKey := c.GetHeader("appKey")
-	res, err := AppUpgradeService.GetLatestApp(appKey)
+	var (
+		appKey = controls.GetAppKey(c)
+		lang   = controls.GetLang(c)
+		userId = controls.GetUserId(c)
+	)
+	var req entitys.OemAppUpgradeCheckReq
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	res, err := AppUpgradeService.GetLatestApp(userId, appKey, lang, req.Os)
 	if err != nil {
 		iotgin.ResErrCli(c, err)
 		return
 	}
 	iotgin.ResSuccess(c, res)
+}
+
+// @Summary SetAgreementAgree 设置协议同意接口
+// @Description
+// @Tags APP
+// @Accept application/json
+// @Success 200 object iotgin.ResponseModel 成功返回值
+// @Router /v1/platform/app/agreement/setAgree [post]
+func (AppUpgradeController) SetAgreementAgree(c *gin.Context) {
+	userId := controls.GetUserId(c)
+	err := AppUpgradeService.SetAgreementAgree(userId)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccessMsg(c)
 }
 
 // GetFunctionConfigAutoUpgrade 获取APP自动升级功能配置

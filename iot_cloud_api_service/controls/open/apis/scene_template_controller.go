@@ -2,9 +2,12 @@ package apis
 
 import (
 	"cloud_platform/iot_cloud_api_service/controls"
+	"cloud_platform/iot_cloud_api_service/controls/common/commonGlobal"
 	"cloud_platform/iot_cloud_api_service/controls/open/entitys"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotgin"
+	"cloud_platform/iot_common/iotutil"
+	"cloud_platform/iot_model/db_product/model"
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
@@ -62,6 +65,9 @@ func (s *SceneTemplateController) List(c *gin.Context) {
 		reqSvc.Query.Title = req.Query.Title
 		reqSvc.Query.Status = req.Query.Status
 		reqSvc.Query.ConditionMode = req.Query.ConditionMode
+		reqSvc.Query.AppList = []*protosService.SceneTemplateAppRelation{
+			{AppKey: req.Query.AppKey},
+		}
 	}
 	resp, err := rpc.ClientSceneTemplateService.Lists(controls.WithUserContext(c), reqSvc)
 	if err != nil {
@@ -129,6 +135,9 @@ func (s *SceneTemplateController) Add(c *gin.Context) {
 		iotgin.ResErrCli(c, errors.New(resp.Message))
 		return
 	}
+	if req.Icon != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmLocalScene, iotutil.ToString(req.Id), req.Icon)
+	}
 	iotgin.ResSuccess(c, resp.Data)
 }
 
@@ -153,6 +162,9 @@ func (s *SceneTemplateController) Update(c *gin.Context) {
 	if resp.Code != 200 {
 		iotgin.ResErrCli(c, errors.New(resp.Message))
 		return
+	}
+	if req.Icon != "" {
+		commonGlobal.SetAttachmentStatus(model.TableNameTOpmLocalScene, iotutil.ToString(req.Id), req.Icon)
 	}
 	iotgin.ResSuccess(c, resp.Data)
 }

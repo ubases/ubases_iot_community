@@ -28,14 +28,56 @@ func (s ProductService) SetContext(ctx context.Context) ProductService {
 	return s
 }
 
+func (s ProductService) GetOpmProductMap() (map[int64][]*protosService.OpmProduct, error) {
+	ret, err := rpc.ProductService.AppLists(s.Ctx, &protosService.AppOpmProductListRequest{
+		Query: &protosService.AppOpmProduct{
+			IsAppQuery: true,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(ret.Data) == 0 {
+		return nil, errors.New("当前用户参数异常")
+	}
+	var resMap = make(map[int64][]*protosService.OpmProduct)
+	for _, d := range ret.Data {
+		resMap[d.ProductId] = append(resMap[d.ProductId], d)
+	}
+	return resMap, nil
+}
+
+func (s ProductService) getAreas(countryId, cityId, provinceId int64, lang string) map[int64]string {
+	areaMap := map[int64]string{}
+	areaList, err := rpc.ClientAreaService.Lists(context.Background(), &protosService.SysAreaListRequest{Query: &protosService.SysArea{
+		AreaIds: []int64{countryId, cityId, provinceId},
+		Pid:     -1,
+	}})
+	if err == nil {
+		for _, a := range areaList.Data {
+			if lang == "zh" {
+				areaMap[a.Id] = a.ChineseName
+			} else {
+				areaMap[a.Id] = a.EnglishName
+			}
+		}
+	}
+	return areaMap
+}
+
 // GetProductByApp get Product list  data
 func (s ProductService) GetProductByApp(filter entitys.AppQueryProductForm, userId, language string) (rets []*entitys.AppProductDto, total int, err error) {
 	var (
 		lang, _     = metadata.Get(s.Ctx, "lang")
 		tenantId, _ = metadata.Get(s.Ctx, "tenantId")
 		appKey, _   = metadata.Get(s.Ctx, "appKey")
+		region, _   = metadata.Get(s.Ctx, "region")
 	)
-
+	//获取区域sid
+	regionServerId, err := controls.RegionIdToServerId(region)
+	if err != nil {
+		return nil, 0, err
+	}
 	userRet, err := rpc.TUcUserService.FindById(context.Background(), &protosService.UcUserFilter{
 		Id: iotutil.ToInt64(userId),
 	})
@@ -54,7 +96,10 @@ func (s ProductService) GetProductByApp(filter entitys.AppQueryProductForm, user
 			ProductTypeId:   filter.ProductTypeId,
 			BaseProductId:   filter.BaseProductId,
 			ProductTypeName: filter.ProductTypeName,
-			WifiFlags:       filter.WifiFlags},
+			WifiFlags:       filter.WifiFlags,
+			IsAppQuery:      true,
+			AppKey:          filter.AppKey,
+		},
 	})
 
 	if err != nil {
@@ -77,21 +122,24 @@ func (s ProductService) GetProductByApp(filter entitys.AppQueryProductForm, user
 		return nil, 0, errors.New(homeRes.Message)
 	}
 
-	//指定缓存key获取
-	//langMap := make(map[string]string)
-	//if lang != "" {
-	//	sourceRowIds := []string{}
-	//	for _, data := range ret.Data {
-	//		sourceRowIds = append(sourceRowIds, fmt.Sprintf("%s_%d_name", lang, data.Id))
-	//	}
-	//	slice, err := iotredis.GetClient().HMGet(context.Background(), iotconst.HKEY_LANGUAGE_DATA_PREFIX+iotconst.LANG_T_PM_PRODUCT_TYPE, sourceRowIds...).Result()
-	//	if err == nil {
-	//		langMap = iotutil.ArrayUnionInterfaces(sourceRowIds, slice)
-	//	}
-	//}
-
 	cacheKey := fmt.Sprintf("%s_%s", tenantId, iotconst.HKEY_LANGUAGE_DATA_PREFIX+iotconst.LANG_PRODUCT_NAME)
 	langMap, err := iotredis.GetClient().HGetAll(context.Background(), cacheKey).Result()
+
+	//获取区域名称
+	homeInfo := homeRes.Data[0]
+	var countryName, cityName, provinceName string = homeInfo.Country, homeInfo.City, homeInfo.Province
+	areaMap := s.getAreas(homeInfo.CountryId, homeInfo.CityId, homeInfo.ProvinceId, lang)
+	if areaMap != nil {
+		if v, ok := areaMap[homeInfo.CountryId]; ok {
+			countryName = v
+		}
+		if v, ok := areaMap[homeInfo.CityId]; ok {
+			cityName = v
+		}
+		if v, ok := areaMap[homeInfo.ProvinceId]; ok {
+			provinceName = v
+		}
+	}
 
 	resultList := make([]*entitys.AppProductDto, 0)
 	for _, pro := range ret.Data {
@@ -100,29 +148,28 @@ func (s ProductService) GetProductByApp(filter entitys.AppQueryProductForm, user
 		info.ProductTypeId = iotutil.ToString(pro.ProductTypeId)
 		info.Name = iotutil.MapGetStringVal(langMap[fmt.Sprintf("%s_%s_name", lang, pro.ProductKey)], pro.Name)
 		deviceToken, _ := GenerateNetworkToken(iotstruct.DeviceNetworkTokenCacheModel{
-			UserId:       userIdInt,
-			ProductId:    pro.Id,
-			DeviceNature: pro.DeviceNatureKey,
-			HomeId:       homeId,
-			UserName:     nickName,
-			Account:      account,
-			HomeName:     homeName,
-			ProductName:  info.Name,
-			ProductKey:   pro.ProductKey,
-			Devices:      make([]string, 0),
-			DevicesMap:   make(map[string]iotstruct.DeviceResult),
-			Lat:          homeRes.Data[0].Lat,
-			Lng:          homeRes.Data[0].Lng,
-			Country:      homeRes.Data[0].Country,
-			Province:     homeRes.Data[0].Province,
-			City:         homeRes.Data[0].City,
-			District:     homeRes.Data[0].District,
-			AppKey:       appKey,
-			TenantId:     pro.TenantId,
+			UserId:         userIdInt,
+			ProductId:      pro.Id,
+			DeviceNature:   pro.DeviceNatureKey,
+			HomeId:         homeId,
+			UserName:       nickName,
+			Account:        account,
+			HomeName:       homeName,
+			ProductName:    info.Name,
+			ProductKey:     pro.ProductKey,
+			Devices:        make([]string, 0),
+			DevicesMap:     make(map[string]iotstruct.DeviceResult),
+			Lat:            homeRes.Data[0].Lat,
+			Lng:            homeRes.Data[0].Lng,
+			Country:        countryName,
+			Province:       provinceName,
+			City:           cityName,
+			District:       homeRes.Data[0].District,
+			AppKey:         appKey,
+			TenantId:       pro.TenantId,
+			RegionId:       region,
+			RegionServerId: iotutil.ToString(regionServerId),
 		})
-		//if language == "en" {
-		//	info.Name = pro.NameEn
-		//}
 		info.Model = pro.ProductKey
 		info.ImageUrl = controls.ConvertProImg(pro.ImageUrl)
 		info.WifiFlag = pro.WifiFlag
@@ -227,13 +274,16 @@ func (s ProductService) GetOpmProductList(filter entitys.OpmProductQuery) (rets 
 	var (
 		lang, _     = metadata.Get(s.Ctx, "lang")
 		tenantId, _ = metadata.Get(s.Ctx, "tenantId")
+		appKey, _   = metadata.Get(s.Ctx, "appKey")
 	)
 
-	ret, err := rpc.ProductService.Lists(s.Ctx, &protosService.OpmProductListRequest{
+	ret, err := rpc.ProductService.AppLists(s.Ctx, &protosService.AppOpmProductListRequest{
 		Page:     int64(filter.Page),
 		PageSize: int64(filter.Limit),
-		Query: &protosService.OpmProduct{
-			TenantId: tenantId,
+		Query: &protosService.AppOpmProduct{
+			TenantId:   tenantId,
+			AppKey:     appKey,
+			IsAppQuery: true,
 		},
 	})
 

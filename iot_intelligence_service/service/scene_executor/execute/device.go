@@ -6,7 +6,6 @@ import (
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
-	"cloud_platform/iot_intelligence_service/cached"
 	iotmodel "cloud_platform/iot_model"
 	"cloud_platform/iot_model/db_device/model"
 	"cloud_platform/iot_proto/protos/protosService"
@@ -19,6 +18,11 @@ import (
 	"gorm.io/gorm"
 
 	"golang.org/x/net/context"
+)
+
+import (
+	"cloud_platform/iot_common/iotnatsjs"
+	"cloud_platform/iot_intelligence_service/config"
 )
 
 // 执行任务功能
@@ -87,7 +91,7 @@ func DeviceExecute(userId, resultId int64, runtime int64, devIds *[]string, task
 			iotlogger.LogHelper.WithTag("id", iotutil.ToString(intelligenceId)).WithTag("method", "DeviceExcute").Errorf("产品缓存信息获取异常， 设备Id：%s", taskItem.ObjectId)
 			return saveTaskResult(resultObj, 2, "异常 ProductKey is empty", db)
 		} else {
-			onlineStatus := deviceInfo["onlineStatus"] //onlineStatusCms.Val()
+			onlineStatus := deviceInfo["onlineStatus"]
 			if err != nil {
 				return saveTaskResult(resultObj, 2, "异常", db)
 			} else if onlineStatus != "online" {
@@ -96,32 +100,11 @@ func DeviceExecute(userId, resultId int64, runtime int64, devIds *[]string, task
 				var functions []*Function
 				err := json.Unmarshal([]byte(taskItem.Functions), &functions)
 				if err == nil && len(functions) > 0 {
-					//tlsMap := make(map[string]string)
-					//proTslCmd := iotredis.GetClient().HGetAll(context2.Background(), iotconst.HKEY_PRODUCT_DATA+productKey)
-					//if proTslCmd.Err() == nil {
-					//	tlsMap = proTslCmd.Val()
-					//}
-					//{
-					//	"custom": 0,
-					//	"dataSpecs": "{\"custom\":0,\"dataType\":\"FLOAT\",\"min\":0.1,\"max\":3,\"step\":0.1,\"multiple\":10,\"unit\":\"\"}",
-					//	"dataSpecsList": "",
-					//	"dataType": "FLOAT",
-					//	"dpid": 3,
-					//	"identifier": "spray_mode_stepless",
-					//	"name": "档位无极调节",
-					//	"rwFlag": "READ_WRITE"
-					//}
 					pubControls := make(map[string]string)
 					for _, function := range functions {
 						val := function.FuncValue
-						//设置倍数值
-						//val = setMultiple(tlsMap, function.FuncValue, function.FuncKey)
 						pubControls[function.FuncKey] = val
 					}
-					//isOnline := onlineStatus == "online"
-					////调用MQTT服务，推送消息
-					//iotlogger.LogHelper.WithTag("id", iotutil.ToString(intelligenceId)).WithTag("method", "DeviceExecute").Info("设备在线状态为", isOnline)
-
 					msgId, _, err := PubControl(productKey, devId, iotutil.MapStringToInterface(pubControls))
 					if err != nil {
 						iotlogger.LogHelper.WithTag("id", iotutil.ToString(intelligenceId)).WithTag("method", "DeviceExcute").Error(err.Error())
@@ -129,7 +112,7 @@ func DeviceExecute(userId, resultId int64, runtime int64, devIds *[]string, task
 					} else {
 						iotlogger.LogHelper.WithTag("id", iotutil.ToString(intelligenceId)).WithTag("method", "DeviceExcute").Error("开始等待控制结果上报")
 						controlAckChan := make(chan bool, 0)
-						go CheckControlResult(msgId, productKey, devId, controlAckChan)
+						go CheckControlResult(msgId, productKey, devId, pubControls, controlAckChan)
 						select {
 						case msg := <-controlAckChan:
 							if msg {
@@ -172,31 +155,111 @@ func setMultiple(tlsMap map[string]string, funcVal, funcKey string) string {
 	return funcVal
 }
 
-func CheckControlResult(messageId, productKey, deviceId string, result chan bool) {
-	ctx := context.Background()
-	//TestDeviceChan()
-	ackCh := strings.Join([]string{iotconst.HKEY_ACK_DATA_PUB_PREFIX, productKey, deviceId}, ".")
-	ackSub := cached.RedisStore.GetClient().PSubscribe(ctx, ackCh)
-	defer ackSub.Close()
+// CheckControlResult 检查设备控制结果
+//func CheckControlResult(messageId, productKey, deviceId string, pubControls map[string]string, result chan bool) {
+//	ackCh := strings.Join([]string{iotconst.HKEY_ACK_DATA_PUB_PREFIX, productKey, deviceId}, ".")
+//	client, err := iotredis.NewRedisPubSubClient(config.Global.Redis)
+//	if err != nil {
+//		panic(err)
+//		return
+//	}
+//	client.PSubscribeSync(ackCh)
+//	ackSub := client.PSubscribeSync(ackCh)
+//	defer func() {
+//		ackSub.Close()
+//		client.Close()
+//	}()
+//	ackChannel := ackSub.Channel()
+//	for {
+//		select {
+//		case msg := <-ackChannel:
+//			data := iotstruct.DeviceRedisData{}
+//			if err := json.Unmarshal([]byte(msg.Payload), &data); err != nil {
+//				iotlogger.LogHelper.Helper.Error("json unmarshal online error: ", err)
+//				continue
+//			}
+//			iotlogger.LogHelper.Infof("redis control ack sub data[%s,%s] ", data.MessageId, messageId, iotutil.ToString(data))
+//			result <- true
+//			return
+//		case <-time.After(3 * time.Second): //超时3s
+//			deviceCmd := iotredis.GetClient().HGetAll(context2.Background(), iotconst.HKEY_DEV_DATA_PREFIX+deviceId)
+//			isallcharge := false
+//			if deviceCmd.Err() == nil {
+//				deviceInfo := deviceCmd.Val()
+//				for k, v := range pubControls {
+//					if dv, ok := deviceInfo[k]; ok && dv == v {
+//						isallcharge = true
+//					} else {
+//						isallcharge = false
+//					}
+//				}
+//			}
+//			if isallcharge {
+//				iotlogger.LogHelper.Info("redis control ack sub timeout, but it was judged to be successful.")
+//				result <- false
+//			} else {
+//				iotlogger.LogHelper.Info("redis control ack sub timeout")
+//				result <- false
+//			}
+//			return
+//		}
+//	}
+//}
 
-	ackChannel := ackSub.Channel()
+func CheckControlResult(messageId, productKey, deviceId string, pubControls map[string]string, result chan bool) {
+	ackCh := strings.Join([]string{iotconst.HKEY_ACK_DATA_PUB_PREFIX, productKey, deviceId}, ".")
+	client, err := iotnatsjs.NewJsClient(config.Global.Nats.Addrs...)
+	if err != nil {
+		return
+	}
+	err = client.CreateOrUpdateConsumer(context.Background(), iotconst.NATS_STREAM_ORIGINAL_REDIS, []string{ackCh}, "CheckControlResult"+deviceId)
+	if err != nil {
+		return
+	}
+
+	defer client.Close()
+
+	ackChannel, err := client.Fetch(1)
+	if err != nil {
+		return
+	}
+
+	if ackChannel.Error() != nil {
+		return
+	}
+
 	for {
 		select {
-		case msg := <-ackChannel:
+		case msg := <-ackChannel.Messages():
 			data := iotstruct.DeviceRedisData{}
-			if err := json.Unmarshal([]byte(msg.Payload), &data); err != nil {
+			if err := json.Unmarshal([]byte(msg.Data()), &data); err != nil {
 				iotlogger.LogHelper.Helper.Error("json unmarshal online error: ", err)
 				continue
 			}
 			iotlogger.LogHelper.Infof("redis control ack sub data[%s,%s] ", data.MessageId, messageId, iotutil.ToString(data))
-			//if data.MessageId == messageId {
 			result <- true
-			break
-			//}
-		case <-time.After(2 * time.Second): //超时3s
-			iotlogger.LogHelper.Info("redis control ack sub timeout")
-			result <- false
-			break
+			return
+		case <-time.After(3 * time.Second): //超时3s
+			deviceCmd := iotredis.GetClient().HGetAll(context2.Background(), iotconst.HKEY_DEV_DATA_PREFIX+deviceId)
+			isallcharge := false
+			if deviceCmd.Err() == nil {
+				deviceInfo := deviceCmd.Val()
+				for k, v := range pubControls {
+					if dv, ok := deviceInfo[k]; ok && dv == v {
+						isallcharge = true
+					} else {
+						isallcharge = false
+					}
+				}
+			}
+			if isallcharge {
+				iotlogger.LogHelper.Info("redis control ack sub timeout, but it was judged to be successful.")
+				result <- false
+			} else {
+				iotlogger.LogHelper.Info("redis control ack sub timeout")
+				result <- false
+			}
+			return
 		}
 	}
 }

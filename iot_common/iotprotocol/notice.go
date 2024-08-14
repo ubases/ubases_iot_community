@@ -14,7 +14,7 @@ type PackNotice struct {
 
 func (o *PackNotice) Encode(name string, data map[string]interface{}) ([]byte, error) {
 	obj := PackNotice{
-		Header:  EncodeHeader(NOTICE_HEAD_NS, name, ""),
+		Header:  EncodeHeader(NOTICE_HEAD_NS, name, "", ""),
 		Payload: data,
 	}
 	*o = obj

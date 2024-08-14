@@ -1,6 +1,7 @@
 package iotconst
 
 var (
+	Empty = ""
 	NoticeMessageType = "notice" //通知消息类型
 	HomeMessageType   = "home"   //家庭消息类型
 	AlarmMessageType  = "alarm"  //告警消息类型
@@ -27,7 +28,7 @@ var (
 	Weibo        int32 = 3 //微博
 	Facebook     int32 = 4 //facebook
 	Appleid      int32 = 5 //appleid
-	WechatApplet int32 = 6 //微信小程序
+	WechatMiniProgram int32 = 6 //微信小程序
 	Google       int32 = 7 //谷歌
 	Guest        int32 = 8 //游客
 

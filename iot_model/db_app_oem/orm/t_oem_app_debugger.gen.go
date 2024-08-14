@@ -93,6 +93,8 @@ func (t *tOemAppDebugger) WithContext(ctx context.Context) *tOemAppDebuggerDo {
 
 func (t tOemAppDebugger) TableName() string { return t.tOemAppDebuggerDo.TableName() }
 
+func (t tOemAppDebugger) Alias() string { return t.tOemAppDebuggerDo.Alias() }
+
 func (t *tOemAppDebugger) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

@@ -44,14 +44,22 @@ type OemAppAndroidPushCertSaveReq struct {
 	JpushSecret        string `json:"jpushSecret"` // 极光密钥
 	MiId               string `json:"miId"`
 	MiKey              string `json:"miKey"`
+	MiDevChanelId           string `json:"miDevChanelId"`
+	MiChannelId           string `json:"miChannelId"`
 	MiSecret           string `json:"miSecret"`
 	OppoId             string `json:"oppoId"`
 	OppoKey            string `json:"oppoKey"`
 	OppoMasterSecret   string `json:"oppoMasterSecret"`
 	OppoSecret         string `json:"oppoSecret"`
+	OppoChanelId         string `json:"oppoChanelId"`
+	OppoChanelName         string `json:"oppoChanelName"`
 	VivoId             string `json:"vivoId"`
 	VivoKey            string `json:"vivoKey"`
 	VivoSecret         string `json:"vivoSecret"`
+	HonorAppId         string `json:"honorAppId"`
+	HonorAppSecret     string `json:"honorAppSecret"`
+	HonorClientId  	   string `json:"honorClientId"`
+	HonorClientSecret  string `json:"honorClientSecret"`
 }
 
 type OemAppAndroidPushCertDetailRes struct {
@@ -61,22 +69,36 @@ type OemAppAndroidPushCertDetailRes struct {
 	FcmJson            string `json:"fcmJson"`
 	FcmServerJson      string `json:"fcmServerJson"` //fcm推送服务端JSON文件
 	FcmKey             string `json:"fcmKey"`
+
 	HuaweiClientSecret string `json:"huaweiClientSecret"`
 	HuaweiId           string `json:"huaweiId"`
 	HuaweiJson         string `json:"huaweiJson"`
 	HuaweiSecret       string `json:"huaweiSecret"`
+
 	JpushKey           string `json:"jpushKey"`    // 极光appkey
 	JpushSecret        string `json:"jpushSecret"` // 极光密钥
+
 	MiId               string `json:"miId"`
 	MiKey              string `json:"miKey"`
 	MiSecret           string `json:"miSecret"`
+	MiChannelId string `json:"miChannelId"`
+	MiDevChanelId string `json:"miDevChanelId"`
+
 	OppoId             string `json:"oppoId"`
 	OppoKey            string `json:"oppoKey"`
 	OppoMasterSecret   string `json:"oppoMasterSecret"`
 	OppoSecret         string `json:"oppoSecret"`
+	OppoChanelId         string `json:"oppoChanelId"`
+	OppoChanelName         string `json:"oppoChanelName"`
+
 	VivoId             string `json:"vivoId"`
 	VivoKey            string `json:"vivoKey"`
 	VivoSecret         string `json:"vivoSecret"`
+
+	HonorAppId         string `json:"honorAppId"`
+	HonorAppSecret     string `json:"honorAppSecret"`
+	HonorClientId  	   string `json:"honorClientId"`
+	HonorClientSecret  string `json:"honorClientSecret"`
 }
 
 // 增、删、改及查询返回

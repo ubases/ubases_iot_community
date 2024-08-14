@@ -5,10 +5,11 @@
 package entitys
 
 import (
+	"cloud_platform/iot_common/iotutil"
 	proto "cloud_platform/iot_proto/protos/protosService"
 )
 
-// 增、删、改及查询返回
+//增、删、改及查询返回
 type SysRegionServerEntitys struct {
 	Id              int64   `json:"id,omitempty"`
 	Sid             string  `json:"sid,omitempty"`
@@ -29,31 +30,33 @@ type SysRegionServerEntitys struct {
 	AreaPhoneNumber string  `json:"areaPhoneNumber,omitempty"`
 }
 
-// 增、删、改及查询返回
+//增、删、改及查询返回
 type SysRegionServerEntitysList struct {
 	Id              int64  `json:"id,string"`
+	Sid int64 `json:"sid,string"`
 	HttpServer      string `json:"host"`
 	Describe        string `json:"name"`
 	IsDefault       int32  `json:"isDefault"`
 	AreaPhoneNumber string `json:"areaPhoneNumber"`
+	MqttServer string `json:"mqttServer"`
 }
 
-// 新增参数非空检查
+//新增参数非空检查
 func (s *SysRegionServerEntitys) AddCheck() error {
 	return nil
 }
 
-// 修改参数非空检查
+//修改参数非空检查
 func (s *SysRegionServerEntitys) UpdateCheck() error {
 	return nil
 }
 
-// 查询参数必填检查
+//查询参数必填检查
 func (*SysRegionServerQuery) QueryCheck() error {
 	return nil
 }
 
-// 查询条件
+//查询条件
 type SysRegionServerQuery struct {
 	Page      uint64                 `json:"page,omitempty"`
 	Limit     uint64                 `json:"limit,omitempty"`
@@ -63,7 +66,7 @@ type SysRegionServerQuery struct {
 	Query     *SysRegionServerFilter `json:"query,omitempty"`
 }
 
-// SysRegionServerFilter，查询条件，字段请根据需要自行增减
+//SysRegionServerFilter，查询条件，字段请根据需要自行增减
 type SysRegionServerFilter struct {
 	Id              int64   `json:"id,omitempty"`
 	Sid             string  `json:"sid,omitempty"`
@@ -84,7 +87,7 @@ type SysRegionServerFilter struct {
 	AreaPhoneNumber string  `json:"areaPhoneNumber,omitempty"`
 }
 
-// 实体转pb对象
+//实体转pb对象
 func SysRegionServer_e2pb(src *SysRegionServerEntitys) *proto.SysRegionServer {
 	if src == nil {
 		return nil
@@ -111,7 +114,7 @@ func SysRegionServer_e2pb(src *SysRegionServerEntitys) *proto.SysRegionServer {
 	return &pbObj
 }
 
-// pb对象转实体
+//pb对象转实体
 func SysRegionServer_pb2e(src *proto.SysRegionServer, lang string) *SysRegionServerEntitysList {
 	if src == nil {
 		return nil
@@ -122,11 +125,14 @@ func SysRegionServer_pb2e(src *proto.SysRegionServer, lang string) *SysRegionSer
 	} else if lang == "en" {
 		describe = src.EnDescribe
 	}
+	sid, _ := iotutil.ToInt64AndErr(src.Sid)
 	entitysObj := SysRegionServerEntitysList{
 		Id:              src.Id,
+		Sid: 			 sid,
 		HttpServer:      src.HttpServer,
 		Describe:        describe,
 		AreaPhoneNumber: src.AreaPhoneNumber,
+		MqttServer: 	 src.WebsocketServer,
 	}
 	return &entitysObj
 }

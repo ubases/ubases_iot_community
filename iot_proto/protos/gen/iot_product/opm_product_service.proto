@@ -147,4 +147,18 @@ service OpmProductService {
 			body:"*"
 		};
 	}
+	//创建Demo产品
+	rpc CreateDemoProduct(CreateDemoProductRequest) returns (CreateDemoProductResponse) {
+		option (google.api.http) = {
+			post:"/v1/opmProduct/createDemoProduct"
+			body:"*"
+		};
+	}
+	//获取指定产品的面板信息
+	rpc GetProductPanelInfo(ListsByProductIdsRequest) returns (ProductPanelInfoResponse) {
+		option (google.api.http) = {
+			post:"/v1/opmProduct/getProductPanelInfo"
+			body:"*"
+		};
+	}
 }

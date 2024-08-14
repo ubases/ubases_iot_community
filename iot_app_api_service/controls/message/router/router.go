@@ -3,6 +3,8 @@ package router
 import (
 	"cloud_platform/iot_app_api_service/controls"
 	"cloud_platform/iot_app_api_service/controls/message/apis"
+	"cloud_platform/iot_common/iotgin"
+	"cloud_platform/iot_common/iotnatsjs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,6 +13,8 @@ func RegisterRouter(e *gin.Engine) {
 	webApiPrefix := "/v1/platform/app"
 	app := e.Group(webApiPrefix)
 	app.Use(controls.AuthCheck)
+	app.Use(controls.SetParams)
+	app.Use(iotgin.AppLogger(iotnatsjs.GetJsClientPub()))
 
 	//获取消息统计数据（红点数据）
 	app.GET("/message/reddot", apis.Messagecontroller.GetMessageRedDot)

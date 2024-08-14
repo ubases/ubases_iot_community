@@ -25,7 +25,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-//来源于数据表
+// 来源于数据表
 type OpenOperLog struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

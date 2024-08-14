@@ -2,9 +2,13 @@ package services
 
 import (
 	"cloud_platform/iot_cloud_api_service/cached"
+	"cloud_platform/iot_cloud_api_service/config"
 	"cloud_platform/iot_cloud_api_service/controls"
+	entitys2 "cloud_platform/iot_cloud_api_service/controls/device/entitys"
+	apiservice "cloud_platform/iot_cloud_api_service/controls/device/services/deviceTriad"
 	services "cloud_platform/iot_cloud_api_service/controls/global"
 	"cloud_platform/iot_cloud_api_service/controls/open/entitys"
+	services2 "cloud_platform/iot_cloud_api_service/controls/product/services"
 	"cloud_platform/iot_cloud_api_service/rpc"
 	"cloud_platform/iot_common/iotconst"
 	"cloud_platform/iot_common/iotlogger"
@@ -14,6 +18,7 @@ import (
 	"cloud_platform/iot_proto/protos/protosService"
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -52,6 +57,7 @@ func (s OpenUserService) RegisterUser(req entitys.OpenUserRegisterReq) (string, 
 	if err := req.CheckRegister(); err != nil {
 		return "", err
 	}
+
 	res, err := rpc.ClientOpenUserService.Register(s.Ctx, &protosService.OpenUserRegisterRequest{
 		Account:     req.UserName,
 		UserType:    req.AccountType,
@@ -66,9 +72,218 @@ func (s OpenUserService) RegisterUser(req entitys.OpenUserRegisterReq) (string, 
 	if res.Code != 200 {
 		return "", errors.New(res.Message)
 	}
+	//派发Demo产品
+	if config.Global.Service.IsGenTestData {
+		go s.CreateInitData(res.Data, config.Global.Service.GenTestDataProductId, req.AccountType)
+	}
 	//刷新缓存
 	services.RefreshDevelopCache()
 	return iotutil.ToString(res.Data), nil
+}
+
+// GuideCheck 指引检查
+func (s OpenUserService) GuideCheck(req entitys.GuideCheckReq) error {
+	//默认是个人2
+	if req.AccountType == 0 {
+		req.AccountType = 2
+	}
+
+	//检查当前账号是否有产品数据
+	pSvc := OpmProductService{Ctx: s.Ctx}
+	if b, pro, err := pSvc.CheckTanentIsHasProduct(req.TenantId); err != nil {
+		return err
+	} else {
+		if b {
+			//更新时间，置顶demo产品
+			pSvc.RefreshUpdateTimeById(pro.Id)
+			tenantId, appKey := config.Global.DefaultApp.TenantId, config.Global.DefaultApp.AppKey
+
+			//获取用户
+			openUser, err := rpc.ClientOpenUserService.FindById(context.Background(), &protosService.OpenUserFilter{Id: req.UserId})
+			if err != nil {
+				return err
+			} else if openUser.Code != 200 {
+				return errors.New(openUser.Message)
+			}
+			theOpenUser := openUser.Data[0]
+			userAccount := theOpenUser.UserName
+			//产品是否存在三元组
+			svc := apiservice.IotDeviceTriadService{Ctx: s.Ctx}
+			hasDev, err := svc.CheckHasVirtualDeviceTriad(pro.Id, tenantId, userAccount)
+			if err != nil {
+				return err
+			}
+			if !hasDev {
+				userPassword := theOpenUser.UserPassword
+				userSalt := theOpenUser.UserSalt
+				//单独检查是否有虚拟设备
+				s.CreateDeviceInitData(userAccount, userPassword, userSalt, iotutil.ToString(pro.Id), pro.ProductKey, tenantId, appKey, req.AccountType)
+			}
+			return nil
+		}
+	}
+	err := s.CreateInitData(req.UserId, config.Global.Service.GenTestDataProductId, req.AccountType)
+	if err != nil {
+		return err
+	}
+	//刷新缓存
+	services.RefreshDevelopCache()
+	return nil
+}
+
+// SetHasGuided 设置已经指引状态
+func (s OpenUserService) SetHasGuided(req entitys.GuideCheckReq) error {
+	//检查当前账号是否有产品数据
+	_, err := rpc.ClientOpenUserService.UpdateFields(context.Background(), &protosService.OpenUserUpdateFieldsRequest{
+		Fields: []string{"has_guided"},
+		Data:   &protosService.OpenUser{Id: req.UserId, HasGuided: 1},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// CreateInitData 创建初始化产品
+func (s OpenUserService) CreateInitData(userId int64, productId int64, accountType int32) error {
+	defer iotutil.PanicHandler("注册生成测试数据报错：", userId, productId, accountType)
+	tenantId, appKey := config.Global.DefaultApp.TenantId, config.Global.DefaultApp.AppKey
+	//获取用户
+	openUser, err := rpc.ClientOpenUserService.FindById(context.Background(), &protosService.OpenUserFilter{Id: userId})
+	if err != nil {
+		return err
+	} else if openUser.Code != 200 {
+		return errors.New(openUser.Message)
+	}
+	userAccount := openUser.Data[0].UserName
+	userPassword := openUser.Data[0].UserPassword
+	userSalt := openUser.Data[0].UserSalt
+
+	resCompany, errCompany := rpc.ClientOpenUserCompanyService.Lists(s.Ctx, &protosService.OpenUserCompanyListRequest{
+		Page:     1,
+		PageSize: 10,
+		Query: &protosService.OpenUserCompany{
+			UserId: iotutil.ToInt64(userId),
+		},
+	})
+	if errCompany != nil {
+		return err
+	}
+	if resCompany.Code != 200 {
+		return errors.New(resCompany.Message)
+	}
+	if len(resCompany.Data) == 0 {
+		return errors.New("未查到任何关联公司")
+	}
+
+	if config.Global.Service.GenTestDataProductId == 0 {
+		return errors.New("config productId not found")
+	}
+	if config.Global.Service.GenTestDataControlId == 0 {
+		return errors.New("config controlId not found")
+	}
+
+	//产品信息（基础信息、物模型、面板、模组）
+	r, err := rpc.ClientOpmProductService.CreateDemoProduct(s.Ctx, &protosService.CreateDemoProductRequest{
+		BaseProductId: config.Global.Service.GenTestDataProductId, UserId: userId,
+		ControlPanelId: config.Global.Service.GenTestDataControlId, TenantId: resCompany.Data[0].TenantId})
+	if err != nil {
+		return err
+	}
+	if r.Code != 200 {
+		return errors.New(r.Message)
+	}
+	//添加虚拟设备
+	s.CreateDeviceInitData(userAccount, userPassword, userSalt, iotutil.ToString(r.Data.Id), r.Data.ProductKey, tenantId, appKey, accountType)
+	return nil
+}
+
+func (s OpenUserService) createAppUser(userAccount string, password, userSalt string, ip, appKey, tenantId string) error {
+	lang := "zh"
+	var phone, email string
+	if iotutil.IsPhone(userAccount) {
+		phone = userAccount
+	} else if iotutil.IsEmail(userAccount) {
+		email = userAccount
+	} else {
+		return errors.New("账号异常" + userAccount)
+	}
+	//读取翻译内容
+	langMap, err := iotredis.GetClient().HGetAll(context.Background(), iotconst.HKEY_LANGUAGE_DATA_PREFIX+iotconst.LANG_DFAULT_DATA).Result()
+	if err != nil {
+		langMap = make(map[string]string)
+	}
+	defaultHomeName := iotutil.MapGetStringVal(langMap[fmt.Sprintf("%s_default_home_name", lang)], iotconst.DefaultHomeName)
+	//区域服务器Id
+	ret, err := rpc.UcUserService.Register(s.Ctx, &protosService.UcUserRegisterRequest{
+		Phone:           phone,
+		Password:        password,
+		UserSalt:        userSalt,
+		Email:           email,
+		Code:            "",
+		Ip:              ip,
+		AppKey:          appKey,
+		TenantId:        tenantId,
+		DefaultHomeName: defaultHomeName,
+		Lang:            lang,
+		RegionServerId:  1,
+	})
+	if err != nil {
+		iotlogger.LogHelper.Error("用户%s注册失败，原因:%s", userAccount, err.Error())
+		return err
+	}
+	if ret.Code != 200 {
+		iotlogger.LogHelper.Error("用户%s注册失败，原因:%s", userAccount, ret.Message)
+		return errors.New(ret.Message)
+	}
+	return nil
+}
+
+func (s OpenUserService) CreateDeviceInitData(userAccount, userPassword, userSalt string, productId, productKey, tenantId, appKey string, accountType int32) error {
+	defer iotutil.PanicHandler("注册生成测试数据报错：虚拟设备异常", userAccount, productId, tenantId, accountType)
+	//如果账号不存在需要自动创建App账号
+	userInfo, err := rpc.UcUserService.Find(context.Background(), &protosService.UcUserFilter{
+		UserName:       userAccount,
+		AppKey:         appKey,
+		TenantId:       tenantId,
+		RegionServerId: 1,
+	})
+	if err != nil {
+		return err
+	}
+	if len(userInfo.Data) == 0 {
+		s.createAppUser(userAccount, userPassword, userSalt, "127.0.0.1", appKey, tenantId)
+	}
+	var req entitys2.GenerateDeviceTriad
+	//添加虚拟设备
+	if req.RegionServerId == 0 {
+		req.RegionServerId = 1 //默认是中国地区服务器
+	}
+	//调用微服务
+	req.TenantId = tenantId
+	req.AccountType = accountType
+	req.ProductId = productId
+	req.ProductKey = productKey
+	req.Number = 1
+	req.UserAccount = userAccount
+	req.AppKey = config.Global.DefaultApp.AppKey
+	req.SerialNumbers = []string{"XN" + iotutil.GetSecret(6)}
+	req.AddMode = 3 //新增模式
+	req.IsTest = 1  //测试新增
+	req.UseType = iotconst.Use_Type_Device_Real_Test
+	svc := apiservice.IotDeviceTriadService{Ctx: s.Ctx}
+	err = svc.CreateAndBindDeviceTriad(entitys2.AddAppAccountEntity{
+		Account:        userAccount,
+		ProductId:      iotutil.ToInt64(productId),
+		AppKey:         req.AppKey,
+		TenantId:       req.TenantId,
+		RegionServerId: req.RegionServerId,
+	}, &req)
+	if err != nil {
+		return err
+	}
+	iotlogger.LogHelper.Infof("生成测试数据成功")
+	return nil
 }
 
 // UserLogin 用户登录
@@ -134,6 +349,7 @@ func OpenUserInfo_pb2e(src *protosService.CloudUserInfo) *controls.UserInfo {
 		Nickname: src.NickName,
 		Avatar:   src.Avatar,
 		TenantId: src.TenantId,
+		Company:  src.Company,
 	}
 	return &uiObj
 }
@@ -285,17 +501,19 @@ func (s OpenUserService) GetUserProfile(userId string, tenantId string) (*entity
 			currentUserType = int(v.UserType)
 		}
 	}
-
+	userInfo := rep.Data[0]
 	resUser = entitys.OpenUserProfileRes{
-		Id:          iotutil.ToString(rep.Data[0].Id),
-		UserName:    rep.Data[0].UserName,
-		UserStatus:  rep.Data[0].UserStatus,
-		AccountType: rep.Data[0].AccountType,
-		Avatar:      rep.Data[0].Avatar,
-		TenantId:    tenantId,
-		CompanyName: currentCompanyName,
-		UserType:    int32(currentUserType),
-		TenantList:  list,
+		Id:           iotutil.ToString(userInfo.Id),
+		UserName:     userInfo.UserName,
+		UserStatus:   userInfo.UserStatus,
+		AccountType:  userInfo.AccountType,
+		Avatar:       userInfo.Avatar,
+		TenantId:     tenantId,
+		CompanyName:  currentCompanyName,
+		UserType:     int32(currentUserType),
+		TenantList:   list,
+		HasGuided:    userInfo.HasGuided == 1,
+		WebsocketUrl: config.Global.WorkOrder.WebsocketUrl,
 	}
 	return &resUser, nil
 }
@@ -422,7 +640,7 @@ func (s *OpenUserService) SetUserMenuTree(pid string, menuList []*entitys.Open2A
 }
 
 // 发送验证码(会验证用户名是否存在) 忘记密码和登录的时候使用.
-func (s OpenUserService) SendVerificationCodeForExists(userName, lang string, codeType int32) (string, error) {
+func (s OpenUserService) SendVerificationCodeForExists(userName, tenantId, lang string, codeType int32) (string, error) {
 	res, err := rpc.ClientOpenUserService.Find(context.Background(), &protosService.OpenUserFilter{
 		UserName:   userName,
 		UserStatus: 1,
@@ -440,11 +658,11 @@ func (s OpenUserService) SendVerificationCodeForExists(userName, lang string, co
 	if len(res.Data) == 0 {
 		return "", errors.New("用户名不存在")
 	}
-	return s.SendVerificationCode(userName, lang, codeType)
+	return s.SendVerificationCode(userName, tenantId, lang, codeType)
 }
 
 // 发送验证码
-func (s OpenUserService) SendVerificationCode(userName, lang string, codeType int32) (string, error) {
+func (s OpenUserService) SendVerificationCode(userName, tenantId, lang string, codeType int32) (string, error) {
 	if lang == "" {
 		lang = "zh"
 	}
@@ -457,6 +675,7 @@ func (s OpenUserService) SendVerificationCode(userName, lang string, codeType in
 			Code:     code,
 			Lang:     lang,
 			TplType:  codeType,
+			TenantId: tenantId,
 		})
 		if err != nil {
 			return "", err
@@ -478,6 +697,7 @@ func (s OpenUserService) SendVerificationCode(userName, lang string, codeType in
 			Lang:        lang,
 			TplType:     codeType,
 			PhoneType:   phoneType,
+			TenantId:    tenantId,
 		})
 		if err != nil {
 			return "", err
@@ -495,6 +715,12 @@ func (s OpenUserService) SendVerificationCode(userName, lang string, codeType in
 
 // 验证验证码
 func (s OpenUserService) VerificationCode(userName string, code string) (bool, string) {
+	//TODO 方便测试
+	if config.Global.Service.TestVerifTyCode != "" {
+		if code == config.Global.Service.TestVerifTyCode {
+			return true, "ok"
+		}
+	}
 	var codeRedis string
 	cached.RedisStore.Get(userName, &codeRedis)
 	if codeRedis == "" {
@@ -615,10 +841,14 @@ func (s OpenUserService) QueryAppUserList(pageNum, pageSize int64, userMobile, u
 
 // QueryUserDeviceList app用户绑定的设备
 func (s OpenUserService) QueryUserDeviceList(pageNum, pageSize int64, customerUserId string) ([]entitys.QueryUserDeviceList, int64, error) {
+	userId, err := iotutil.ToInt64AndErr(customerUserId)
+	if err != nil {
+		return nil, 0, err
+	}
 	queryUserDeviceList := []entitys.QueryUserDeviceList{}
 	rep, err := rpc.UcHomeUserService.Lists(s.Ctx, &protosService.UcHomeUserListRequest{
 		Query: &protosService.UcHomeUser{
-			UserId: iotutil.ToInt64(customerUserId),
+			UserId: userId,
 		},
 	})
 	if err != nil {
@@ -646,50 +876,38 @@ func (s OpenUserService) QueryUserDeviceList(pageNum, pageSize int64, customerUs
 	if err != nil || userHomeRep.Total == 0 {
 		return queryUserDeviceList, 0, nil
 	}
-	for _, devObj := range userHomeRep.Data { //循环设备id
+
+	//查询产品类型数据，并缓存为map
+	pro := services2.ProductService{}
+	productMap, _ := pro.GetProductTypeMap()
+	//产品数据缓存
+	proCached := controls.ProductCachedData{}
+	for _, devObj := range userHomeRep.Data {
 		userDevice := entitys.QueryUserDeviceList{}
 		userDevice.AddMethod = 1 //用户自己添加
 		if roleTypeMap[devObj.HomeId] == 3 {
 			userDevice.AddMethod = 2 //他人共享
-		}
-
-		IotDeviceTriadRep, err := rpc.ClientIotDeviceServer.Find(s.Ctx, &protosService.IotDeviceTriadFilter{ //
-			Did: devObj.DeviceId,
-			//UseType: 1, //虚拟设备
-		})
-		if err == nil && IotDeviceTriadRep.Total > 0 {
-			if IotDeviceTriadRep.Data[0].UseType == 1 {
+		} else {
+			//TODO根据设备id判断是否为虚拟设备，仅仅支持虚拟的虚拟设备Id
+			if strings.HasPrefix(devObj.DeviceId, "VIRT") {
 				userDevice.AddMethod = 3 //虚拟设备
 			}
 		}
-
-		IotDeviceInfoRep, err := rpc.ClientIotDeviceInfoServer.Find(s.Ctx, &protosService.IotDeviceInfoFilter{ //获取设备名称
-			Did: devObj.DeviceId,
-		})
-		if err == nil && IotDeviceInfoRep.Total > 0 {
-			userDevice.DeviceName = IotDeviceInfoRep.Data[0].DeviceName
-			userDevice.DevicePid = iotutil.ToString(IotDeviceInfoRep.Data[0].Did)
-
-			productRes, err := rpc.ClientOpmProductService.FindById(s.Ctx, &protosService.OpmProductFilter{ //获取产品名称
-				Id: IotDeviceInfoRep.Data[0].ProductId,
-			})
-			if err == nil && productRes.Data != nil {
-				productInfo := productRes.Data[0]
-				userDevice.ProductName = productInfo.Name                                                             //产品类型
-				productTypeRes, err := rpc.ClientProductService.GetTPmProduct(s.Ctx, &protosService.TPmProductFilter{ //所属产品
-					Id: productInfo.ProductId,
-				})
-				if err == nil && productTypeRes.Data != nil {
-					userDevice.ProductTypeName = productTypeRes.Data.Name
+		userDevice.DeviceId = devObj.DeviceId
+		userDevice.DeviceName = devObj.CustomName
+		proInfo, err := proCached.GetProduct(devObj.ProductKey)
+		if err == nil {
+			userDevice.ProductId = devObj.ProductId
+			if proInfo != nil {
+				userDevice.ProductName = proInfo.Name
+				userDevice.ProductKey = proInfo.ProductKey
+				if p, ok := productMap[proInfo.ProductId]; ok {
+					userDevice.ProductTypeName = p.Name
 				}
 			}
 		}
-		if userDevice.DeviceName == "" {
-			continue
-		}
 		queryUserDeviceList = append(queryUserDeviceList, userDevice)
 	}
-
 	return queryUserDeviceList, userHomeRep.Total, nil
 }
 

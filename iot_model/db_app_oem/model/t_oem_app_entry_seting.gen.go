@@ -8,11 +8,11 @@ const TableNameTOemAppEntrySeting = "t_oem_app_entry_seting"
 
 // TOemAppEntrySeting mapped from table <t_oem_app_entry_seting>
 type TOemAppEntrySeting struct {
-	Id       int64 `gorm:"column:id;primaryKey" json:"id"`    // 设置id
-	DirId    int64 `gorm:"column:dir_id" json:"dir_id"`       // 目录id
-	Sort     int32 `gorm:"column:sort" json:"sort"`           // 排序
-	IsEnable int32 `gorm:"column:is_enable" json:"is_enable"` // 是否启用 1-启用  2-不启用
-	IsNormal int32 `gorm:"column:is_normal" json:"is_normal"` // 是否设置为常见 1-常见  2-不常见
+	Id       int64 `gorm:"column:id;primaryKey" json:"id"`   // 设置id
+	DirId    int64 `gorm:"column:dir_id" json:"dirId"`       // 目录id
+	Sort     int32 `gorm:"column:sort" json:"sort"`          // 排序
+	IsEnable int32 `gorm:"column:is_enable" json:"isEnable"` // 是否启用 1-启用  2-不启用
+	IsNormal int32 `gorm:"column:is_normal" json:"isNormal"` // 是否设置为常见 1-常见  2-不常见
 }
 
 // TableName TOemAppEntrySeting's table name

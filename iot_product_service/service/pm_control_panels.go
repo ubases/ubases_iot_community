@@ -158,7 +158,9 @@ func (s *PmControlPanelsSvc) UpdatePmControlPanels(req *proto.PmControlPanels) (
 	do := t.WithContext(context.Background())
 	//要更新的字段,不包括主键
 	var updateField []field.Expr
-
+	if req.Code != "" { //面板编码
+		updateField = append(updateField, t.Code)
+	}
 	if req.Name != "" { //字符串
 		updateField = append(updateField, t.Name)
 	}
@@ -192,18 +194,21 @@ func (s *PmControlPanelsSvc) UpdatePmControlPanels(req *proto.PmControlPanels) (
 	if req.PreviewSize != 0 { //整数
 		updateField = append(updateField, t.PreviewSize)
 	}
-	if req.ProductTypeId != 0 { //整数
+	//productTypeId 支持修改为0
+	if req.ProductTypeId != -1 { //整数
 		updateField = append(updateField, t.ProductTypeId)
 	}
-	//if req.ProductId != 0 { //整数
-	//updateField = append(updateField, t.ProductId)
-	updateField = append(updateField, t.ProductTypeId)
-	//}
+	if req.ProductId != -1 { //整数
+		updateField = append(updateField, t.ProductId)
+	}
 	if req.Status != 0 { //整数
 		updateField = append(updateField, t.Status)
 	}
 	if req.LangFileName != "" {
 		updateField = append(updateField, t.LangFileName)
+	}
+	if req.Code != "" {
+		updateField = append(updateField, t.Code)
 	}
 	if req.CreatedBy != 0 { //整数
 		updateField = append(updateField, t.CreatedBy)
@@ -259,6 +264,7 @@ func (s *PmControlPanelsSvc) UpdateAllPmControlPanels(req *proto.PmControlPanels
 	updateField = append(updateField, t.Status)
 	updateField = append(updateField, t.CreatedBy)
 	updateField = append(updateField, t.UpdatedBy)
+	updateField = append(updateField, t.Code)
 	if len(updateField) > 0 {
 		do = do.Select(updateField...)
 	}

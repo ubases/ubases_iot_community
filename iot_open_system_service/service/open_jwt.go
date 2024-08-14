@@ -21,6 +21,7 @@ type OpenUserInfo struct {
 	Avatar      string `json:"avatar"`
 	TenantId    string `json:"tenantId"`
 	AccountType int32  `json:"accountType"`
+	Company     string `json:"company"`
 }
 
 type OpenClaims struct {

@@ -68,21 +68,21 @@ service OemAppIntroduceService {
 			body:"*"
 		};
 	}
-    //多条件查找，返回单条数据
-    rpc Find(OemAppIntroduceFilter) returns (OemAppIntroduceResponse) {
-        option (google.api.http) = {
-            post:"/v1/oemAppIntroduce/find"
-            body:"*"
-        };
-    }
-    //查找，支持分页，可返回多条数据
+	//多条件查找，返回单条数据
+	rpc Find(OemAppIntroduceFilter) returns (OemAppIntroduceResponse) {
+			option (google.api.http) = {
+					post:"/v1/oemAppIntroduce/find"
+					body:"*"
+			};
+	}
+	//查找，支持分页，可返回多条数据
 	rpc Lists(OemAppIntroduceListRequest) returns (OemAppIntroduceResponse) {
 		option (google.api.http) = {
 			post:"/v1/oemAppIntroduce/lists"
 			body:"*"
 		};
 	}
-    //查找，支持分页，可返回多条数据
+	//查找，支持分页，可返回多条数据
 	rpc IntroduceList(OemAppIntroduceListRequest) returns (OemAppIntroduceListResponse) {
 		option (google.api.http) = {
 			post:"/v1/oemAppIntroduce/introduceList"
@@ -96,4 +96,20 @@ service OemAppIntroduceService {
 			body:"*"
 		};
 	}
+
+	// 获取最新得协议版本
+	rpc GetLastVersion(OemAppIntroduceFilter) returns (OemAppIntroduceLastResponse) {
+		option (google.api.http) = {
+			post:"/v1/oemAppIntroduce/getLastVersion"
+			body:"*"
+		};
+	}
+	//启用
+	rpc Copy(OemAppIntroduceCopyRequest) returns (Response) {
+		option (google.api.http) = {
+			post:"/v1/oemAppIntroduce/copy"
+			body:"*"
+		};
+	}
+
 }

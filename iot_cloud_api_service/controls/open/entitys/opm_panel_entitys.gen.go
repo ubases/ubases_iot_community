@@ -17,6 +17,7 @@ type OpmPanelEntitys struct {
 	Id               int64                    `json:"id,string"`
 	TenantId         string                   `json:"tenantId,omitempty"`
 	PanelName        string                   `json:"panelName"`
+	PanelCode        string                   `json:"panelCode"`
 	PanelType        int32                    `json:"panelType"`
 	Status           int32                    `json:"status"`
 	BuildStatus      int32                    `json:"buildStatus"`
@@ -35,14 +36,17 @@ type OpmPanelEntitys struct {
 	ModelName        string                   `json:"modelName"`
 	Width            float64                  `json:"width"`
 	Height           float64                  `json:"height"`
-	CreatedAt        time.Time                `json:"createdAt,omitempty"`
+	CreatedAt        int64                `json:"createdAt,omitempty"`
 	CreatedBy        int64                    `json:"createdBy,string,omitempty"`
-	UpdatedAt        time.Time                `json:"updatedAt,omitempty"`
+	UpdatedAt        int64                `json:"updatedAt,omitempty"`
 	UpdatedBy        int64                    `json:"updatedBy,string,omitempty"`
 	PanelStudioPages []*OpmPanelStudioEntitys `json:"panelStudioPages"`
 	BaseProductId    int64                    `json:"baseProductId,string,omitempty"`
 	ProductId        int64                    `json:"productId,string,omitempty"`
 	ThemeJson map[string]interface{}          `json:"themeJson,omitempty"`//主题
+	LangFileName string `json:"langFileName,omitempty"`
+	Remark string `json:"desc"`//面板描述
+	UseCount int32 `json:"useCount"`
 }
 
 // 新增参数非空检查
@@ -157,6 +161,9 @@ func OpmPanel_e2pb(src *OpmPanelEntitys) *proto.OpmPanel {
 		BaseProductId:  src.BaseProductId,
 		ProductId:      src.ProductId,
 		PageStudioList: pageList,
+		LangFileName: src.LangFileName,
+		Remark: src.Remark,
+		Code: src.PanelCode,
 	}
 	return &pbObj
 }
@@ -191,9 +198,9 @@ func OpmPanel_pb2e(src *proto.OpmPanel) *OpmPanelEntitys {
 		ModelName:        src.ModelName,
 		Width:            src.Width,
 		Height:           src.Height,
-		CreatedAt:        src.CreatedAt.AsTime(),
+		CreatedAt:        src.CreatedAt.AsTime().Unix(),
 		CreatedBy:        src.CreatedBy,
-		UpdatedAt:        src.UpdatedAt.AsTime(),
+		UpdatedAt:        src.UpdatedAt.AsTime().Unix(),
 		UpdatedBy:        src.UpdatedBy,
 		BaseProductId:    src.BaseProductId,
 		ProductId:        src.ProductId,
@@ -201,6 +208,10 @@ func OpmPanel_pb2e(src *proto.OpmPanel) *OpmPanelEntitys {
 		BuildTime:        src.BuildTime.AsTime(),
 		BuildErrStatus:   src.BuildErrStatus,
 		PanelStudioPages: pageList,
+		Remark: src.Remark,
+		LangFileName: src.LangFileName,
+		UseCount: src.UseCount,
+		PanelCode: src.Code,
 	}
 	return &entitysObj
 }
@@ -228,6 +239,7 @@ type OpmPanelBuildFinishNotifyReq struct {
 	PanelName      string `json:"panelName"`      // 面板名称
 	PanelUrlName   string `json:"panelUrlName"`   // 面板名称
 	Status         int64  `json:"status"`         // 打包状态
+	Mode int32 `json:"mode"`
 }
 
 type OpmPanelPerviewSubmitObj struct {
@@ -245,6 +257,7 @@ func OpmPanels_pb2panels(src *proto.OpmPanel) *entitys.PmControlPanelsEntitys {
 	}
 	entitysObj := entitys.PmControlPanelsEntitys{
 		Id:          strconv.Itoa(int(src.Id)),
+		Code: 		 src.Code,
 		Name:        src.PanelName,
 		Url:         src.PanelUrl,
 		UrlName:     src.PanelUrlName,

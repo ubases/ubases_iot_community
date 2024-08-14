@@ -41,6 +41,8 @@ func newTOemAppIntroduce(db *gorm.DB) tOemAppIntroduce {
 	_tOemAppIntroduce.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_tOemAppIntroduce.DeletedAt = field.NewField(tableName, "deleted_at")
 	_tOemAppIntroduce.Abstract = field.NewString(tableName, "abstract")
+	_tOemAppIntroduce.AppDevType = field.NewInt32(tableName, "app_dev_type")
+	_tOemAppIntroduce.RemindMode = field.NewInt32(tableName, "remind_mode")
 
 	_tOemAppIntroduce.fillFieldMap()
 
@@ -67,6 +69,8 @@ type tOemAppIntroduce struct {
 	UpdatedAt   field.Time
 	DeletedAt   field.Field
 	Abstract    field.String
+	AppDevType  field.Int32
+	RemindMode  field.Int32
 
 	fieldMap map[string]field.Expr
 }
@@ -99,6 +103,8 @@ func (t *tOemAppIntroduce) updateTableName(table string) *tOemAppIntroduce {
 	t.UpdatedAt = field.NewTime(table, "updated_at")
 	t.DeletedAt = field.NewField(table, "deleted_at")
 	t.Abstract = field.NewString(table, "abstract")
+	t.AppDevType = field.NewInt32(table, "app_dev_type")
+	t.RemindMode = field.NewInt32(table, "remind_mode")
 
 	t.fillFieldMap()
 
@@ -111,6 +117,8 @@ func (t *tOemAppIntroduce) WithContext(ctx context.Context) *tOemAppIntroduceDo 
 
 func (t tOemAppIntroduce) TableName() string { return t.tOemAppIntroduceDo.TableName() }
 
+func (t tOemAppIntroduce) Alias() string { return t.tOemAppIntroduceDo.Alias() }
+
 func (t *tOemAppIntroduce) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {
@@ -121,7 +129,7 @@ func (t *tOemAppIntroduce) GetFieldByName(fieldName string) (field.OrderExpr, bo
 }
 
 func (t *tOemAppIntroduce) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 16)
+	t.fieldMap = make(map[string]field.Expr, 18)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["content"] = t.Content
 	t.fieldMap["content_url"] = t.ContentUrl
@@ -138,6 +146,8 @@ func (t *tOemAppIntroduce) fillFieldMap() {
 	t.fieldMap["updated_at"] = t.UpdatedAt
 	t.fieldMap["deleted_at"] = t.DeletedAt
 	t.fieldMap["abstract"] = t.Abstract
+	t.fieldMap["app_dev_type"] = t.AppDevType
+	t.fieldMap["remind_mode"] = t.RemindMode
 }
 
 func (t tOemAppIntroduce) clone(db *gorm.DB) tOemAppIntroduce {

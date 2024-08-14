@@ -8,9 +8,9 @@ const TableNameTOemAppFlashScreenUser = "t_oem_app_flash_screen_user"
 
 // TOemAppFlashScreenUser mapped from table <t_oem_app_flash_screen_user>
 type TOemAppFlashScreenUser struct {
-	Id            int64  `gorm:"column:id;primaryKey" json:"id"`                         // 主键
-	FlashScreenId int64  `gorm:"column:flash_screen_id;not null" json:"flash_screen_id"` // 闪屏id
-	Account       string `gorm:"column:account;not null" json:"account"`                 // 账号
+	Id            int64  `gorm:"column:id;primaryKey" json:"id"`                       // 主键
+	FlashScreenId int64  `gorm:"column:flash_screen_id;not null" json:"flashScreenId"` // 闪屏id
+	Account       string `gorm:"column:account;not null" json:"account"`               // 账号
 }
 
 // TableName TOemAppFlashScreenUser's table name

@@ -38,9 +38,12 @@ type TOpmPanel struct {
 	UpdatedAt      time.Time `gorm:"column:updated_at" json:"updatedAt"`                    // 修改时间
 	UpdatedBy      int64     `gorm:"column:updated_by;not null;default:0" json:"updatedBy"` // 修改人
 	SourceZip      string    `gorm:"column:source_zip" json:"sourceZip"`                    // 源码压缩包路径（本地地址）
-	BaseProductId  int64     `gorm:"column:baseProductId" json:"baseProductId"`             // 产品类型Id（基础产品Id、品类Id）
-	ProductId      int64     `gorm:"column:productId" json:"productId"`                     // 开发者产品Id
+	BaseProductId  int64     `gorm:"column:base_product_id" json:"baseProductId"`           // 产品类型Id（基础产品Id、品类Id）
+	ProductId      int64     `gorm:"column:product_id" json:"productId"`                    // 开发者产品Id
 	ThemeJson      string    `gorm:"column:theme_json" json:"themeJson"`                    // 面板主题设置
+	LangFileName   string    `gorm:"column:lang_file_name" json:"langFileName"`             // 翻译文件名称
+	Remark         string    `gorm:"column:remark" json:"remark"`                           // 面板描述
+	Code         string    `gorm:"column:code" json:"code"`                           // 面板描述
 }
 
 // TableName TOpmPanel's table name

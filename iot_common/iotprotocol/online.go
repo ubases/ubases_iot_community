@@ -22,7 +22,7 @@ func (o *PackOnline) Encode(gid string, online bool) ([]byte, error) {
 		status = "offline"
 	}
 	obj := PackOnline{
-		Header:  EncodeHeader(ONLINE_HEAD_NS, ONLINE_HEAD_NAME, gid),
+		Header:  EncodeHeader(ONLINE_HEAD_NS, ONLINE_HEAD_NAME, gid, ""),
 		Payload: Online{OnlineStatus: status},
 	}
 	*o = obj

@@ -14,14 +14,14 @@ import (
 )
 
 var (
-	version string = "2.0.0"
+	version string = "2.1.0"
 	name           = "iot_demo_service"
 )
 
 func main() {
 	log.Println(version)
 	//初始化配置
-	if err := config.Init(); err != nil {
+	if err := config.Init2(); err != nil {
 		log.Println("加载配置文件发生错误:", err)
 		return
 	}
@@ -35,7 +35,7 @@ func main() {
 
 	//链路追踪配置
 	iottrace.SetSamplingFrequency(50)
-	t, io, err := iottrace.NewZipkinTracer(iotconst.IOT_DEMO_SERVICE, "", config.Global.Zipkin.Url)
+	t, io, err := iottrace.NewZipkinTracer(iotconst.IOT_BASIC_SERVICE, "", config.Global.Zipkin.Url)
 	if err != nil {
 		iotlogger.LogHelper.Error(err)
 		return
@@ -44,7 +44,7 @@ func main() {
 	opentracing.SetGlobalTracer(t)
 
 	//GRPC初始化及服务注册
-	grpcservice := rpc.NewGrpcService(iotconst.IOT_DEMO_SERVICE, version, serviceCfg.Grpcqps)
+	grpcservice := rpc.NewGrpcService(iotconst.IOT_BASIC_SERVICE, version, serviceCfg.Grpcqps)
 	err = grpcservice.RegisterHandler()
 	if err != nil {
 		iotlogger.LogHelper.Error("grpcservice.RegisterHandler failed:%s", err)

@@ -15,8 +15,8 @@ type DeveloperEntitysListReq struct {
 	CompanyName string `form:"companyName,omitempty"`
 	Status      int32  `form:"status,omitempty"`
 	//1.增加列表字段显示和筛选项：账号类型，账号来源
-	AccountType   int32 `json:"accountType,omitempty"`   //账号类型（=1 企业 =2 个人）
-	AccountOrigin int32 `json:"accountOrigin,omitempty"` //账号来源（=1 注册 =2 管理员创建）
+	AccountType   int32 `form:"accountType,omitempty"`   //账号类型（=1 企业 =2 个人）
+	AccountOrigin int32 `form:"accountOrigin,omitempty"` //账号来源（=1 注册 =2 管理员创建）
 }
 
 func DeveloperEntitysListReq_entitysToPb(src *DeveloperEntitysListReq) *protosService.DeveloperListRequest {

@@ -61,6 +61,20 @@ func (ProductFirmwareController) QueryDropDownVersionList(c *gin.Context) {
 		iotgin.ResBadRequest(c, "firmwareId")
 		return
 	}
+	if moduleIdInt == 0 && isCustomInt == 2 {
+		//如果没有ModuleId就从关联记录中查询，一般用于云模组固件
+		pmRels, err := rpc.ClientOpmProductModuleRelationService.Lists(context.Background(), &protosService.OpmProductModuleRelationListRequest{
+			Query: &protosService.OpmProductModuleRelation{ProductId: productIdInt, IsCustom: isCustomInt},
+		})
+		if err == nil {
+			for _, pmRel := range pmRels.Data {
+				if pmRel.FirmwareId == firmwareIdInt {
+					moduleIdInt = pmRel.ModuleId
+					break
+				}
+			}
+		}
+	}
 	productRes, err := rpc.ClientOpmProductModuleRelationService.
 		QueryProductFirmwareVersionList(context.Background(), &protosService.ProductFirmwareVersionFilter{
 			ProductId: productIdInt, ModuleId: moduleIdInt, FirmwareId: firmwareIdInt, IsCustom: isCustomInt})

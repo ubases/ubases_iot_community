@@ -6,11 +6,13 @@ package handler
 
 import (
 	"cloud_platform/iot_common/iotconst"
+	"cloud_platform/iot_common/iotnatsjs"
 	"cloud_platform/iot_common/iotstruct"
 	"cloud_platform/iot_common/iotutil"
 	"cloud_platform/iot_product_service/service"
 	"context"
 	"errors"
+	"fmt"
 
 	proto "cloud_platform/iot_proto/protos/protosService"
 )
@@ -67,13 +69,62 @@ func (h *OpmProductHandler) ModuleLists(ctx context.Context, req *proto.ModuleId
 // 创建
 func (h *OpmProductHandler) Create(ctx context.Context, req *proto.OpmProduct, resp *proto.Response) error {
 	s := service.OpmProductSvc{Ctx: ctx}
-	ret, err := s.CreateOpmProduct(req)
+	ret, err := s.CreateOpmProduct(req, false)
 	service.SetResponse(resp, err)
 	if ret != nil && err == nil {
 		resp.Data = ret.Id
-		service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_PRODUCT_NAME, req.ProductKey, "name", req.Name, req.NameEn),
+		//})
+
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
 			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
 			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_PRODUCT_NAME, req.ProductKey, "name", req.Name, req.NameEn),
+		})
+	}
+	return nil
+}
+
+// 创建
+func (h *OpmProductHandler) CreateDemoProduct(ctx context.Context, req *proto.CreateDemoProductRequest, resp *proto.CreateDemoProductResponse) error {
+	pmSvc := TPmProductHandler{}
+	baseInfo, err := pmSvc.GetBaseProductInfo(req.BaseProductId)
+	if err != nil {
+		resp.Code = ERROR
+		resp.Message = err.Error()
+		return nil
+	}
+	//用户Demo产品数据
+	reqObj := &proto.OpmProduct{
+		ImageUrl:         baseInfo.ImageUrl,
+		PowerConsumeType: baseInfo.PowerConsumeType,
+		NetworkType:      baseInfo.NetworkType,
+		Name:             fmt.Sprintf("%v_demo", baseInfo.Name),
+		Model:            iotutil.GetProductKeyRandomString(),
+		ProductTypeId:    baseInfo.ProductTypeId,
+		ProductId:        req.BaseProductId,
+		WifiFlag:         baseInfo.WifiFlag,
+		ControlPanelId:   req.ControlPanelId,
+		IsDemoProduct:    1,
+		TenantId:         req.TenantId,
+		Status:           2,
+	}
+	//查询产品类型信息
+	s := service.OpmProductSvc{Ctx: ctx}
+	ret, err := s.CreateOpmProduct(reqObj, true)
+	resp.Code = SUCCESS
+	resp.Message = "success"
+
+	if ret != nil && err == nil {
+		resp.Data = ret
+		//service.GetJsPublisherMgr().PushData(&service.NatsPubData{
+		//	Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+		//	Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_PRODUCT_NAME, reqObj.ProductKey, "name", reqObj.Name, reqObj.NameEn),
+		//})
+		iotnatsjs.GetJsClientPub().PushData(&iotnatsjs.NatsPubData{
+			Subject: iotconst.NATS_SUBJECT_LANGUAGE_UPDATE,
+			Data:    iotstruct.TranslatePush{}.SetContent(iotconst.LANG_PRODUCT_NAME, reqObj.ProductKey, "name", reqObj.Name, reqObj.NameEn),
 		})
 	}
 	return nil
@@ -270,6 +321,21 @@ func (h *OpmProductHandler) MergeProductThingsModel(ctx context.Context, req *pr
 		resp.Data = &proto.OpmThingModelAllList{
 			Properties: data,
 		}
+	}
+	return nil
+}
+
+//获取指定产品的面板信息
+func (h *OpmProductHandler) GetProductPanelInfo(ctx context.Context, req *proto.ListsByProductIdsRequest, resp *proto.ProductPanelInfoResponse) error {
+	s := service.OpmProductSvc{Ctx: ctx}
+	data, err := s.PanelInfosByProducts(req)
+	if err != nil {
+		resp.Code = service.ERROR
+		resp.Message = err.Error()
+	} else {
+		resp.Code = service.SUCCESS
+		resp.Message = "success"
+		resp.Data = data
 	}
 	return nil
 }

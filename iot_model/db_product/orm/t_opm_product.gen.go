@@ -61,6 +61,7 @@ func newTOpmProduct(db *gorm.DB) tOpmProduct {
 	_tOpmProduct.StyleLinkage = field.NewString(tableName, "style_linkage")
 	_tOpmProduct.AppPanelType = field.NewInt32(tableName, "app_panel_type")
 	_tOpmProduct.TslUpdatedAt = field.NewTime(tableName, "tsl_updated_at")
+	_tOpmProduct.IsDemoProduct = field.NewInt32(tableName, "is_demo_product")
 
 	_tOpmProduct.fillFieldMap()
 
@@ -107,6 +108,7 @@ type tOpmProduct struct {
 	StyleLinkage      field.String
 	AppPanelType      field.Int32
 	TslUpdatedAt      field.Time
+	IsDemoProduct     field.Int32
 
 	fieldMap map[string]field.Expr
 }
@@ -159,6 +161,7 @@ func (t *tOpmProduct) updateTableName(table string) *tOpmProduct {
 	t.StyleLinkage = field.NewString(table, "style_linkage")
 	t.AppPanelType = field.NewInt32(table, "app_panel_type")
 	t.TslUpdatedAt = field.NewTime(table, "tsl_updated_at")
+	t.IsDemoProduct = field.NewInt32(table, "is_demo_product")
 
 	t.fillFieldMap()
 
@@ -183,7 +186,7 @@ func (t *tOpmProduct) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (t *tOpmProduct) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 36)
+	t.fieldMap = make(map[string]field.Expr, 37)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["product_type_id"] = t.ProductTypeId
 	t.fieldMap["product_key"] = t.ProductKey
@@ -220,6 +223,7 @@ func (t *tOpmProduct) fillFieldMap() {
 	t.fieldMap["style_linkage"] = t.StyleLinkage
 	t.fieldMap["app_panel_type"] = t.AppPanelType
 	t.fieldMap["tsl_updated_at"] = t.TslUpdatedAt
+	t.fieldMap["is_demo_product"] = t.IsDemoProduct
 }
 
 func (t tOpmProduct) clone(db *gorm.DB) tOpmProduct {

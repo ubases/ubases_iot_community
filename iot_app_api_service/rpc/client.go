@@ -102,6 +102,7 @@ func InitServiceClient() {
 	RegisterGrpcServiceClient(iotconst.IOT_APP_OEM_SERVICE, func(name string, client client.Client) {
 		ClientOemAppIntroduceService = protosService.NewOemAppIntroduceService(name, client)
 		ClientOemAppService = protosService.NewOemAppService(name, client)
+		ClientOemAppCustomRecordService = protosService.NewOemAppCustomRecordService(name, client)
 		ClientOemAppDocDirService = protosService.NewOemAppDocDirService(name, client)
 		ClientOemAppDocRelationService = protosService.NewOemAppDocRelationService(name, client)
 		ClientOemAppEntryService = protosService.NewOemAppEntryService(name, client)
@@ -120,6 +121,7 @@ func InitServiceClient() {
 	RegisterGrpcServiceClient(iotconst.IOT_SYSTEM_SERVICE, func(name string, client client.Client) {
 		ClientSysAppDocDirService = protosService.NewSysAppDocDirService(name, client)
 		ClientSysAppEntryService = protosService.NewSysAppEntryService(name, client)
+		ClientSysAttachmentService = protosService.NewSysAttachmentService(name, client)
 	})
 	//开发平台系统服务
 	RegisterGrpcServiceClient(iotconst.IOT_OPEN_SYSTEM_SERVICE, func(name string, client client.Client) {
@@ -143,5 +145,7 @@ func RegisterGrpcServiceClient(name string, fun func(name string, client client.
 		client.RequestTimeout(120*time.Second), //for debug
 		client.DialTimeout(6*time.Second),
 	)
+	_ = cli.Init(grpc.MaxSendMsgSize(20 * 1024 * 1024))
+	_ = cli.Init(grpc.MaxRecvMsgSize(20 * 1024 * 1024))
 	fun(name, cli)
 }

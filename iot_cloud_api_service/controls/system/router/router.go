@@ -40,7 +40,6 @@ func RegisterRouter(e *gin.Engine) {
 	admin.GET("/user/getInfo" /* cache.CacheByRequestURI(redisStore, 15*time.Second),*/, apis.Usercontroller.GetLoginUserInfo)
 	admin.GET("/user/logout", apis.Usercontroller.Logout)
 	admin.GET("/user/getRouters", apis.Usercontroller.QueryUserRouters)
-	admin.POST("/user/status", apis.Usercontroller.EditStatus)
 
 	//webApiPrefix := "/v1/platform/web"
 	//admin := e.Group(webApiPrefix)
@@ -183,4 +182,20 @@ func RegisterRouter(e *gin.Engine) {
 	admin.POST("/app/helpCenter/del", apis.SysAppHelpCentercontroller.DeleteHelpCenter)
 	admin.GET("/app/helpCenter/detail", apis.SysAppHelpCentercontroller.GetHelpCenter)
 	admin.POST("/app/helpCenter/list", apis.SysAppHelpCentercontroller.GetHelpCenterList)
+
+	//APP服务器管理
+	admin.POST("/appService/add", apis.SysRegionServercontroller.Add)
+	admin.POST("/appService/edit", apis.SysRegionServercontroller.Edit)
+	admin.POST("/appService/delete", apis.SysRegionServercontroller.Delete)
+	admin.GET("/appService/detail/:id", apis.SysRegionServercontroller.QueryDetail)
+	admin.POST("/appService/setStatus", apis.SysRegionServercontroller.SetStatus)
+	admin.POST("/appService/list", apis.SysRegionServercontroller.QueryList)
+
+	msApiPrefix := "/v1/platform/web/data"
+	ms := e.Group(msApiPrefix)
+	ms.Use(controls.AuthCheck)
+	//发送短信/邮件记录 t_ms_notice_record
+	ms.POST("/noticeInfo/sendRecord", apis.MsNoticeRecordcontroller.QueryList)
+	ms.GET("/noticeInfo/detail/:id", apis.MsNoticeRecordcontroller.QueryDetail)
+	ms.POST("/noticeInfo/delete", apis.MsNoticeRecordcontroller.Delete)
 }

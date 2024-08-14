@@ -148,6 +148,10 @@ message UcUser {
     string defaultHomeName = 134;
 
     int64 regionServerId = 135;
+
+    string userSalt = 136;
+
+    int32 agreementFlag = 137;//协议标记
 }
 
 message UcUserFilter {
@@ -359,6 +363,8 @@ message UcUserRegisterRequest {
     string defaultPhoto = 113;//默认头像
     string lang = 114;//注册语言
     int64 regionServerId = 115;//区域服务Id
+    string userSalt = 116;//用户密码盐
+    int64 registerRegionId = 117;//区域Id
 }
    
 message UcForgetPasswordReq {

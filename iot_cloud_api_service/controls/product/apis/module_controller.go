@@ -60,6 +60,23 @@ func (PmModuleController) Edit(c *gin.Context) {
 	iotgin.ResSuccess(c, id)
 }
 
+// 模组芯片绑定固件版本
+func (PmModuleController) SelectFirmwareVersions(c *gin.Context) {
+	var req entitys.PmModuleEntitys
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	req.UpdatedBy = controls.GetUserId(c)
+	id, err := moduleServices.UpdatePartPmModule(req)
+	if err != nil {
+		iotgin.ResErrCli(c, err)
+		return
+	}
+	iotgin.ResSuccess(c, id)
+}
+
 func (PmModuleController) Add(c *gin.Context) {
 	var req entitys.PmModuleEntitys
 	err := c.ShouldBindJSON(&req)

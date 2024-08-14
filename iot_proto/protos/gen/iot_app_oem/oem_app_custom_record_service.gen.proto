@@ -82,4 +82,11 @@ service OemAppCustomRecordService {
 			body:"*"
 		};
 	}
+	//获取app最新得版本信息
+	rpc GetLastVersion(OemAppCustomRecordFilter) returns (OemAppCustomRecordResponse) {
+		option (google.api.http) = {
+			post:"/v1/oemAppCustomRecord/getLastVersion"
+			body:"*"
+		};
+	}
 }

@@ -705,8 +705,8 @@ func (s *OpenCompanySvc) GetListOpenCompany(req *proto.OpenCompanyListRequest) (
 }
 
 func (s *OpenCompanySvc) OpenDevCompanyAuth(req *proto.OpenDevCompanyAuthRequest) error {
-	userId, _ := metadata.Get(s.Ctx, "userid")
-	if userId == "" {
+	adminUserId, _ := metadata.Get(s.Ctx, "userid")
+	if adminUserId == "" {
 		return errors.New("用户信息获取失败,请重新登录.")
 	}
 	AuthName := req.AuthName
@@ -734,7 +734,6 @@ func (s *OpenCompanySvc) OpenDevCompanyAuth(req *proto.OpenDevCompanyAuthRequest
 	}
 
 	//操作数据库
-
 	dataStatus := 1
 	resultString := "通过"
 	if status == 1 { //通过
@@ -755,11 +754,31 @@ func (s *OpenCompanySvc) OpenDevCompanyAuth(req *proto.OpenDevCompanyAuthRequest
 			Status:    int32(dataStatus),
 			CaseRemak: why,
 			UpdatedAt: timestamppb.New(time.Now()),
-			UpdatedBy: iotutil.ToInt64(userId),
+			UpdatedBy: iotutil.ToInt64(adminUserId),
 		},
 	})
 	if errUp != nil {
 		return errUp
+	}
+
+	//修改授权数量
+	if dataStatus == 3 || dataStatus == 5 {
+		var count int32 = 50
+		if dataStatus == 3 {
+			count = 300
+		} else {
+			if company.AccountType == 1 {
+				count = 100
+			}
+		}
+		//OpenDevCompanyAuth
+		tOpenAuthQuantity := orm.Use(iotmodel.GetDB()).TOpenAuthQuantity
+		doOpenAuthQuantity := tOpenAuthQuantity.WithContext(context.Background())
+		_, err := doOpenAuthQuantity.Where(tOpenAuthQuantity.UserId.Eq(company.UserId),
+			tOpenAuthQuantity.AuthCode.Eq("default")).UpdateColumn(tOpenAuthQuantity.AuthQuantity, count)
+		if err != nil {
+			logger.Errorf("更新 OpenAuthQuantity error : %s", err.Error())
+		}
 	}
 
 	//插入审核记录
@@ -772,7 +791,7 @@ func (s *OpenCompanySvc) OpenDevCompanyAuth(req *proto.OpenDevCompanyAuthRequest
 		AuthName:   AuthName,
 		AuthDate:   timestamppb.New(time.Now()),
 		Why:        why,
-		CreatedBy:  iotutil.ToInt64(userId),
+		CreatedBy:  iotutil.ToInt64(adminUserId),
 		CreatedAt:  timestamppb.New(time.Now()),
 	})
 	return nil

@@ -75,6 +75,8 @@ func (t *tOemAppVersionRecord) WithContext(ctx context.Context) *tOemAppVersionR
 
 func (t tOemAppVersionRecord) TableName() string { return t.tOemAppVersionRecordDo.TableName() }
 
+func (t tOemAppVersionRecord) Alias() string { return t.tOemAppVersionRecordDo.Alias() }
+
 func (t *tOemAppVersionRecord) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

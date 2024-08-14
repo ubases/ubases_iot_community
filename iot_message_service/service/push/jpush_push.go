@@ -24,10 +24,9 @@ func (j *JPushClient) pushPublicMsg(inputTarget pushModel.MessageTarget, message
 	if j.pf == nil {
 		j.setJPushClient()
 	}
-	iotlogger.LogHelper.Info("广播消息")
 	var ad jpushclient.Audience
 	ad.All()
-	j.runJPush(ad, message)
+	j.runJPush("public", ad, message)
 	return nil
 }
 
@@ -46,7 +45,6 @@ func (j *JPushClient) checkPushAudience(lang string) (jpushclient.Audience, erro
 	iotutil.StructToStruct(j.inputTarget, &target)
 	//设置推送对象
 	var ad jpushclient.Audience
-	iotlogger.LogHelper.Info("指定用户推送消息", lang)
 	hasTarget := false
 	if target.Tags != nil && len(target.Tags) > 0 {
 		hasTarget = true
@@ -86,7 +84,7 @@ func (j *JPushClient) PushMessage(inputTarget pushModel.MessageTarget, message p
 				continue
 			}
 			//执行推送逻辑
-			j.runJPush(ad, j.LangCt[lang])
+			j.runJPush(lang, ad, j.LangCt[lang])
 		}
 	}
 
@@ -170,11 +168,11 @@ func (j *JPushClient) setLang() error {
 }
 
 // 执行推送
-func (j *JPushClient) runJPush(ad jpushclient.Audience, message pushModel.MessageRequestModel) error {
+func (j *JPushClient) runJPush(lang string, ad jpushclient.Audience, message pushModel.MessageRequestModel) error {
 	defer iotutil.PanicHandler()
 	//Alert消息内容
 	alertMsg := fmt.Sprintf("%s", message.Title)
-	iotlogger.LogHelper.Info("发送内容：" + alertMsg)
+	iotlogger.LogHelper.Info("Jpush lang: %v, content: %v", lang, alertMsg)
 	var msgInfo map[string]interface{}
 	sendMessage := pushModel.MessageSendModel{}.SetModel(message)
 	iotutil.StructToStruct(sendMessage, &msgInfo)
@@ -182,25 +180,30 @@ func (j *JPushClient) runJPush(ad jpushclient.Audience, message pushModel.Messag
 	//Notice
 	var notice jpushclient.Notice
 	notice.SetAndroidNotice(&jpushclient.AndroidNotice{Alert: alertMsg})
-	notice.Android.Extras = msgInfo
+	//notice.Android.Extras = msgInfo //参数统一放到intent处理
+	msgStr := iotutil.ToString(msgInfo)
 
 	//cfg.AndroidPacketName
+	// https://docs.jiguang.cn/jpush/practice/intent
+	//（OPPO 和 FCM 通道必须传"action 路径", 其他厂商必须传"Activity 全名", 否则将出现对应厂商无法跳转问题）
 	notice.Android.Intent = map[string]interface{}{
-		"url": fmt.Sprintf("intent:#Intent;action=android.intent.action.MAIN;component=%s/%s.MainActivity;end", j.Cfg.AndroidPkgName, j.Cfg.AndroidPkgName),
+		"url": fmt.Sprintf("intent:#Intent;action=android.intent.action.MAIN;component=%s/%s.MainActivity;S.PushExtra=%v;end", j.Cfg.AndroidPkgName, j.Cfg.AndroidPkgName, msgStr),
 	}
 	notice.Android.UriAction = "android.intent.action.MAIN"
 	notice.Android.UriActivity = fmt.Sprintf("%s.MainActivity", j.Cfg.AndroidPkgName)
+	notice.Android.BadgeAddNum = 1
+	notice.Android.BadgeClass = fmt.Sprintf("%v.MainActivity", j.Cfg.AndroidPkgName)
 
 	if sendMessage.Sound != "" {
 		notice.Android.Sound = sendMessage.Sound
 	}
-	notice.SetIOSNotice(&jpushclient.IOSNotice{Alert: alertMsg})
-	notice.IOS.Extras = msgInfo
-	notice.IOS.Sound = "default"
-	if sendMessage.Sound != "" {
-		notice.IOS.Sound = sendMessage.Sound + ".mp3"
-	}
-	notice.IOS.ContentAvailable = false
+	//notice.SetIOSNotice(&jpushclient.IOSNotice{Alert: alertMsg})
+	//notice.IOS.Extras = msgInfo
+	//notice.IOS.Sound = "default"
+	//if sendMessage.Sound != "" {
+	//	notice.IOS.Sound = sendMessage.Sound + ".mp3"
+	//}
+	//notice.IOS.ContentAvailable = false
 
 	payload := jpushclient.NewPushPayLoad()
 	payload.SetPlatform(j.pf)
@@ -231,9 +234,8 @@ func (j *JPushClient) runJPush(ad jpushclient.Audience, message pushModel.Messag
 	payload.SetOptions(options)
 
 	bytes, _ := payload.ToBytes()
-	strJson := string(bytes)
-
-	iotlogger.LogHelper.Info(fmt.Sprintf("%s\r\n", strJson))
+	//strJson := string(bytes)
+	//iotlogger.LogHelper.Info(fmt.Sprintf("%s\r\n", strJson))
 	//推送消息
 	jpush := jpushclient.NewPushClient(j.Cfg.Secret, j.Cfg.AppKey)
 	str, err := jpush.Send(bytes)

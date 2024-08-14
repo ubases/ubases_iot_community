@@ -1,20 +1,21 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 )
 
+var (
+	version string = "1.0.1"
+)
+
 func main() {
 	args := os.Args
-	//参数示例
-	//args := strings.Split(`xxxx\tools\goproto\goproto.exe xxxxx\bat\ubases_iot_community\iot_proto\protos\gen\iot_app_oem\oem_app_assist_release_market_service.gen.proto`, " ")
-
+	//args := strings.Split(`xxxxxxx\tools\goproto\goproto.exe xxxxxxx\cloud-platform_v2\iot_proto\protos\gen\iot_config\config_oss_service.gen.proto`, " ")
 	fmt.Println("----> args: ", args)
 
 	fileDirs := strings.Split(args[1], `\`)
@@ -92,44 +93,31 @@ func main() {
 	fmt.Println("---->", "protoc go result: ok", outProtoc.String())
 
 	//TODO 替换文件内容，将文件中的 替换为空
-	replaceString(fmt.Sprintf(`%s\protosService\%s.pb.go`, fileDir2, prefixName), `_ "/api"`, "")
-	replaceString(fmt.Sprintf(`%s\protosService\%s.pb.micro.go`, fileDir2, prefixName), `_ "/api"`, "")
+	replaceString(fmt.Sprintf(`%s\protosService\%s.pb.go`, fileDir2, prefixName), `_ "/api"`, `// _ "/api"`)
+	replaceString(fmt.Sprintf(`%s\protosService\%s.pb.micro.go`, fileDir2, prefixName), `_ "/api"`, `// _ "/api"`)
 
 	fmt.Println("ok")
 }
 
 func replaceString(fileName string, oldStr, newStr string) {
-	in, err := os.Open(fileName)
+	// 读取文件内容
+	content, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		fmt.Println("open file fail:", err)
-		os.Exit(-1)
+		fmt.Println("读取文件失败:", err)
+		return
 	}
-	defer in.Close()
 
-	out, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0766)
+	// 将文件内容转换为字符串
+	text := string(content)
+
+	// 替换字符串
+	newText := strings.ReplaceAll(text, oldStr, newStr)
+
+	// 写入替换后的内容到文件
+	err = ioutil.WriteFile(fileName, []byte(newText), os.ModePerm)
 	if err != nil {
-		fmt.Println("Open write file fail:", err)
-		os.Exit(-1)
+		fmt.Println("写入文件失败:", err)
+		return
 	}
-	defer out.Close()
-
-	br := bufio.NewReader(in)
-	index := 1
-	for {
-		line, _, err := br.ReadLine()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			fmt.Println("read err:", err)
-			os.Exit(-1)
-		}
-		newLine := strings.Replace(string(line), oldStr, newStr, -1)
-		_, err = out.WriteString(newLine + "\n")
-		if err != nil {
-			fmt.Println("write to file fail:", err)
-			os.Exit(-1)
-		}
-		index++
-	}
+	fmt.Println("FINISH!")
 }

@@ -40,8 +40,7 @@ func (TimerController) AddTimer(c *gin.Context) {
 	}
 	//Functions 新定时器功能参数、 FuncKey历史定时器参数
 	if req.Functions == nil && req.FuncKey == "" {
-		ioterrs.Response(c, cached.RedisStore, ioterrs.ErrAppFuncKeyEmpty, nil)
-		return
+		req.FuncKey = "1"
 	}
 	//兼容历史定时功能（当无functions数据，则以funcKey和funcValue为准）
 	if req.Functions == nil && req.FuncKey != "" {
@@ -67,7 +66,7 @@ func (TimerController) AddTimer(c *gin.Context) {
 	req.UserId = iotutil.ToInt64(userId)
 	req.CreatedBy = iotutil.ToInt64(userId)
 	req.Timezone = controls.GetTimezone(c)
-	req.RegionServerId = controls.GetRegionInt(c)
+	req.RegionServerId, _ = controls.RegionIdToServerId(iotutil.ToString(controls.GetRegionInt(c)))
 	timerId, err := timerService.SetContext(controls.WithUserContext(c)).AddTimer(req)
 	if err != nil {
 		ioterrs.Response(c, cached.RedisStore, goerrors.FromError(err).GetCode(), nil)
@@ -107,7 +106,11 @@ func (TimerController) UpdateTimer(c *gin.Context) {
 	}
 	//Functions 新定时器功能参数、 FuncKey历史定时器参数
 	if req.Functions == nil && req.FuncKey == "" {
-		ioterrs.Response(c, cached.RedisStore, ioterrs.ErrAppFuncKeyEmpty, nil)
+		if req.FuncValue == "" {
+			ioterrs.Response(c, cached.RedisStore, ioterrs.ErrAppFuncKeyEmpty, nil)
+		} else {
+			req.FuncKey = "1"
+		}
 		return
 	}
 	iotlogger.LogHelper.Helper.Debug("fuctions: ", req.Functions)

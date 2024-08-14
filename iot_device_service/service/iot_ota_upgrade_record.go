@@ -6,7 +6,6 @@ package service
 
 import (
 	"cloud_platform/iot_common/iotconst"
-	"cloud_platform/iot_common/iotlogger"
 	"cloud_platform/iot_common/iotprotocol"
 	"cloud_platform/iot_common/iotredis"
 	"cloud_platform/iot_common/iotstruct"
@@ -215,14 +214,33 @@ func (s *IotOtaUpgradeRecordSvc) GenerateUpgradeDevice(req *proto.GenerateUpgrad
 		if req.DeviceIds == nil || len(req.DeviceIds) == 0 {
 			return 0, errors.New("DeviceIds不能为空")
 		}
-		str.WriteString("select A.id, A.did, A.product_key, A.device_version, A.country,A.tenant_id from t_iot_device_info as A " +
-			"where A.tenant_id = ? and A.product_key = ? And A.did in ('" + strings.Join(req.DeviceIds, "','") + "') and A.deleted_at is null ")
+		//str.WriteString("select A.id, A.did, A.product_key, A.device_version, A.country,A.tenant_id from t_iot_device_info as A " +
+		//	"where A.tenant_id = ? and A.product_key = ? And A.did in ('" + strings.Join(req.DeviceIds, "','") + "') ")
+		str.WriteString("select A.id, A.did, A.product_key, A.device_version, A.country,A.tenant_id " +
+			"from t_iot_device_info as A " +
+			"inner join (" +
+			" SELECT did, MAX(created_at) AS latest_created_at  " +
+			" FROM t_iot_device_info where tenant_id = ? and product_key = ? And did in ('" + strings.Join(req.DeviceIds, "','") + "') " +
+			" GROUP BY did" +
+			") as B on A.did=B.did and A.created_at=B.latest_created_at ")// +
+			//"where A.tenant_id = ? and A.product_key = ? And A.did in ('" + strings.Join(req.DeviceIds, "','") + "') " )
 
 		params = append(params, req.TenantId)
 		params = append(params, req.ProductKey)
 	} else {
-		str.WriteString("select * from (select A.id, A.did, A.product_key, A.device_version, A.country,A.tenant_id,@row_num:=@row_num+1 as ROW_NUM from t_iot_device_info as A, (SELECT @row_num:=0) as B " +
-			"where A.tenant_id = ? and A.product_key = ? and A.use_type = 0 and A.deleted_at is null " +
+
+		sql := "select t1.id, t1.did, t1.product_key, t1.device_version, t1.country,t1.tenant_id " +
+			"from t_iot_device_info as t1 " +
+			"inner join ( " +
+			"SELECT did, MAX(created_at) AS latest_created_at  " +
+			"FROM t_iot_device_info where tenant_id = ? and product_key = ? " +
+			"GROUP BY did" +
+			") as t2 on t1.did=t2.did and t1.created_at=t2.latest_created_at "
+
+		str.WriteString("select * from (select A.*,@row_num:=@row_num+1 as ROW_NUM " +
+			"from ("+sql+") as A, " +
+			"(SELECT @row_num:=0) as B " +
+			//"where A.tenant_id = ? and A.product_key = ? and A.use_type = 0 " +
 			"order by RAND() ) as C ")
 
 		params = append(params, req.TenantId)
@@ -371,7 +389,6 @@ func (s *IotOtaUpgradeRecordSvc) setDeviceCached(devId string, data map[string]i
 // 批量设置redis缓存
 func (s *IotOtaUpgradeRecordSvc) batchSetDeviceCached(req *proto.GenerateUpgradeDeviceRequest, devices []*model.TIotOtaUpgradeRecord) error {
 	for _, device := range devices {
-		iotlogger.LogHelper.Debugf("批量设置缓存，推送强制升级：%v", iotutil.ToString(device))
 		s.setDeviceCached(device.DeviceId, map[string]interface{}{
 			iotconst.FIELD_UPGRADE_HAS:       "true",
 			iotconst.FIELD_UPGRADE_MODE:      iotutil.ToString(req.UpgradeMode),
@@ -379,7 +396,7 @@ func (s *IotOtaUpgradeRecordSvc) batchSetDeviceCached(req *proto.GenerateUpgrade
 			iotconst.FIELD_UPGRADE_TIMEOUT:   req.UpgradeOvertime,
 		})
 		//是否自动推送升级
-		if device.IsAutoUpgrade {
+		if req.UpgradeMode == 2 && device.IsAutoUpgrade && req.IsAuto == 1 {
 			s.publishUpgrade(req, device.DeviceId)
 		}
 	}
@@ -423,10 +440,16 @@ func (s *IotOtaUpgradeRecordSvc) batchSetDeviceStopCached(req *proto.GenerateUpg
 func (s *IotOtaUpgradeRecordSvc) batchPublishNotice(req *proto.GenerateUpgradeDeviceRequest, devices []*model.TIotOtaUpgradeRecord) error {
 	topics := []string{}
 	for _, device := range devices {
+		if device.IsAutoUpgrade && req.IsAuto == 1 {
+			continue
+		}
 		//只推送，升级设备版本号大于固件本身版本号
 		if i, _ := iotutil.VerCompare(device.Version, device.FwVer); i == 1 {
 			topics = append(topics, iotprotocol.GetTopic(iotprotocol.TP_E_NOTICE, req.ProductKey, device.DeviceId))
 		}
+	}
+	if len(topics) == 0 {
+		return nil
 	}
 	//TODO 推送时间控制逻辑
 	//推送升级通知
@@ -487,34 +510,37 @@ func (s *IotOtaUpgradeRecordSvc) batchPublishStopNotice(req *proto.GenerateUpgra
 
 // 给APP推送升级通知
 func (s *IotOtaUpgradeRecordSvc) publishUpgrade(req *proto.GenerateUpgradeDeviceRequest, deviceId string) error {
-	//推送升级通知
-	var obj iotprotocol.PackUpgrade
 	if req.UpgradeOvertime == 0 {
 		req.UpgradeOvertime = 300
 	}
-	params := iotprotocol.UpgradeDetailParam{
-		Chanel:     2,
-		OtaVer:     req.Version,
-		PubId:      iotutil.ToString(req.PublishId),
-		PointVer:   req.SpecifiedVersion,
-		BaseVer:    "",
-		McuBaseVer: "",
-		OtaType:    "module_ota_all", //
-		AppURL:     req.FirmwareUrl,  //
-		McuURL:     req.FirmwareMcuUrl,
-		Md5:        req.FirmwareMd5, //
-		Timeout:    req.UpgradeOvertime,
-	}
+	mcuUrl := ""
+	otaType := "module_ota_all"
 	switch req.FirmwareType {
 	case iotconst.FIRMWARE_TYPE_MODULE:
 		//模组升级
 	case iotconst.FIRMWARE_TYPE_BLE, iotconst.FIRMWARE_TYPE_ZIGBEE, iotconst.FIRMWARE_TYPE_EXTAND, iotconst.FIRMWARE_TYPE_MCU:
 		//如果是mcu模组，则推送mcu升级 module_mcu_all
-		params.OtaType = "module_mcu_all"
+		otaType = "module_mcu_all"
+		mcuUrl = req.FirmwareUrl
+	}
+	//推送升级通知
+	var obj iotprotocol.PackUpgrade
+	params := iotprotocol.UpgradeDetailParam{
+		Chanel:     1, //升级渠道（1-云端、2-APP）
+		OtaVer:     req.Version,
+		PubId:      iotutil.ToString(req.PublishId),
+		PointVer:   req.SpecifiedVersion,
+		BaseVer:    "",
+		McuBaseVer: "",
+		OtaType:    otaType,         //
+		AppURL:     req.FirmwareUrl, //
+		McuURL:     mcuUrl,
+		Md5:        req.FirmwareMd5, //
+		Timeout:    req.UpgradeOvertime,
 	}
 	params.AppURL = strings.Replace(req.FirmwareUrl, "https://", "http://", 1)
-	if req.FirmwareMcuUrl == "" {
-		params.McuURL = strings.Replace(req.FirmwareMcuUrl, "https://", "http://", 1)
+	if req.FirmwareType == 3 {
+		params.OtaType = "module_mcu_all"
 	}
 	topic := iotprotocol.GetTopic(iotprotocol.TP_C_UPGRADE, req.ProductKey, deviceId)
 	buf, _ := obj.Encode("", params)
@@ -525,10 +551,9 @@ func (s *IotOtaUpgradeRecordSvc) publishUpgrade(req *proto.GenerateUpgradeDevice
 		Retained:       false, //TODO  需要考虑设备离线的情况，true，设备上线的时候，检测设备的升级状态，并推送升级
 	})
 	if pubErr != nil {
-		logger.Errorf("CreateIotOtaUpgradeRecord publishUpgrade error : %s", pubErr.Error())
+		logger.Errorf("CreateIotOtaUpgradeRecord BatchPublish error : %s", pubErr.Error())
 		return pubErr
 	}
-	iotlogger.LogHelper.Debugf("CreateIotOtaUpgradeRecord publishUpgrade success")
 	return nil
 }
 
@@ -550,8 +575,8 @@ func (s *IotOtaUpgradeRecordSvc) GenerateUpgradeDeviceAll(req *proto.GenerateUpg
 	}
 
 	t := ormMysql.Use(iotmodel.GetDB()).TIotDeviceTriad
-	do := t.WithContext(context.Background()).Where(t.ProductKey.Eq(req.ProductKey), t.UseType.Eq(0), t.Status.Eq(1))
-
+	//do := t.WithContext(context.Background()).Where(t.ProductKey.Eq(req.ProductKey), t.UseType.Eq(0), t.Status.Eq(1))
+	do := t.WithContext(context.Background()).Where(t.ProductKey.Eq(req.ProductKey))
 	totalCount, errCount := do.Count()
 	if errCount != nil {
 		return 0, errCount
@@ -569,7 +594,7 @@ func (s *IotOtaUpgradeRecordSvc) GenerateUpgradeDeviceAll(req *proto.GenerateUpg
 
 func (s IotOtaUpgradeRecordSvc) asyncPublishOta(totalCount int64, req *proto.GenerateUpgradeDeviceRequest) error {
 	t := ormMysql.Use(iotmodel.GetDB()).TIotDeviceTriad
-	do := t.WithContext(context.Background()).Where(t.ProductKey.Eq(req.ProductKey), t.Status.Eq(1))
+	do := t.WithContext(context.Background()).Where(t.ProductKey.Eq(req.ProductKey)) //, t.Status.Eq(1)
 
 	var limit int = 500
 	pageCount := int(math.Ceil(float64(totalCount) / float64(limit)))

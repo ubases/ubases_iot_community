@@ -115,6 +115,17 @@ message IotDeviceTriad {
 
     //试试启用0批次查询
     bool enableZeroBatchId = 134;
+
+    string platformCode = 135;//平台编码
+    int32 isOtherPlatform = 136;//是否其它私有化部署平台
+    bool IsPlatform = 137; //是否查询数据
+
+    string regionServerId = 138;
+    //导出时间列表
+    string exportTimeList = 139;
+
+    //查询已导出数据
+    int32 isQueryExport = 140;
 }
 
 message IotDeviceTriadFilter {
@@ -185,6 +196,8 @@ message IotDeviceTriadFilter {
     int32 deviceNatureKey = 120;//设备性质（1:直连设备，2：网关，3：网关子设备）
 
     int32 isTest = 121; //是否测试设备
+
+    string appKey = 122; //APPKey
 }
 
 message IotDeviceTriadListRequest {
@@ -209,6 +222,24 @@ message IotDeviceTriadUpdateFieldsRequest {
     IotDeviceTriad data = 102;
 }
 
+message IotDeviceTriadCountRequest {
+    int32 fieldCode = 101; // 1: 使用platformCode分组， 其它待定
+    string platformCode = 102; //平台码
+    string tenantId = 103;
+    int64 productId = 104;
+    int32 isExport = 105; // =1 获取已导出的三元组， =2 获取未导出的三元组 其它查询全部
+}
+
+message IotDeviceTriadCountResponse {
+    int32 code = 101;
+    string message = 102;
+    repeated IotDeviceTriadCount data = 103;
+}
+
+message IotDeviceTriadCount {
+    string key = 102;
+    int32 value = 103;
+}
 
 // 表模型主键，只能是整数或字符串，若生成错误，请检查数据库表主键是否正确。支持组合主键
 message IotDeviceTriadPrimarykey {
@@ -232,6 +263,7 @@ message IotDeviceTriadGenerateRequest {
     int32 isTest = 109;//是否测试
     BindTestAccountRequest bindInfo = 110;
     repeated GenDeviceTriadData deviceImport = 111;
+    string platformCode = 112;//平台编码
 }
 
 message GenDeviceTriadData {
@@ -262,4 +294,5 @@ message BindTestAccountRequest {
     string tenantId = 111;
     int64 panelId = 112;//指定面板预览
     int32 appPanelType = 113;
+    int64 regionServerId = 114;//区域服务器Id
 }

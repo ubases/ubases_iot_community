@@ -120,6 +120,8 @@ func (t *tOemAppBuildRecord) WithContext(ctx context.Context) *tOemAppBuildRecor
 
 func (t tOemAppBuildRecord) TableName() string { return t.tOemAppBuildRecordDo.TableName() }
 
+func (t tOemAppBuildRecord) Alias() string { return t.tOemAppBuildRecordDo.Alias() }
+
 func (t *tOemAppBuildRecord) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {

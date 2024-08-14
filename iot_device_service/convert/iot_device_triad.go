@@ -31,8 +31,8 @@ func IotDeviceTriad_pb2db(src *proto.IotDeviceTriad) *model.TIotDeviceTriad {
 		SerialNumber:    src.SerialNumber,
 		CreatedBy:       src.CreatedBy,
 		UpdatedBy:       src.UpdatedBy,
-		CreatedAt:       src.CreatedAt.AsTime(),
-		UpdatedAt:       src.UpdatedAt.AsTime(),
+		PlatformCode: src.PlatformCode,
+		IsOtherPlatform: src.IsOtherPlatform,
 	}
 	return &dbObj
 }
@@ -65,6 +65,9 @@ func IotDeviceTriad_db2pb(src *model.TIotDeviceTriad) *proto.IotDeviceTriad {
 		UserAccount:     src.UserAccount,
 		FirstActiveTime: timestamppb.New(src.FirstActiveTime),
 		ExportCount:     src.ExportCount,
+		PlatformCode: src.PlatformCode,
+		IsOtherPlatform: src.IsOtherPlatform,
+		ExportTimeList: src.ExportTimeList,
 	}
 	return &pbObj
 }

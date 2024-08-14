@@ -16,12 +16,12 @@ const TableNameTOemFeedbackType = "t_oem_feedback_type"
 type TOemFeedbackType struct {
 	Id        int64          `gorm:"column:id;primaryKey" json:"id"`              // id
 	Name      string         `gorm:"column:name;not null;default:zh" json:"name"` // 名称
-	AppId     int64          `gorm:"column:app_id;not null" json:"app_id"`
-	AppKey    string         `gorm:"column:app_key" json:"app_key"`
-	Sort      int32          `gorm:"column:sort;default:0" json:"sort"`   // 排序
-	CreatedAt time.Time      `gorm:"column:created_at" json:"created_at"` // 创建时间
-	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updated_at"` // 修改时间
-	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"` // 删除时间
+	AppId     int64          `gorm:"column:app_id;not null" json:"appId"`
+	AppKey    string         `gorm:"column:app_key" json:"appKey"`
+	Sort      int32          `gorm:"column:sort;default:0" json:"sort"`  // 排序
+	CreatedAt time.Time      `gorm:"column:created_at" json:"createdAt"` // 创建时间
+	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updatedAt"` // 修改时间
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"` // 删除时间
 }
 
 // TableName TOemFeedbackType's table name

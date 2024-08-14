@@ -25,7 +25,30 @@ func (s AppAuthSvc) SetContext(ctx context.Context) AppAuthSvc {
 }
 
 func (s *AppAuthSvc) MiniProgramLogin(request *proto.MiniProgramLoginRequest) (*proto.AppLoginResponse, error) {
-	return nil, errors.New("not implement")
+	//根据渠道类型、code查出渠道信息(第三方userid和昵称)
+	channelUserId, channelNickname, code, msg := GetMiniProgram(request)
+	if code != 0 {
+		return nil, errors.New(msg)
+	}
+	var appId, appSecret string
+	appId = config.Global.ThirdPartyLogin.MiniProgram.AppId
+	appSecret = config.Global.ThirdPartyLogin.MiniProgram.AppSecret
+	obj, code, msg := s.GetChannelAuthData(&proto.AppThirdRequest{
+		Code:           request.Code,
+		ChannelId:      channelUserId,
+		Mode:           iotutil.ToString(iotconst.WechatMiniProgram),
+		Nickname:       channelNickname,
+		Ip:             request.ClientIp,
+		AppId:          appId,
+		AppSecret:      appSecret,
+		TenantId:       request.TenantId,
+		AppKey:         request.AppKey,
+		RegionServerId: request.RegionServerId,
+	}, channelUserId, channelNickname, iotconst.WechatMiniProgram)
+	if code != 200 {
+		return nil, errors.New(msg)
+	}
+	return &obj, nil
 }
 
 func (s *AppAuthSvc) PhoneCodeLogin(request *proto.PhoneCodeLoginRequest) (*proto.AppLoginResponse, error) {
@@ -146,7 +169,7 @@ func (s *AppAuthSvc) PasswordLogin(request *proto.PasswordLoginRequest) (*proto.
 
 	//非验证码登录要验证密码
 	if len(request.VerifyCode) == 0 {
-		loginPwd := iotutil.Md5(request.Password) // + dbUser.Uid)
+		loginPwd := iotutil.Md5(request.Password + dbUser.UserSalt) // + dbUser.Uid)
 		iotlogger.LogHelper.Helper.Debugf("loginPwd: %v, Password: %v", loginPwd, dbUser.Password)
 		if loginPwd != dbUser.Password {
 			return nil, errors.New("账号或密码错误")
@@ -433,40 +456,40 @@ func (s *AppAuthSvc) GetChannelAuthData(request *proto.AppThirdRequest, channelU
 
 	result := &proto.AppLoginResponse{}
 	//增加开关，默认为不需要默认密码
-	if !config.Global.Service.ThirdPartyRequirePwd {
-		//默认创建用户
-		if userThirdResp == nil {
-			iotlogger.LogHelper.Info("第三方登录自动注册账号， channelUserId：%s", channelUserId)
-			resR, err := ucs.Register(&proto.UcUserRegisterRequest{
-				Phone:           "",
-				Password:        iotutil.EncodeMD5(iotutil.EncodeMD5(iotutil.GetSecret(6))),
-				Email:           "",
-				Code:            "",
-				RegisterRegion:  "",
-				Ip:              request.Ip,
-				ThirdType:       iotutil.ToString(channelType),
-				ThirdUserId:     channelUserId,
-				ThirdNickname:   channelNickname,
-				AppKey:          request.AppKey,
-				TenantId:        request.TenantId,
-				RegionServerId:  request.RegionServerId,
-				DefaultHomeName: request.HomeName,
-			})
-			if err != nil {
-				return *result, -1, err.Error()
-			}
-			if resR == nil {
-				return *result, -1, "failed"
-			}
-			userThirdResp, _ = ucts.FindUcUserThird(&proto.UcUserThirdFilter{
-				ThirdType:      channelType,
-				ThirdUserId:    channelUserId,
-				AppKey:         request.AppKey,
-				TenantId:       request.TenantId,
-				RegionServerId: request.RegionServerId,
-			})
+	//if !config.Global.Service.ThirdPartyRequirePwd {
+	//默认创建用户
+	if userThirdResp == nil {
+		iotlogger.LogHelper.Info("第三方登录自动注册账号， channelUserId：%s", channelUserId)
+		resR, err := ucs.Register(&proto.UcUserRegisterRequest{
+			Phone:           "",
+			Password:        iotutil.EncodeMD5(iotutil.EncodeMD5(iotutil.GetSecret(6))),
+			Email:           "",
+			Code:            "",
+			RegisterRegion:  "",
+			Ip:              request.Ip,
+			ThirdType:       iotutil.ToString(channelType),
+			ThirdUserId:     channelUserId,
+			ThirdNickname:   channelNickname,
+			AppKey:          request.AppKey,
+			TenantId:        request.TenantId,
+			RegionServerId:  request.RegionServerId,
+			DefaultHomeName: request.HomeName,
+		})
+		if err != nil {
+			return *result, -1, err.Error()
 		}
+		if resR == nil {
+			return *result, -1, "failed"
+		}
+		userThirdResp, _ = ucts.FindUcUserThird(&proto.UcUserThirdFilter{
+			ThirdType:      channelType,
+			ThirdUserId:    channelUserId,
+			AppKey:         request.AppKey,
+			TenantId:       request.TenantId,
+			RegionServerId: request.RegionServerId,
+		})
 	}
+	//}
 
 	if userThirdResp == nil {
 		//没有绑定用户请前往绑定
@@ -663,14 +686,20 @@ func (s *AppAuthSvc) GetTokenByAccount(request *proto.GetTokenByAccountRequest) 
 		AppKey:         request.AppKey,
 		TenantId:       request.TenantId,
 		RegionServerId: request.RegionServerId,
-		Password:       iotutil.Md5(request.Password),
-		Status:         1, //1:正常，2:待注销，3:已注销
+		//Password:       iotutil.Md5(request.Password),
+		Status: 1, //1:正常，2:待注销，3:已注销
 	}
 	//通过手机号码/邮箱查询用户信息，因为存在注销账号所以有可能会返回多条
 	resp, err := s.queryUserByLogin(request.LoginName, req)
 	if err != nil {
 		return nil, err
 	}
+
+	theUser := resp[0]
+	if theUser.Password != iotutil.Md5(request.Password+theUser.UserSalt) {
+		return nil, errors.New("用户名密码错误")
+	}
+
 	//账号检查
 	dbUser, err := s.verityAccount(resp)
 	if err != nil {

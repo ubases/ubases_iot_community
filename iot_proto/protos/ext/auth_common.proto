@@ -12,6 +12,12 @@ message MiniProgramLoginRequest{
   string explorer = 104;
   //操作系统
   string os = 105;
+  //APPKey
+  string appKey = 106;
+  //APPKey
+  string tenantId = 107;
+  //区域Id
+  int64 regionServerId = 108;
 }
 
 message PhoneCodeLoginRequest{
@@ -89,7 +95,7 @@ message CloudUserInfo {
   repeated string roleIds = 105;//云平台用户才有，多个用逗号分隔
   repeated string postIds = 106;//云平台用户才有，多个用逗号分隔
   string tenantId = 107;//开发者平台才有
-  int32 accountType = 108;
+  string company = 108; //开放平台用户才有
 }
 
 message CloudLoginResponse {

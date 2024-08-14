@@ -185,7 +185,9 @@ func (s *OpmOtaPkgService) checkDeviceIds(req entitys.OtaReleaseRequest) ([]stri
 	}
 	rep, err := rpc.ClientIotDeviceServer.Lists(s.Ctx, &protosService.IotDeviceTriadListRequest{
 		Query: &protosService.IotDeviceTriad{
-			DeviceIds:        req.DeviceIds,
+			DeviceIds: req.DeviceIds,
+			//ProductKey:       req.ProductKey, //产品Key
+			//ProductId:        req.ProductID,
 			TenantId:         tenantId,
 			IsQueryTriadData: true,
 			Status:           -1,
@@ -201,15 +203,29 @@ func (s *OpmOtaPkgService) checkDeviceIds(req entitys.OtaReleaseRequest) ([]stri
 	}
 
 	dbDevs := make([]string, 0)
+	noInDevIds := make([]string, 0)
 	for _, d := range rep.Data {
+		//不在平台的设备Id
+		if d.ProductId != req.ProductID {
+			noInDevIds = append(noInDevIds, d.Did)
+		}
 		dbDevs = append(dbDevs, d.Did)
 	}
 
 	//不存在的设备Id
 	missingDevIds := iotutil.FindMissingElements(req.DeviceIds, dbDevs)
 
+	//设备ID不存在平台设备库的：提示设备ID不存在
+	//非这个产品的设备ID：提示设备ID不属于该产品
+	var errMsg []string = make([]string, 0)
 	if len(missingDevIds) > 0 {
-		return missingDevIds, errors.New("以下设备Id不存在（" + strings.Join(missingDevIds, "、") + "）")
+		errMsg = append(errMsg, "以下设备Id不存在\r\n（"+strings.Join(missingDevIds, "、")+"）")
+	}
+	if len(noInDevIds) > 0 {
+		errMsg = append(errMsg, "以下备ID不属于该产品\r\n（"+strings.Join(noInDevIds, "、")+"）")
+	}
+	if len(errMsg) > 0 {
+		return iotutil.Union(missingDevIds, noInDevIds), errors.New(strings.Join(errMsg, "\r\n"))
 	}
 	return missingDevIds, nil
 }
@@ -474,6 +490,9 @@ func (s OpmOtaPkgService) QueryOtaAreas(productId, firmwareId int64) ([]*iotstru
 
 	res := make([]*iotstruct.DropdownItem, 0)
 	for k, v := range otaVersion.Areas {
+		if k == "" {
+			continue
+		}
 		res = append(res, &iotstruct.DropdownItem{Code: k, Count: v, Name: k})
 	}
 	return res, nil

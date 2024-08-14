@@ -34,6 +34,7 @@ func PmControlPanels_pb2db(src *proto.PmControlPanels) *model.TPmControlPanels {
 		Status:        src.Status,
 		CreatedBy:     src.CreatedBy,
 		UpdatedBy:     src.UpdatedBy,
+		Code:   src.Code,
 		//CreatedAt:     src.CreatedAt.AsTime(),
 		//UpdatedAt:     src.UpdatedAt.AsTime(),
 	}
@@ -65,6 +66,7 @@ func PmControlPanels_db2pb(src *model.TPmControlPanels) *proto.PmControlPanels {
 		UpdatedBy:     src.UpdatedBy,
 		CreatedAt:     timestamppb.New(src.CreatedAt),
 		UpdatedAt:     timestamppb.New(src.UpdatedAt),
+		Code:   src.Code,
 	}
 	return &pbObj
 }

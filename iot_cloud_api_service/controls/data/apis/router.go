@@ -23,6 +23,10 @@ func RegisterRouter(e *gin.Engine) {
 	admin.GET("/open/overview/deviceActive", Opendevicecontroller.getActiveStatistics)
 	admin.GET("/open/overview/deviceFault", Opendevicecontroller.getFaultStatistics)
 
+	admin.GET("/open/overview/appUser/export", Openappusercontroller.ExportUserAppStatistics)
+	admin.GET("/open/overview/deviceActive/export", Opendevicecontroller.ExportActiveStatistics)
+	admin.GET("/open/overview/deviceFault/export", Opendevicecontroller.ExportFaultStatistics)
+
 	admin.POST("/pm/deviceFault/list", devicedatacontroller.getFaultList)
 
 	admin.GET("/pm/device/total", devicedatacontroller.GetDeviceTotalStatistics)

@@ -15,6 +15,10 @@ service:
   thirdDomain: "https://%s.cloudtest.iot-aithings.com"
   defaultPassword: Aa666888
   platformCode: "100001"
+  isGenTestData: false
+  genTestDataProductId: "" #生成测试数据的产品类型
+  genTestDataControlId: "" #生成测试数据的面板Id
+  oemAppPackageDomain: "https://{cloud_api_baseurl}/api/v1/platform/web/open/oem" # cloud_api_baseurl 填写可外网访问的iot_cloud_api_service API地址
 
 redis:
   Cluster: false
@@ -56,6 +60,7 @@ defaultapp:
   appName: "爱星物联社区版"
   tenantId: iotcode
   appKey: iot-open-source-app
+  downloadUrl: ""
 
 ################### 以下是微服务治理配置 ####################
 zipkin:

@@ -55,6 +55,7 @@ type TIotDeviceInfo struct {
 	ModuleVersion     string         `gorm:"column:module_version" json:"moduleVersion"`            // 模组版本
 	Sid               int64          `gorm:"column:sid" json:"sid"`                                 // 绑定服务地址
 	UseType           int32          `gorm:"column:use_type;default:0" json:"useType"`              // 使用类型（=1 虚拟测试设备）
+	RegionServerId    string         `gorm:"column:region_server_id" json:"regionServerId"`         // 区域服务器Id
 }
 
 // TableName TIotDeviceInfo's table name

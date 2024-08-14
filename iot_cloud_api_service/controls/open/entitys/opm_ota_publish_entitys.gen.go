@@ -37,6 +37,7 @@ type OpmOtaPublishEntitys struct {
 	FirmwareName      string `json:"firmwareName"`
 	Version           string `json:"version"`
 	OperTime          string `json:"operTime"`
+	OperTimeUnix      int64  `json:"operTimeUnix"`
 	TotalCount        int32  `json:"totalCount"`
 	SuccesCount       int32  `json:"succesCount"`
 	PubResult         string `json:"pubResult"`
@@ -119,6 +120,7 @@ func OpmOtaPublish_pb2e(src *proto.OpmOtaPublish) *OpmOtaPublishEntitys {
 		ProductName:  src.ProductName,
 		FirmwareName: src.FirmwareName,
 		OperTime:     iotutil.TimeFullFormat(time.Unix(src.PublishAt.AsTime().Unix(), 0)),
+		OperTimeUnix: src.PublishAt.AsTime().Unix(),
 		Version:      src.Version,
 		CreatedAt:    src.CreatedAt.AsTime().Unix(),
 		UpdatedAt:    src.UpdatedAt.AsTime().Unix(),

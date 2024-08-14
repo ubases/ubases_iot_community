@@ -4,7 +4,7 @@ import (
 	"cloud_platform/iot_app_api_service/controls"
 	"cloud_platform/iot_app_api_service/controls/intelligence/apis"
 	"cloud_platform/iot_common/iotgin"
-	"cloud_platform/iot_common/iotnats/jetstream"
+	"cloud_platform/iot_common/iotnatsjs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,9 +13,11 @@ func RegisterRouter(e *gin.Engine) {
 	webApiPrefix := "/v1/platform/app"
 	r := e.Group(webApiPrefix)
 	r.Use(controls.AuthCheck)
+	r.Use(controls.SetParams)
+	r.Use(iotgin.AppLogger(iotnatsjs.GetJsClientPub()))
 
 	//一键执行和自动执行场景删除
-	r.POST("/intelligence/del/:id", iotgin.AppLogger(jetstream.GetJsPublisherMgr()), apis.SceneIntelligencecontroller.DeleteIntelligence)
+	r.POST("/intelligence/del/:id", apis.SceneIntelligencecontroller.DeleteIntelligence)
 
 	//一键执行和自动执行详情信息
 	r.POST("/intelligence/info", apis.SceneIntelligencecontroller.GetIntelligenceDetail)
@@ -24,7 +26,7 @@ func RegisterRouter(e *gin.Engine) {
 	r.POST("/intelligence/list", apis.SceneIntelligencecontroller.GetIntelligenceList)
 
 	//一键执行和自动场景新增和修改
-	r.POST("/intelligence/save", iotgin.AppLogger(jetstream.GetJsPublisherMgr()), apis.SceneIntelligencecontroller.SaveIntelligence)
+	r.POST("/intelligence/save", apis.SceneIntelligencecontroller.SaveIntelligence)
 
 	//一键执行和自动执行顺序调整  （no)
 	r.POST("/intelligence/setSort", apis.SceneIntelligencecontroller.UpdateIntelligenceSortNo)

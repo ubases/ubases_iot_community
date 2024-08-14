@@ -33,6 +33,10 @@ type OpmFirmwareVersionEntitys struct {
 	CreatedAt int64 `json:"createdAt"`
 	UpdatedBy int64 `json:"updatedBy,omitempty"`
 	UpdatedAt int64 `json:"updatedAt"`
+
+	//产品Id  关联记录Id
+	ProductId int64 `json:"productId,string"`
+	RelationId int64 `json:"relationId,string"`
 }
 
 // 新增参数非空检查
@@ -128,6 +132,8 @@ func OpmFirmwareVersion_e2pb(src *OpmFirmwareVersionEntitys) *proto.OpmFirmwareV
 		ProdFileKey:     src.ProdFileKey,
 		ProdFileName:    src.ProdFileName,
 		UpdatedBy:       src.UpdatedBy,
+		ProductId: src.ProductId,
+		RelationId: src.RelationId,
 	}
 	return &pbObj
 }

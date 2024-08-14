@@ -12,17 +12,17 @@ const TableNameTOemAppTemplateSkin = "t_oem_app_template_skin"
 
 // TOemAppTemplateSkin mapped from table <t_oem_app_template_skin>
 type TOemAppTemplateSkin struct {
-	Id            int64     `gorm:"column:id;primaryKey" json:"id"`              // 主键唯一编号
-	Name          string    `gorm:"column:name;not null" json:"name"`            // 中文描述
-	NameEn        string    `gorm:"column:name_en" json:"name_en"`               // 英文描述
-	Remark        string    `gorm:"column:remark" json:"remark"`                 // 皮肤描述
-	Code          string    `gorm:"column:code;not null" json:"code"`            // 页面组件id
-	PreviewImages string    `gorm:"column:preview_images" json:"preview_images"` // 预览图集合，格式为 ["xxxx.jpg","xxxx.jpg"] 4-5张
-	AppTemplateId int64     `gorm:"column:app_template_id;not null" json:"app_template_id"`
-	CreatedBy     int64     `gorm:"column:created_by" json:"created_by"` // 修改人
-	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"` // 创建时间
-	UpdatedBy     int64     `gorm:"column:updated_by" json:"updated_by"` // 修改人
-	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"` // 修改时间
+	Id            int64     `gorm:"column:id;primaryKey" json:"id"`             // 主键唯一编号
+	Name          string    `gorm:"column:name;not null" json:"name"`           // 中文描述
+	NameEn        string    `gorm:"column:name_en" json:"nameEn"`               // 英文描述
+	Remark        string    `gorm:"column:remark" json:"remark"`                // 皮肤描述
+	Code          string    `gorm:"column:code;not null" json:"code"`           // 页面组件id
+	PreviewImages string    `gorm:"column:preview_images" json:"previewImages"` // 预览图集合，格式为 ["xxxx.jpg","xxxx.jpg"] 4-5张
+	AppTemplateId int64     `gorm:"column:app_template_id;not null" json:"appTemplateId"`
+	CreatedBy     int64     `gorm:"column:created_by" json:"createdBy"` // 修改人
+	CreatedAt     time.Time `gorm:"column:created_at" json:"createdAt"` // 创建时间
+	UpdatedBy     int64     `gorm:"column:updated_by" json:"updatedBy"` // 修改人
+	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updatedAt"` // 修改时间
 }
 
 // TableName TOemAppTemplateSkin's table name

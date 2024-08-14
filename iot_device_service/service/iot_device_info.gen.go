@@ -669,6 +669,9 @@ func (s *IotDeviceInfoSvc) GetListIotDeviceInfo(req *proto.IotDeviceInfoListRequ
 		if query.UpdatedBy != 0 { //整数
 			do = do.Where(t.UpdatedBy.Eq(query.UpdatedBy))
 		}
+		if query.ActiveUserId != 0 { //整数
+			do = do.Where(t.ActiveUserId.Eq(query.ActiveUserId))
+		}
 	}
 	orderCol, ok := t.GetFieldByName(req.OrderKey)
 	if !ok {

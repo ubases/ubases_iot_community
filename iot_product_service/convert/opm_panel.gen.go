@@ -41,6 +41,9 @@ func OpmPanel_pb2db(src *proto.OpmPanel) *model.TOpmPanel {
 		ProductId:      src.ProductId,
 		BuildErrStatus: src.BuildErrStatus,
 		ThemeJson:      src.ThemeJson,
+		LangFileName:   src.LangFileName,
+		Remark:   src.Remark,
+		Code:   src.Code,
 	}
 	return &dbObj
 }
@@ -77,6 +80,9 @@ func OpmPanel_db2pb(src *model.TOpmPanel) *proto.OpmPanel {
 		ProductId:      src.ProductId,
 		BuildErrStatus: src.BuildErrStatus,
 		ThemeJson:      src.ThemeJson,
+		LangFileName:      src.LangFileName,
+		Remark:   src.Remark,
+		Code:   src.Code,
 	}
 	return &pbObj
 }
@@ -97,6 +103,7 @@ func OpmPanel_db2Panelpb(src *model.TOpmPanel) *proto.PmControlPanels {
 		PreviewName:  src.PreviewName,
 		PreviewUrl:   src.PreviewUrl,
 		ProductId:    src.ProductId,
+		Code:   src.Code,
 	}
 	return &pbObj
 }

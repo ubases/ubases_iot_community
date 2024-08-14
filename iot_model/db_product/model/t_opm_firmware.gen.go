@@ -30,6 +30,7 @@ type TOpmFirmware struct {
 	UpdatedAt       time.Time      `gorm:"column:updated_at" json:"updatedAt"`             // 修改时间
 	DeletedAt       gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"`             // 删除标识（0-正常 1-删除）
 	FirmwareKey     string         `gorm:"column:firmware_key" json:"firmwareKey"`         // 固件key
+	NameEn          string         `gorm:"column:name_en;not null" json:"nameEn"`          // 固件英文名称
 }
 
 // TableName TOpmFirmware's table name

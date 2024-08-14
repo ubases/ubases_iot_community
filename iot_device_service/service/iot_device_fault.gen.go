@@ -56,6 +56,9 @@ func (s *IotDeviceFaultSvc) DeleteIotDeviceFault(req *proto.IotDeviceFault) (*pr
 	if req.DeviceName != "" { //字符串
 		do = do.Where(t.DeviceName.Eq(req.DeviceName))
 	}
+	if req.BaseProductId != 0 { //整数
+		do = do.Where(t.BaseProductId.Eq(req.BaseProductId))
+	}
 	if req.ProductId != 0 { //整数
 		do = do.Where(t.ProductId.Eq(req.ProductId))
 	}
@@ -64,6 +67,12 @@ func (s *IotDeviceFaultSvc) DeleteIotDeviceFault(req *proto.IotDeviceFault) (*pr
 	}
 	if req.ProductName != "" { //字符串
 		do = do.Where(t.ProductName.Eq(req.ProductName))
+	}
+	if req.FaultIdentifier != "" { //字符串
+		do = do.Where(t.FaultIdentifier.Eq(req.FaultIdentifier))
+	}
+	if req.FaultDpid != 0 { //整数
+		do = do.Where(t.FaultDpid.Eq(req.FaultDpid))
 	}
 	if req.FaultCode != "" { //字符串
 		do = do.Where(t.FaultCode.Eq(req.FaultCode))
@@ -131,6 +140,9 @@ func (s *IotDeviceFaultSvc) UpdateIotDeviceFault(req *proto.IotDeviceFault) (*pr
 	if req.DeviceName != "" { //字符串
 		updateField = append(updateField, t.DeviceName)
 	}
+	if req.BaseProductId != 0 { //整数
+		updateField = append(updateField, t.BaseProductId)
+	}
 	if req.ProductId != 0 { //整数
 		updateField = append(updateField, t.ProductId)
 	}
@@ -139,6 +151,12 @@ func (s *IotDeviceFaultSvc) UpdateIotDeviceFault(req *proto.IotDeviceFault) (*pr
 	}
 	if req.ProductName != "" { //字符串
 		updateField = append(updateField, t.ProductName)
+	}
+	if req.FaultIdentifier != "" { //字符串
+		updateField = append(updateField, t.FaultIdentifier)
+	}
+	if req.FaultDpid != 0 { //整数
+		updateField = append(updateField, t.FaultDpid)
 	}
 	if req.FaultCode != "" { //字符串
 		updateField = append(updateField, t.FaultCode)
@@ -182,9 +200,12 @@ func (s *IotDeviceFaultSvc) UpdateAllIotDeviceFault(req *proto.IotDeviceFault) (
 	updateField = append(updateField, t.DeviceId)
 	updateField = append(updateField, t.DeviceKey)
 	updateField = append(updateField, t.DeviceName)
+	updateField = append(updateField, t.BaseProductId)
 	updateField = append(updateField, t.ProductId)
 	updateField = append(updateField, t.ProductKey)
 	updateField = append(updateField, t.ProductName)
+	updateField = append(updateField, t.FaultIdentifier)
+	updateField = append(updateField, t.FaultDpid)
 	updateField = append(updateField, t.FaultCode)
 	updateField = append(updateField, t.FaultName)
 	if len(updateField) > 0 {
@@ -264,6 +285,9 @@ func (s *IotDeviceFaultSvc) FindIotDeviceFault(req *proto.IotDeviceFaultFilter) 
 	if req.DeviceName != "" { //字符串
 		do = do.Where(t.DeviceName.Eq(req.DeviceName))
 	}
+	if req.BaseProductId != 0 { //整数
+		do = do.Where(t.BaseProductId.Eq(req.BaseProductId))
+	}
 	if req.ProductId != 0 { //整数
 		do = do.Where(t.ProductId.Eq(req.ProductId))
 	}
@@ -272,6 +296,12 @@ func (s *IotDeviceFaultSvc) FindIotDeviceFault(req *proto.IotDeviceFaultFilter) 
 	}
 	if req.ProductName != "" { //字符串
 		do = do.Where(t.ProductName.Eq(req.ProductName))
+	}
+	if req.FaultIdentifier != "" { //字符串
+		do = do.Where(t.FaultIdentifier.Eq(req.FaultIdentifier))
+	}
+	if req.FaultDpid != 0 { //整数
+		do = do.Where(t.FaultDpid.Eq(req.FaultDpid))
 	}
 	if req.FaultCode != "" { //字符串
 		do = do.Where(t.FaultCode.Eq(req.FaultCode))
@@ -310,18 +340,35 @@ func (s *IotDeviceFaultSvc) FindByIdIotDeviceFault(req *proto.IotDeviceFaultFilt
 func (s *IotDeviceFaultSvc) GetListIotDeviceFault(req *proto.IotDeviceFaultListRequest) ([]*proto.IotDeviceFault, int64, error) {
 	// fixme 请检查条件和校验参数
 	var err error
-	t := orm.Use(iotmodel.GetDB()).TIotDeviceFault
-	do := t.WithContext(context.Background())
+	q := orm.Use(iotmodel.GetDB())
+	t := q.TIotDeviceFault
+	tTriad := q.TIotDeviceTriad
+	do := t.WithContext(context.Background()).LeftJoin(tTriad, tTriad.Did.EqCol(t.DeviceKey))
 	query := req.Query
 	if query != nil {
-		if query.DeviceId != 0 { //整数
-			do = do.Where(do.Where(t.DeviceId.Eq(query.DeviceId)).Or(t.DeviceKey.Like("%" + query.DeviceKey + "%")))
+		//if query.DeviceId != 0 { //整数
+		//	do = do.Where(do.Where(t.DeviceId.Eq(query.DeviceId)).Or(t.DeviceKey.Like("%" + query.DeviceKey + "%")))
+		//}
+		if query.TenantId != "" {
+			do = do.Where(tTriad.TenantId.Eq(query.TenantId))
+		}
+		if query.DeviceKey != "" { //整数
+			do = do.Where(t.DeviceKey.Like("%" + query.DeviceKey + "%"))
+		}
+		if query.BaseProductId != 0 { //整数
+			do = do.Where(t.BaseProductId.Eq(query.BaseProductId))
 		}
 		if query.ProductId != 0 { //整数
 			do = do.Where(t.ProductId.Eq(query.ProductId))
 		}
+		if query.ProductIds != nil && len(query.ProductIds) > 0 { //整数
+			do = do.Where(t.ProductId.In(query.ProductIds...))
+		}
 		if query.FaultCode != "" { //字符串
 			do = do.Where(t.FaultCode.Like("%" + query.FaultCode + "%"))
+		}
+		if query.StartTime != nil && query.EndTime != nil && query.StartTime.AsTime().Unix() !=0 && query.EndTime.AsTime().Unix() !=0 {
+			do = do.Where(t.CreatedAt.Between(iotutil.GetTodaySartTime(query.StartTime.AsTime()), iotutil.GetTodayLastTime(query.EndTime.AsTime())))
 		}
 		if query.LastDay > 0 {
 			start := GetStartTime(int(query.LastDay))
@@ -338,8 +385,11 @@ func (s *IotDeviceFaultSvc) GetListIotDeviceFault(req *proto.IotDeviceFaultListR
 	} else {
 		do = do.Order(orderCol)
 	}
-
-	var list []*model.TIotDeviceFault
+	do = do.Select(t.ALL, tTriad.TenantId)
+	var list []struct{
+		model.TIotDeviceFault
+		TenantId  string `gorm:"column:tenant_id" json:"tenantId"`
+	}
 	var total int64
 	if req.PageSize > 0 {
 		limit := req.PageSize
@@ -347,9 +397,9 @@ func (s *IotDeviceFaultSvc) GetListIotDeviceFault(req *proto.IotDeviceFaultListR
 			req.Page = 1
 		}
 		offset := req.PageSize * (req.Page - 1)
-		list, total, err = do.FindByPage(int(offset), int(limit))
+		total, err = do.ScanByPage(&list, int(offset), int(limit))
 	} else {
-		list, err = do.Find()
+		err = do.Scan(&list)
 		total = int64(len(list))
 	}
 	if err != nil {
@@ -361,7 +411,8 @@ func (s *IotDeviceFaultSvc) GetListIotDeviceFault(req *proto.IotDeviceFaultListR
 	}
 	result := make([]*proto.IotDeviceFault, len(list))
 	for i, v := range list {
-		result[i] = convert.IotDeviceFault_db2pb(v)
+		result[i] = convert.IotDeviceFault_db2pb(&v.TIotDeviceFault)
+		result[i].TenantId = v.TenantId
 	}
 	return result, total, nil
 }

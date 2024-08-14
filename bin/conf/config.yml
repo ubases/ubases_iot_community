@@ -1,0 +1,10 @@
+config:
+  env: lan
+  location: local #配置存储位置: local 本地，nacos nacos服务
+
+nacos:
+  addrs: ["127.0.0.1:8848"]
+  username: nacos
+  password: XXXXXXXXXX
+  namespaceId: f8a3ec3e-852a-417a-aad0-d683481a43df
+  group: DEFAULT_GROUP

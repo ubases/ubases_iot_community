@@ -12,13 +12,13 @@ const TableNameTOemAppAssistReleaseMarket = "t_oem_app_assist_release_market"
 
 // TOemAppAssistReleaseMarket mapped from table <t_oem_app_assist_release_market>
 type TOemAppAssistReleaseMarket struct {
-	Id              int64     `gorm:"column:id;primaryKey" json:"id"`                             // 唯一主键
-	MarketId        int64     `gorm:"column:market_id;not null" json:"market_id"`                 // 应用市场编号
-	MarketName      string    `gorm:"column:market_name" json:"market_name"`                      // 市场名称
-	ReleaseStatus   int32     `gorm:"column:release_status;not null" json:"release_status"`       // 上架状态
-	FinishTime      time.Time `gorm:"column:finish_time" json:"finish_time"`                      // 完成时间
-	AssistReleaseId int64     `gorm:"column:assist_release_id;not null" json:"assist_release_id"` // 辅助上架编号
-	IsCheck         int32     `gorm:"column:is_check" json:"is_check"`                            // 是否选择该市场
+	Id              int64     `gorm:"column:id;primaryKey" json:"id"`                           // 唯一主键
+	MarketId        int64     `gorm:"column:market_id;not null" json:"marketId"`                // 应用市场编号
+	MarketName      string    `gorm:"column:market_name" json:"marketName"`                     // 市场名称
+	ReleaseStatus   int32     `gorm:"column:release_status;not null" json:"releaseStatus"`      // 上架状态
+	FinishTime      time.Time `gorm:"column:finish_time" json:"finishTime"`                     // 完成时间
+	AssistReleaseId int64     `gorm:"column:assist_release_id;not null" json:"assistReleaseId"` // 辅助上架编号
+	IsCheck         int32     `gorm:"column:is_check" json:"isCheck"`                           // 是否选择该市场
 }
 
 // TableName TOemAppAssistReleaseMarket's table name

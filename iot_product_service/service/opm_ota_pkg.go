@@ -664,6 +664,14 @@ func (s *OpmOtaPkgSvc) FindByIdOpmOtaPkg(req *proto.OpmOtaPkgFilter) (*proto.Opm
 	return res, err
 }
 
+
+type FirmwareInfo struct {
+	Id int64 `json:"id"`
+	Name     string `gorm:"column:name" json:"name"`     // 固件名称
+	Key string  `gorm:"column:key" json:"key"`
+	Url string `gorm:"column:url" json:"url"` // 固件版本文件
+}
+
 // 根据分页条件查找OpmOtaPkg,请确保req.Query的结构字段与数据表model结构体字段保持一致，否则会有编译问题
 func (s *OpmOtaPkgSvc) GetListOpmOtaPkg(req *proto.OpmOtaPkgListRequest) ([]*proto.OpmOtaPkg, int64, error) {
 	var err error
@@ -676,31 +684,76 @@ func (s *OpmOtaPkgSvc) GetListOpmOtaPkg(req *proto.OpmOtaPkgListRequest) ([]*pro
 
 	//todo 考虑ｇｏｒｍ中是否可以合并查询
 	tOpmFrimware := q.TOpmFirmware
+	tOpmFrimwareVer := q.TOpmFirmwareVersion
 	tPmFrimware := q.TPmFirmware
-	opmfList, err := tOpmFrimware.WithContext(context.Background()).Select(tOpmFrimware.Id, tOpmFrimware.Name).Where(tOpmFrimware.TenantId.Eq(tenantId)).Find()
-	pmfList, err := tPmFrimware.WithContext(context.Background()).Select(tPmFrimware.Id, tPmFrimware.Name).Find()
+	tPmFrimwareVer := q.TPmFirmwareVersion
+	var opmfList []FirmwareInfo
+	var pmfList []FirmwareInfo
+	err = tOpmFrimwareVer.WithContext(context.Background()).
+		Join(tOpmFrimware, tOpmFrimware.Id.EqCol(tOpmFrimwareVer.FirmwareId)).
+		Select(tOpmFrimware.Id, tOpmFrimware.Name, tOpmFrimware.FirmwareKey.As("key"), tOpmFrimwareVer.UpgradeFilePath.As("url")).Where(tOpmFrimware.TenantId.Eq(tenantId)).Scan(&opmfList)
+	err = tPmFrimwareVer.WithContext(context.Background()).
+		Join(tPmFrimware, tPmFrimware.Id.EqCol(tPmFrimwareVer.FirmwareId)).
+		Select(tPmFrimware.Id, tPmFrimware.Name, tPmFrimware.FirmwareKey.As("key"), tPmFrimwareVer.FilePath.As("url")).Scan(&pmfList)
 
 	do := t.WithContext(context.Background())
-	var firmwareId int64
 	query := req.Query
+	//没做表的关联查询，暂时用此方法查询
 	if query.FirmwareName != "" { //字符串
-		for _, firmware := range pmfList {
-			if firmware.Name == query.FirmwareName {
-				firmwareId = firmware.Id
-				break
+		var firmwareIds []int64
+		if pmfList != nil {
+			for _, firmware := range pmfList {
+				if firmware.Name == query.FirmwareName {
+					firmwareIds = append(firmwareIds, firmware.Id)
+				}
 			}
 		}
-		if firmwareId == 0 {
-			return nil, 0, err
+		if opmfList != nil {
+			for _, firmware := range opmfList {
+				if firmware.Name == query.FirmwareName {
+					firmwareIds = append(firmwareIds, firmware.Id)
+				}
+			}
 		}
-		do = do.Where(t.FirmwareId.Eq(firmwareId))
+		if firmwareIds != nil && len(firmwareIds) >0 {
+			do = do.Where(t.FirmwareId.In(firmwareIds...))
+		} else {
+			return nil, 0, nil
+		}
 	}
-	fw := make(map[int64]string)
-	for _, firmware := range pmfList {
-		fw[firmware.Id] = firmware.Name
+	//没做表的关联查询，暂时用此方法查询
+	if query.FirmwareKey != "" { //字符串
+		var firmwareIds []int64
+		if pmfList != nil {
+			for _, firmware := range pmfList {
+				if firmware.Key == query.FirmwareKey {
+					firmwareIds = append(firmwareIds, firmware.Id)
+				}
+			}
+		}
+		if opmfList != nil {
+			for _, firmware := range opmfList {
+				if firmware.Key == query.FirmwareKey {
+					firmwareIds = append(firmwareIds, firmware.Id)
+				}
+			}
+		}
+		if firmwareIds != nil && len(firmwareIds) >0 {
+			do = do.Where(t.FirmwareId.In(firmwareIds...))
+		} else {
+			return nil, 0, nil
+		}
 	}
-	for _, firmware := range opmfList {
-		fw[firmware.Id] = firmware.Name
+	fw := make(map[int64]FirmwareInfo)
+	if pmfList != nil {
+		for _, firmware := range pmfList {
+			fw[firmware.Id] = firmware
+		}
+	}
+	if opmfList != nil {
+		for _, firmware := range opmfList {
+			fw[firmware.Id] = firmware
+		}
 	}
 
 	if query != nil {
@@ -776,6 +829,7 @@ func (s *OpmOtaPkgSvc) GetListOpmOtaPkg(req *proto.OpmOtaPkgListRequest) ([]*pro
 	var list []*struct {
 		model.TOpmOtaPkg
 		FirmwareName string `gorm:"column:firmware_name;not null" json:"firmwareName"`
+		FirmwareKey string `gorm:"column:firmware_key;not null" json:"firmwareKey"`
 	}
 	var total int64
 	if req.PageSize > 0 {
@@ -819,7 +873,11 @@ func (s *OpmOtaPkgSvc) GetListOpmOtaPkg(req *proto.OpmOtaPkgListRequest) ([]*pro
 	result := make([]*proto.OpmOtaPkg, len(list))
 	for i, v := range list {
 		result[i] = convert.OpmOtaPkg_db2pb(&v.TOpmOtaPkg)
-		result[i].FirmwareName = iotutil.MapGetStringVal(fw[v.FirmwareId], "")
+		if v, ok := fw[v.FirmwareId]; ok {
+			result[i].FirmwareName = iotutil.MapGetStringVal(v.Name, "")
+			result[i].FirmwareKey = iotutil.MapGetStringVal(v.Key, "")
+			result[i].Url = iotutil.MapGetStringVal(v.Url, "")
+		}
 		if pubs, ok := listPublish[v.Id]; ok {
 			if len(pubs) > 0 {
 				result[i].ListPublishRecord = convert.OpmOtaPublish_db2pb(pubs[0])

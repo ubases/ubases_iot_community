@@ -16,11 +16,15 @@ type TIotDeviceFault struct {
 	DeviceId    int64     `gorm:"column:device_id;not null" json:"deviceId"`   // 设备唯一ID（14位 1~9 A~Z随机）
 	DeviceKey   string    `gorm:"column:device_key" json:"deviceKey"`          // 设备key
 	DeviceName  string    `gorm:"column:device_name" json:"deviceName"`        // 设备名称
+	BaseProductId   int64     `gorm:"column:base_product_id" json:"baseProductId"`    // 产品类型ID
 	ProductId   int64     `gorm:"column:product_id" json:"productId"`          // 产品ID
 	ProductKey  string    `gorm:"column:product_key" json:"productKey"`        // 产品Key
 	ProductName string    `gorm:"column:product_name" json:"productName"`      // 冗余产品名称
-	FaultCode   string    `gorm:"column:fault_code" json:"faultCode"`          // 故障编号
-	FaultName   string    `gorm:"column:fault_name" json:"faultName"`          // 故障名称
+	FaultIdentifier string    `gorm:"column:fault_identifier" json:"faultIdentifier"` // 功能标识符
+	FaultDpid       int32     `gorm:"column:fault_dpid" json:"faultDpid"`             // 功能dpid
+	FaultCode       string    `gorm:"column:fault_code" json:"faultCode"`             // 故障编号,对应故障值
+	FaultName       string    `gorm:"column:fault_name" json:"faultName"`             // 故障名称,对应故障名称
+	TenantId        string    `gorm:"column:tenant_id" json:"tenantId"`
 	CreatedAt   time.Time `gorm:"column:created_at;not null" json:"createdAt"` // 创建时间
 }
 

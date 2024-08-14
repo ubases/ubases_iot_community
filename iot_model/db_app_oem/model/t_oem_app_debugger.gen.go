@@ -14,15 +14,15 @@ const TableNameTOemAppDebugger = "t_oem_app_debugger"
 
 // TOemAppDebugger mapped from table <t_oem_app_debugger>
 type TOemAppDebugger struct {
-	Id        int64          `gorm:"column:id;primaryKey" json:"id"`             // 唯一主键
-	AppKey    string         `gorm:"column:app_key;not null" json:"app_key"`     // t_opm_app appKey
-	UserId    int64          `gorm:"column:user_id;not null" json:"user_id"`     // 用户Id
-	UserName  string         `gorm:"column:user_name;not null" json:"user_name"` // 用户名称冗余
-	RegionId  int64          `gorm:"column:region_id;not null" json:"region_id"` // 区域服务Id
-	Remark    string         `gorm:"column:remark;not null" json:"remark"`       // 开启测试原因描述
-	CreatedBy int64          `gorm:"column:created_by" json:"created_by"`        // 创建人
-	CreatedAt time.Time      `gorm:"column:created_at" json:"created_at"`        // 创建时间
-	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
+	Id        int64          `gorm:"column:id;primaryKey" json:"id"`            // 唯一主键
+	AppKey    string         `gorm:"column:app_key;not null" json:"appKey"`     // t_opm_app appKey
+	UserId    int64          `gorm:"column:user_id;not null" json:"userId"`     // 用户Id
+	UserName  string         `gorm:"column:user_name;not null" json:"userName"` // 用户名称冗余
+	RegionId  int64          `gorm:"column:region_id;not null" json:"regionId"` // 区域服务Id
+	Remark    string         `gorm:"column:remark;not null" json:"remark"`      // 开启测试原因描述
+	CreatedBy int64          `gorm:"column:created_by" json:"createdBy"`        // 创建人
+	CreatedAt time.Time      `gorm:"column:created_at" json:"createdAt"`        // 创建时间
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"`
 	Status    int32          `gorm:"column:status" json:"status"` // 调试状态
 }
 

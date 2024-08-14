@@ -9,12 +9,12 @@ const TableNameTOemAppIosCert = "t_oem_app_ios_cert"
 // TOemAppIosCert mapped from table <t_oem_app_ios_cert>
 type TOemAppIosCert struct {
 	Id               int64  `gorm:"column:id;primaryKey" json:"id"`
-	AppId            int64  `gorm:"column:app_id" json:"app_id"`                         // t_opm_app主键id
-	Version          string `gorm:"column:version" json:"version"`                       // 版本
-	DistProvision    string `gorm:"column:dist_provision" json:"dist_provision"`         // 发布证书描述
-	DistCert         string `gorm:"column:dist_cert" json:"dist_cert"`                   // 发布测试证书
-	DistCertSecret   string `gorm:"column:dist_cert_secret" json:"dist_cert_secret"`     // 发布证书密钥
-	DistCertOfficial string `gorm:"column:dist_cert_official" json:"dist_cert_official"` // 发布正式证书
+	AppId            int64  `gorm:"column:app_id" json:"appId"`                        // t_opm_app主键id
+	Version          string `gorm:"column:version" json:"version"`                     // 版本
+	DistProvision    string `gorm:"column:dist_provision" json:"distProvision"`        // 发布证书描述
+	DistCert         string `gorm:"column:dist_cert" json:"distCert"`                  // 发布测试证书
+	DistCertSecret   string `gorm:"column:dist_cert_secret" json:"distCertSecret"`     // 发布证书密钥
+	DistCertOfficial string `gorm:"column:dist_cert_official" json:"distCertOfficial"` // 发布正式证书
 }
 
 // TableName TOemAppIosCert's table name

@@ -28,29 +28,35 @@ message IotDeviceFault {
     string deviceName = 103;
 
 
+    // @inject_tag: json:"baseProductId" gorm:"default:产品类型ID;comment:产品类型ID;size:19;"
+    int64 baseProductId = 104;
     // @inject_tag: json:"productId" gorm:"default:产品ID;comment:产品ID;size:19;"
-    int64 productId = 104;
+    int64 productId = 105;
 
 
     // @inject_tag: json:"productKey" gorm:"default:产品Key;comment:产品Key;size:20;"
-    string productKey = 105;
+    string productKey = 106;
 
 
     // @inject_tag: json:"productName" gorm:"default:冗余产品名称;comment:冗余产品名称;size:64;"
-    string productName = 106;
+    string productName = 107;
 
 
-    // @inject_tag: json:"faultCode" gorm:"default:故障编号;comment:故障编号;size:50;"
-    string faultCode = 107;
+    // @inject_tag: json:"faultIdentifier" gorm:"default:功能标识符;comment:功能标识符;size:50;"
+    string faultIdentifier = 108;
+    // @inject_tag: json:"faultDpid" gorm:"default:功能dpid;comment:功能dpid;"
+    int32 faultDpid = 109;
+    // @inject_tag: json:"faultCode" gorm:"default:故障编号,对应故障值;comment:故障编号,对应故障值;size:50;"
+    string faultCode = 110;
 
 
-    // @inject_tag: json:"faultName" gorm:"default:故障名称;comment:故障名称;size:100;"
-    string faultName = 108;
-
+    // @inject_tag: json:"faultName" gorm:"default:故障名称,对应故障名称;comment:故障名称,对应故障名称;size:100;"
+    string faultName = 111;
 
     // @inject_tag: json:"createdAt" gorm:"default:创建时间;comment:创建时间;"
-    google.protobuf.Timestamp createdAt = 109;
+    google.protobuf.Timestamp createdAt = 112;
 
+    string tenantId = 113;//租户Id
 }
 
 message IotDeviceFaultFilter {
@@ -72,39 +78,48 @@ message IotDeviceFaultFilter {
     string deviceName = 103;
 
 
+    // @inject_tag: json:"baseProductId" gorm:"default:产品类型ID;comment:产品类型ID;size:19;"
+    int64 baseProductId = 104;
     // @inject_tag: json:"productId" gorm:"default:产品ID;comment:产品ID;size:19;"
-    int64 productId = 104;
+    int64 productId = 105;
 
 
     // @inject_tag: json:"productKey" gorm:"default:产品Key;comment:产品Key;size:20;"
-    string productKey = 105;
+    string productKey = 106;
 
 
     // @inject_tag: json:"productName" gorm:"default:冗余产品名称;comment:冗余产品名称;size:64;"
-    string productName = 106;
+    string productName = 107;
 
 
-    // @inject_tag: json:"faultCode" gorm:"default:故障编号;comment:故障编号;size:50;"
-    string faultCode = 107;
+    // @inject_tag: json:"faultIdentifier" gorm:"default:功能标识符;comment:功能标识符;size:50;"
+    string faultIdentifier = 108;
+    // @inject_tag: json:"faultDpid" gorm:"default:功能dpid;comment:功能dpid;"
+    int32 faultDpid = 109;
+    // @inject_tag: json:"faultCode" gorm:"default:故障编号,对应故障值;comment:故障编号,对应故障值;size:50;"
+    string faultCode = 110;
 
 
-    // @inject_tag: json:"faultName" gorm:"default:故障名称;comment:故障名称;size:100;"
-    string faultName = 108;
+    // @inject_tag: json:"faultName" gorm:"default:故障名称,对应故障名称;comment:故障名称,对应故障名称;size:100;"
+    string faultName = 111;
 
 
     // @inject_tag: json:"createdAt" gorm:"default:创建时间;comment:创建时间;"
-    google.protobuf.Timestamp createdAt = 109;
+    google.protobuf.Timestamp createdAt = 112;
 
 }
 
 message IotDeviceFaultListFilter {
     int64 deviceId = 101;
     string deviceKey = 102;
-    int64 productId = 103;
+    int64 productId = 103;//产品ID
     string faultCode = 104;
     int32 lastDay = 105;
     google.protobuf.Timestamp startTime = 106;
     google.protobuf.Timestamp endTime = 107;
+    int64 baseProductId = 108; //产品类型ID
+    repeated int64 productIds = 109;//产品Id集合
+    string tenantId = 110;//租户Id
 }
 
 message IotDeviceFaultListRequest {

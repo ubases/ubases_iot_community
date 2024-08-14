@@ -173,6 +173,50 @@ func (s *ReportDeviceSvc) ReportMsgDevice() {
 	return
 }
 
+// 故障处理
+func (s *ReportDeviceSvc) ReportDeviceFault() {
+	defer iotutil.PanicHandler()
+	var (
+		err error
+	)
+	if err := s.check(); err != nil {
+		return
+	}
+	s.DevId = s.Data.DeviceId
+	payloadMap := s.Data.Payload.(map[string]interface{})
+	device, err := s.getDeviceCached()
+	if err != nil {
+		iotlogger.LogHelper.Error("设备信息获取失败，设备Id=" + s.DevId)
+		return
+	}
+	productKey := device["productKey"]
+	if productKey == "" {
+		iotlogger.LogHelper.Error("产品Key获取失败，设备Id=" + s.DevId)
+		return
+	}
+
+	deviceName := device["deviceName"]
+	svc := IotDeviceLogProductSvc{Ctx: context.Background()}
+
+	var payloadControl map[string]interface{}
+	if _, ok := payloadMap["device"]; !ok {
+		return
+	}
+	switch payloadMap["device"].(type) {
+	case map[string]interface{}:
+		payloadControl = payloadMap["device"].(map[string]interface{})
+	default:
+		iotlogger.LogHelper.Error("control格式异常")
+		return
+	}
+	err = svc.ReportFault(s.Data, s.DevId, deviceName, device["productId"], payloadControl)
+	if err != nil {
+		iotlogger.LogHelper.Error("日志存储失败", s.DevId, err.Error())
+		return
+	}
+	return
+}
+
 func (s *ReportDeviceSvc) check() error {
 	if s.Data == nil {
 		return errors.New("必须初始化data")

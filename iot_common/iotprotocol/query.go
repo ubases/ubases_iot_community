@@ -13,7 +13,7 @@ type PackQuery struct {
 
 func (o *PackQuery) Encode(gid, name string, paras []string) ([]byte, error) {
 	obj := PackQuery{
-		Header:  EncodeHeader(QUERY_HEAD_NS, name, gid),
+		Header:  EncodeHeader(QUERY_HEAD_NS, name, gid, ""),
 		Payload: Query{Param: QueryParams{Props: paras}},
 	}
 	*o = obj

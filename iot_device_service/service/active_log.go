@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cloud_platform/iot_common/iotnatsjs"
 	"time"
 
 	"cloud_platform/iot_common/iotconst"
@@ -43,11 +44,11 @@ func pushAppLog(account, logType, eventName, ip, sys, appKey, tenantId string, e
 	if err != nil {
 		return err
 	}
-	pd := &NatsPubData{
+	pd := &iotnatsjs.NatsPubData{
 		Subject: iotconst.NATS_SUBJECT_RECORDS,
 		Data:    string(data),
 	}
-	GetJsPublisherMgr().PushData(pd)
+	iotnatsjs.GetJsClientPub().PushData(pd)
 	iotlogger.LogHelper.Helper.Debugf("subject: %s data: %s", pd.Subject, pd.Data)
 	return nil
 }

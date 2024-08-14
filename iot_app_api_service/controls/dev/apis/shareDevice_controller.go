@@ -32,7 +32,7 @@ func (ShareDeviceController) ShareDeviceList(c *gin.Context) {
 		iotgin.ResBadRequest(c, "homeId is empty")
 		return
 	}
-	data, err := appShareDeviceService.ShareDeviceList(homeId)
+	data, err := appShareDeviceService.SetContext(controls.WithUserContext(c)).ShareDeviceList(homeId)
 	if err != nil {
 		iotgin.ResBusinessP(c, err.Error())
 		return
@@ -60,7 +60,7 @@ func (ShareDeviceController) ShareUserList(c *gin.Context) {
 		iotgin.ResBadRequest(c, "homeId")
 		return
 	}
-	data, err := appShareDeviceService.ShareUserList(devId, homeId)
+	data, err := appShareDeviceService.SetContext(controls.WithUserContext(c)).ShareUserList(devId, homeId)
 	if err != nil {
 		iotgin.ResBusinessP(c, err.Error())
 		return
@@ -68,8 +68,8 @@ func (ShareDeviceController) ShareUserList(c *gin.Context) {
 	iotgin.ResSuccess(c, data)
 }
 
-// AddShared 创建定时器
-// @Summary 创建定时器
+// AddShared 创建共享
+// @Summary 创建共享
 // @Description
 // @Tags 设备
 // @Accept application/json
@@ -86,11 +86,11 @@ func (ShareDeviceController) AddShared(c *gin.Context) {
 		iotgin.ResBadRequest(c, "产品Key不能为空")
 	}
 	var (
-		userId         = controls.GetUserId(c)
-		appKey         = controls.GetAppKey(c)
-		tenantId       = controls.GetTenantId(c)
-		regionServerId = controls.GetRegionInt(c)
+		userId   = controls.GetUserId(c)
+		appKey   = controls.GetAppKey(c)
+		tenantId = controls.GetTenantId(c)
 	)
+	regionServerId, _ := controls.RegionIdToServerId(iotutil.ToString(controls.GetRegionInt(c)))
 	code, msg := appShareDeviceService.SetContext(controls.WithUserContext(c)).AddShared(iotutil.ToString(userId), appKey, tenantId, regionServerId, req)
 	if code != 0 {
 		iotlogger.LogHelper.Errorf(msg)
@@ -109,7 +109,8 @@ func (ShareDeviceController) AddShared(c *gin.Context) {
 // @Router /v1/platform/app/dev/receiveSharedList [get]
 func (ShareDeviceController) ReceiveSharedList(c *gin.Context) {
 	userId := controls.GetUserId(c)
-	data, err := appShareDeviceService.ReceiveSharedList(iotutil.ToInt64(userId))
+	isAgreeData := controls.GetSystemInfoRaw(c) == "wexin"
+	data, err := appShareDeviceService.SetContext(controls.WithUserContext(c)).ReceiveSharedList(iotutil.ToInt64(userId), isAgreeData)
 	if err != nil {
 		iotgin.ResBusinessP(c, err.Error())
 		return
@@ -136,7 +137,7 @@ func (ShareDeviceController) CancelShare(c *gin.Context) {
 		appKey   = controls.GetAppKey(c)
 		tenantId = controls.GetTenantId(c)
 	)
-	err := appShareDeviceService.CancelShare(req, iotutil.ToString(userId), appKey, tenantId)
+	err := appShareDeviceService.SetContext(controls.WithUserContext(c)).CancelShare(req, iotutil.ToString(userId), appKey, tenantId)
 	if err != nil {
 		iotgin.ResBusinessP(c, err.Error())
 		return
@@ -163,7 +164,7 @@ func (ShareDeviceController) ReceiveShare(c *gin.Context) {
 		appKey   = controls.GetAppKey(c)
 		tenantId = controls.GetTenantId(c)
 	)
-	err := appShareDeviceService.ReceiveShare(iotutil.ToInt64(userId), iotutil.ToInt64(id), appKey, tenantId)
+	err := appShareDeviceService.SetContext(controls.WithUserContext(c)).ReceiveShare(iotutil.ToInt64(userId), iotutil.ToInt64(id), appKey, tenantId)
 	if err != nil {
 		iotgin.ResBusinessP(c, err.Error())
 		return
@@ -190,9 +191,70 @@ func (ShareDeviceController) CancelReceiveShared(c *gin.Context) {
 		appKey   = controls.GetAppKey(c)
 		tenantId = controls.GetTenantId(c)
 	)
-	err := appShareDeviceService.CancelReceiveShared(req, iotutil.ToString(userId), appKey, tenantId)
+	err := appShareDeviceService.SetContext(controls.WithUserContext(c)).CancelReceiveShared(req, iotutil.ToString(userId), appKey, tenantId)
 	if err != nil {
 		iotgin.ResBusinessP(c, err.Error())
+		return
+	}
+	iotgin.ResSuccessMsg(c)
+}
+
+// GenShareCode 小程序生成分享码
+// @Summary 小程序生成分享码
+// @Description
+// @Tags 设备
+// @Accept application/json
+// @Param data body entitys.GenSharedCode true "请求参数"
+// @Success 200 object iotgin.ResponseModel 成功返回值
+// @Router /v1/platform/app/dev/miniProgram/genShareCode [post]
+func (ShareDeviceController) GenShareCode(c *gin.Context) {
+	req := entitys.GenSharedCode{}
+	if err := c.BindJSON(&req); err != nil {
+		iotgin.ResBadRequest(c, err.Error())
+		return
+	}
+	req.UserId = controls.GetUserId(c)
+	code, err := appShareDeviceService.SetContext(controls.WithUserContext(c)).GenShareCode(req)
+	if err != nil {
+		iotgin.ResBusinessP(c, err.Error())
+		return
+	}
+	iotgin.ResSuccess(c, code)
+}
+
+// ReceiveShareByCode 通过分享码添加分享设备
+// @Summary 通过分享码添加分享设备
+// @Description
+// @Tags 设备
+// @Accept application/json
+// @Param code path string true "分享码"
+// @Success 200 object iotgin.ResponseModel 成功返回值
+// @Router /v1/platform/app/dev/miniProgram/receiveShare [post]
+func (ShareDeviceController) ReceiveShareByCode(c *gin.Context) {
+	req := entitys.ReceiveShareRequest{}
+	if err := c.BindJSON(&req); err != nil {
+		iotgin.ResBadRequest(c, err.Error())
+		return
+	}
+	if req.Code == "" {
+		iotgin.ResBadRequest(c, "code is empty")
+		return
+	}
+	var (
+		userId   = controls.GetUserId(c)
+		userName = controls.GetNickName(c)
+		account  = controls.GetAccount(c)
+		appKey   = controls.GetAppKey(c)
+		tenantId = controls.GetTenantId(c)
+	)
+	//0  成功-1 过期20015 不能共享给自己
+	res, err := appShareDeviceService.SetContext(controls.WithUserContext(c)).ReceiveShareByCode(iotutil.ToInt64(userId), userName, account, appKey, tenantId, req.Code)
+	if err != nil {
+		iotgin.ResBusinessP(c, err.Error())
+		return
+	}
+	if res != 0 {
+		iotgin.ResFailCode(c, "error", res)
 		return
 	}
 	iotgin.ResSuccessMsg(c)

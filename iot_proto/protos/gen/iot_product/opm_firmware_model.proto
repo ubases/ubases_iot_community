@@ -85,6 +85,12 @@ message OpmFirmware {
 
     int64 firmwareId = 127;
     string firmwareKey = 128; //固件Key
+
+    // @inject_tag: json:"nameEn" gorm:"default:固件英文名称;comment:固件名称;size:100;"
+    string nameEn = 129;
+
+    //是否查询有效版本
+    bool isQueryValidVersion = 130;
 }
 
 message OpmFirmwareFilter {
@@ -150,6 +156,8 @@ message OpmFirmwareFilter {
     google.protobuf.Timestamp deletedAt = 114;
 
     string firmwareKey = 115; //固件Key
+
+    string nameEn = 116;
 }
 
 message OpmFirmwareListRequest {
@@ -196,4 +204,6 @@ message OpmFirmwareSelectInfo {
     int64 productId = 107;//产品编号
     int64 firmwareId = 108;//自定义固件编号
     int32 versionCount = 109;//版本总数
+    int32 isCustom = 110; //是否自定义固件
+    string firmwareNameEn = 111;//固件英文名称
 }

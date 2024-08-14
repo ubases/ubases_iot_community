@@ -10,15 +10,16 @@ import (
 
 // 增、删、改及查询返回
 type CmsIntroduceEntitys struct {
-	Id int64 `json:"id,string,omitempty"`
+	Id int64 `json:"id,string"`
 	//PlatformType int32  `json:"platformType,omitempty"`
-	Title       string `json:"title,omitempty"`
-	Code        string `json:"code,omitempty"`
-	ContentMode int32  `json:"contentMode,omitempty"`
-	Content     string `json:"content,omitempty"`
-	ContentUrl  string `json:"contentUrl,omitempty"`
-	Lang        string `json:"lang,omitempty"`
-	Status      int32  `json:"status,omitempty"`
+	Title       string `json:"title"`
+	Code        string `json:"code"`
+	ContentMode int32  `json:"contentMode"`
+	Content     string `json:"content"`
+	ContentUrl  string `json:"contentUrl"`
+	Lang        string `json:"lang"`
+	Status      int32  `json:"status"`
+	Version        string `json:"version"`
 }
 
 // pb对象转实体

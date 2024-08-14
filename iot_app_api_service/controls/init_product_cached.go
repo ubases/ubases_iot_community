@@ -48,11 +48,12 @@ func setProductCached(item *protosService.OpmProduct) {
 		"moduleId":       item.ModuleId,
 		"panelUrl":       item.PanelUrl,
 		"panelKey":       item.PanelKey,
+		"productTypeId":  item.ProductTypeId,
+		"productId":      item.ProductId,
+		"tenantId":       item.TenantId,
 	}
 	iotredis.GetClient().HMSet(context.Background(), iotconst.HKEY_PRODUCT_DATA+productId, mapSave).Err()
-	//iotredis.GetClient().Expire(context.Background(), iotconst.HKEY_PRODUCT_DATA+productId, 10*time.Minute).Err()
 	iotredis.GetClient().HMSet(context.Background(), iotconst.HKEY_PRODUCT_DATA+item.ProductKey, mapSave).Err()
-	//iotredis.GetClient().Expire(context.Background(), iotconst.HKEY_PRODUCT_DATA+item.ProductKey, 10*time.Minute).Err()
 }
 
 func (s *ProductCachedData) GetProductName(productKey string) (str string, err error) {
@@ -62,7 +63,7 @@ func (s *ProductCachedData) GetProductName(productKey string) (str string, err e
 	if str == "" {
 		pro, err := s.GetProduct(productKey)
 		if err == nil {
-			str = pro.ImageUrl
+			str = pro.NameEn
 		}
 	}
 	return
@@ -105,6 +106,7 @@ func (s *ProductCachedData) GetProduct(productKey string) (product *protosServic
 		}
 		for _, item := range rep.Data {
 			setProductCached(item)
+			product = item
 		}
 	}
 	return

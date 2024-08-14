@@ -14,21 +14,21 @@ const TableNameTOemAppTemplate = "t_oem_app_template"
 
 // TOemAppTemplate mapped from table <t_oem_app_template>
 type TOemAppTemplate struct {
-	Id            int64          `gorm:"column:id;primaryKey" json:"id"`                // 唯一主键
-	Name          string         `gorm:"column:name;not null" json:"name"`              // 中文名称
-	NameEn        string         `gorm:"column:name_en" json:"name_en"`                 // 英文名称
-	Type          int32          `gorm:"column:type" json:"type"`                       // 模板类型（字典配置 app_template_type)
-	Version       string         `gorm:"column:version" json:"version"`                 // 版本号
-	GitUrl        string         `gorm:"column:git_url" json:"git_url"`                 // git仓库代码地址
-	Status        int32          `gorm:"column:status" json:"status"`                   // 状态（1=启用 2=禁用）
-	Remark        string         `gorm:"column:remark" json:"remark"`                   // 备注
-	OpenRangeType int32          `gorm:"column:open_range_type" json:"open_range_type"` // 开放范围类型（字典 open_range_type   1：公开，2：指定开发者）
-	CreatedBy     int64          `gorm:"column:created_by" json:"created_by"`           // 修改人
-	CreatedAt     time.Time      `gorm:"column:created_at" json:"created_at"`           // 创建时间
-	UpdatedBy     int64          `gorm:"column:updated_by" json:"updated_by"`           // 修改人
-	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updated_at"`           // 修改时间
-	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`           // 删除标识（0-正常 1-删除）
-	UseCount      int32          `gorm:"column:use_count;default:0" json:"use_count"`   // 总计使用次数
+	Id            int64          `gorm:"column:id;primaryKey" json:"id"`              // 唯一主键
+	Name          string         `gorm:"column:name;not null" json:"name"`            // 中文名称
+	NameEn        string         `gorm:"column:name_en" json:"nameEn"`                // 英文名称
+	Type          int32          `gorm:"column:type" json:"type"`                     // 模板类型（字典配置 app_template_type)
+	Version       string         `gorm:"column:version" json:"version"`               // 版本号
+	GitUrl        string         `gorm:"column:git_url" json:"gitUrl"`                // git仓库代码地址
+	Status        int32          `gorm:"column:status" json:"status"`                 // 状态（1=启用 2=禁用）
+	Remark        string         `gorm:"column:remark" json:"remark"`                 // 备注
+	OpenRangeType int32          `gorm:"column:open_range_type" json:"openRangeType"` // 开放范围类型（字典 open_range_type   1：公开，2：指定开发者）
+	CreatedBy     int64          `gorm:"column:created_by" json:"createdBy"`          // 修改人
+	CreatedAt     time.Time      `gorm:"column:created_at" json:"createdAt"`          // 创建时间
+	UpdatedBy     int64          `gorm:"column:updated_by" json:"updatedBy"`          // 修改人
+	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updatedAt"`          // 修改时间
+	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt"`          // 删除标识（0-正常 1-删除）
+	UseCount      int32          `gorm:"column:use_count;default:0" json:"useCount"`  // 总计使用次数
 }
 
 // TableName TOemAppTemplate's table name

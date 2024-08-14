@@ -118,6 +118,19 @@ func (field String) Concat(before, after string) String {
 	}
 }
 
+func (field String) ConcatExtract(before, after string) String {
+	switch {
+	case before != "" && after != "":
+		return String{expr{col: field.col, e: clause.Expr{SQL: "CONCAT(?,IFNULL(?, ''),?)", Vars: []interface{}{before, field.RawExpr(), after}}}}
+	case before != "":
+		return String{expr{col: field.col, e: clause.Expr{SQL: "CONCAT(?,IFNULL(?, ''))", Vars: []interface{}{before, field.RawExpr()}}}}
+	case after != "":
+		return String{expr{col: field.col, e: clause.Expr{SQL: "CONCAT(IFNULL(?, ''),?)", Vars: []interface{}{field.RawExpr(), after}}}}
+	default:
+		return field
+	}
+}
+
 func (field String) toSlice(values []string) []interface{} {
 	slice := make([]interface{}, len(values))
 	for i, v := range values {

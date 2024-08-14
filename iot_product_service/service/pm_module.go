@@ -180,13 +180,14 @@ func (s *PmModuleSvc) UpdatePmModule(req *proto.PmModule) (*proto.PmModule, erro
 	if req.Id == 0 {
 		return nil, errors.New("主键Id不能为空")
 	}
-	oriObj, err := q.TPmModule.WithContext(context.Background()).Where(q.TPmModule.Id.Eq(req.Id)).First()
-	if err != nil {
-		return nil, err
-	}
-	if oriObj.Status == 1 {
-		return nil, errors.New("已启用模组芯片无法编辑")
-	}
+	var err error
+	//oriObj, err := q.TPmModule.WithContext(context.Background()).Where(q.TPmModule.Id.Eq(req.Id)).First()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if oriObj.Status == 1 {
+	//	return nil, errors.New("已启用模组芯片无法编辑")
+	//}
 	//执行报错
 	err = q.Transaction(func(tx *orm.Query) error {
 		t := tx.TPmModule
@@ -286,13 +287,14 @@ func (s *PmModuleSvc) UpdateAllPmModule(req *proto.PmModule) (*proto.PmModule, e
 	if req.Id == 0 {
 		return nil, errors.New("主键Id不能为空")
 	}
-	oriObj, err := q.TPmModule.WithContext(context.Background()).Where(q.TPmModule.Id.Eq(req.Id)).First()
-	if err != nil {
-		return nil, err
-	}
-	if oriObj.Status == 1 {
-		return nil, errors.New("已启用模组芯片无法编辑")
-	}
+	var err error
+	//oriObj, err := q.TPmModule.WithContext(context.Background()).Where(q.TPmModule.Id.Eq(req.Id)).First()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if oriObj.Status == 1 {
+	//	return nil, errors.New("已启用模组芯片无法编辑")
+	//}
 	//执行报错
 	err = q.Transaction(func(tx *orm.Query) error {
 		t := tx.TPmModule

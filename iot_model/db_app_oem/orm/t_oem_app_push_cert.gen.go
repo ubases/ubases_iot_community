@@ -35,6 +35,7 @@ func newTOemAppPushCert(db *gorm.DB) tOemAppPushCert {
 	_tOemAppPushCert.Xiaomi = field.NewString(tableName, "xiaomi")
 	_tOemAppPushCert.Vivo = field.NewString(tableName, "vivo")
 	_tOemAppPushCert.Oppo = field.NewString(tableName, "oppo")
+	_tOemAppPushCert.Honor = field.NewString(tableName, "honor")
 
 	_tOemAppPushCert.fillFieldMap()
 
@@ -55,6 +56,7 @@ type tOemAppPushCert struct {
 	Xiaomi  field.String
 	Vivo    field.String
 	Oppo    field.String
+	Honor   field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -81,6 +83,7 @@ func (t *tOemAppPushCert) updateTableName(table string) *tOemAppPushCert {
 	t.Xiaomi = field.NewString(table, "xiaomi")
 	t.Vivo = field.NewString(table, "vivo")
 	t.Oppo = field.NewString(table, "oppo")
+	t.Honor = field.NewString(table, "honor")
 
 	t.fillFieldMap()
 
@@ -93,6 +96,8 @@ func (t *tOemAppPushCert) WithContext(ctx context.Context) *tOemAppPushCertDo {
 
 func (t tOemAppPushCert) TableName() string { return t.tOemAppPushCertDo.TableName() }
 
+func (t tOemAppPushCert) Alias() string { return t.tOemAppPushCertDo.Alias() }
+
 func (t *tOemAppPushCert) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := t.fieldMap[fieldName]
 	if !ok || _f == nil {
@@ -103,7 +108,7 @@ func (t *tOemAppPushCert) GetFieldByName(fieldName string) (field.OrderExpr, boo
 }
 
 func (t *tOemAppPushCert) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 10)
+	t.fieldMap = make(map[string]field.Expr, 11)
 	t.fieldMap["id"] = t.Id
 	t.fieldMap["app_id"] = t.AppId
 	t.fieldMap["version"] = t.Version
@@ -114,6 +119,7 @@ func (t *tOemAppPushCert) fillFieldMap() {
 	t.fieldMap["xiaomi"] = t.Xiaomi
 	t.fieldMap["vivo"] = t.Vivo
 	t.fieldMap["oppo"] = t.Oppo
+	t.fieldMap["honor"] = t.Honor
 }
 
 func (t tOemAppPushCert) clone(db *gorm.DB) tOemAppPushCert {

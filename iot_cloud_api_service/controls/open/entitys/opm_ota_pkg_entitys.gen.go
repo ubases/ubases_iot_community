@@ -7,7 +7,6 @@ package entitys
 import (
 	services "cloud_platform/iot_cloud_api_service/controls/global"
 	"cloud_platform/iot_common/iotconst"
-	"cloud_platform/iot_common/iotutil"
 	proto "cloud_platform/iot_proto/protos/protosService"
 	"errors"
 )
@@ -23,6 +22,7 @@ type OpmOtaPkgEntitys struct {
 	FirmwareType         int32  `json:"firmwareType"`
 	FirmwareTypeName     string `json:"firmwareTypeName"`
 	FirmwareName         string `json:"firmwareName"`
+	FirmwareKey         string `json:"firmwareKey"`
 	Version              string `json:"version"`
 	VersionId            int64  `json:"versionId,string"`
 	UpgradeMode          int32  `json:"upgradeMode"`
@@ -78,7 +78,7 @@ type OpmOtaPkgQuery struct {
 
 // OpmOtaPkgFilter，查询条件，字段请根据需要自行增减
 type OpmOtaPkgFilter struct {
-	Id                   interface{} `json:"id,string,omitempty"`
+	Id                   string `json:"id,omitempty"`
 	ProductId            int64       `json:"productId,string,omitempty"`
 	ProductKey           string      `json:"productKey,omitempty"`
 	FirmwareId           int64       `json:"firmwareId,string,omitempty"`
@@ -103,6 +103,7 @@ type OpmOtaPkgFilter struct {
 	Md5                  string      `json:"md5,omitempty"`
 	TenantId             string      `json:"tenantId,omitempty"`
 	IsCustomFirmware     int32       `json:"isCustomFirmware"` //是否自定义固件
+	FirmwareKey string `json:"firmwareKey"` //固件Key
 }
 
 // 实体转pb对象
@@ -158,11 +159,11 @@ func OpmOtaPkg_pb2e(src *proto.OpmOtaPkg) *OpmOtaPkgEntitys {
 		Id:         src.Id,
 		ProductId:  src.ProductId,
 		ProductKey: src.ProductKey,
-		//Type:                 src.Type,
 		FirmwareId:           src.FirmwareId,
 		FirmwareFlag:         src.FirmwareFlag,
 		FirmwareType:         src.FirmwareType,
 		FirmwareName:         src.FirmwareName,
+		FirmwareKey: 		  src.FirmwareKey,
 		FirmwareTypeName:     firmwareType.Value(src.FirmwareType),
 		VersionId:            src.VersionId,
 		Version:              src.Version,
@@ -198,16 +199,14 @@ func OpmOtaPkgFilter_e2pb(src *OpmOtaPkgFilter) *proto.OpmOtaPkg {
 	if src == nil {
 		return nil
 	}
-	id, _ := iotutil.ToInt64AndErr(src.Id)
 	pbObj := proto.OpmOtaPkg{
-		Id:         id,
 		ProductId:  src.ProductId,
 		ProductKey: src.ProductKey,
-		//Type:                 src.Type,
 		FirmwareId:           src.FirmwareId,
 		FirmwareName:         src.FirmwareName,
 		FirmwareFlag:         src.FirmwareFlag,
 		FirmwareType:         src.FirmwareType,
+		FirmwareKey: src.Id,
 		VersionId:            src.VersionId,
 		Version:              src.Version,
 		UpgradeMode:          src.UpgradeMode,

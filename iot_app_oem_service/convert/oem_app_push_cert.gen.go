@@ -24,6 +24,7 @@ func OemAppPushCert_pb2db(src *proto.OemAppPushCert) *model.TOemAppPushCert {
 		Xiaomi:  src.Xiaomi,
 		Vivo:    src.Vivo,
 		Oppo:    src.Oppo,
+		Honor:    src.Honor,
 	}
 	return &dbObj
 }
@@ -43,6 +44,7 @@ func OemAppPushCert_db2pb(src *model.TOemAppPushCert) *proto.OemAppPushCert {
 		Xiaomi:  src.Xiaomi,
 		Vivo:    src.Vivo,
 		Oppo:    src.Oppo,
+		Honor:    src.Honor,
 	}
 	return &pbObj
 }
