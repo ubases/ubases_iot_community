@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: iot_device_simulator.Dockerfile
     container_name: iot_device_simulator
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai

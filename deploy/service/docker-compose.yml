@@ -6,7 +6,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_app_api_service.Dockerfile
     container_name: iot_app_api_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -23,7 +23,7 @@ services:
       dockerfile: ./deploy/service/iot_app_oem_service.Dockerfile
     container_name: iot_app_oem_service
     privileged: true
-    restart: always
+    restart: unless-stopped
     environment:
       TZ: Asia/Shanghai
     volumes:
@@ -37,7 +37,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_app_user_service.Dockerfile
     container_name: iot_app_user_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -51,7 +51,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_basic_service.Dockerfile
     container_name: iot_basic_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -65,7 +65,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_cloud_api_service.Dockerfile
     container_name: iot_cloud_api_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -82,7 +82,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_device_service.Dockerfile
     container_name: iot_device_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -96,7 +96,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_intelligence_service.Dockerfile
     container_name: iot_intelligence_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -110,7 +110,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_log_service.Dockerfile
     container_name: iot_log_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -124,7 +124,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_message_service.Dockerfile
     container_name: iot_message_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -138,7 +138,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_mqtt_data_service.Dockerfile
     container_name: iot_mqtt_data_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -154,7 +154,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_mqtt_service.Dockerfile
     container_name: iot_mqtt_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -170,7 +170,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_open_system_service.Dockerfile
     container_name: iot_open_system_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -184,7 +184,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_product_service.Dockerfile
     container_name: iot_product_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -198,7 +198,7 @@ services:
 #      context: ../..
 #      dockerfile: ./deploy/service/iot_voice_service.Dockerfile
 #    container_name: iot_voice_service
-#    restart: always
+#    restart: unless-stopped
 #    privileged: true
 #    environment:
 #      TZ: Asia/Shanghai
@@ -216,7 +216,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_statistics_service.Dockerfile
     container_name: iot_statistics_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -230,7 +230,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_system_service.Dockerfile
     container_name: iot_system_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
@@ -244,7 +244,7 @@ services:
       context: ../..
       dockerfile: ./deploy/service/iot_weather_service.Dockerfile
     container_name: iot_weather_service
-    restart: always
+    restart: unless-stopped
     privileged: true
     environment:
       TZ: Asia/Shanghai
