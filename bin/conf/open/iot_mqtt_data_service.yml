@@ -29,6 +29,7 @@ MQTT:
     Register: 600 #单位：秒
     Publish: 600 #单位：秒
     Subscribe: 600 #单位：秒
+  keepalive: 60
 
 NATS:
   addrs: ["nats://iLmz8sCXjkTYuh@nats-server:4222"]

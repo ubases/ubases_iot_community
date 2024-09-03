@@ -38,7 +38,8 @@ MQTT:
     Subscribe: 600 #单位：秒
   rate: 1000
   bursts: 1000
-  
+  keepalive: 60
+
 MQTTAuth:
   SvrSalt: "mysalt"
   TestingClientPrefix: "axytesting"
